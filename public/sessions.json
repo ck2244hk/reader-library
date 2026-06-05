@@ -1,0 +1,12 @@
+[
+  {
+    "id": "vulkan-overview",
+    "title": "Vulkan Tutorial — Overview",
+    "url": "https://vulkan-tutorial.com/en/Overview",
+    "date": "2026-06-04",
+    "tags": ["graphics", "vulkan", "gpu"],
+    "questionCount": 8,
+    "file": "sessions/vulkan-overview-learning.html",
+    "excerpt": "Why Vulkan exists, the 8-step triangle pipeline, and how the API is structured at a low level."
+  }
+]
