@@ -18,5 +18,15 @@
     "questionCount": 7,
     "file": "sessions/vulkan-base-code-learning.html",
     "excerpt": "The HelloTriangleApplication class structure, explicit Vulkan resource lifecycle, and GLFW window integration that form the base for every subsequent chapter."
+  },
+  {
+    "id": "vulkan-instance",
+    "title": "Vulkan Tutorial — Instance",
+    "url": "https://vulkan-tutorial.com/en/Drawing_a_triangle/Setup/Instance",
+    "date": "2026-06-06",
+    "tags": ["graphics", "vulkan", "gpu", "cpp"],
+    "questionCount": 8,
+    "file": "sessions/vulkan-instance-learning.html",
+    "excerpt": "Creating a VkInstance — the root Vulkan object — by filling VkApplicationInfo and VkInstanceCreateInfo, querying GLFW extensions, and handling the macOS portability edge case."
   }
 ]

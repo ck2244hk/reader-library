@@ -1,0 +1,558 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Vulkan Tutorial — Instance | Learning Session</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=IBM+Plex+Mono:wght@400;500&family=Syne:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #0d0f14; --bg-surface: #10131a; --bg-card: #12151d; --bg-row-alt: #0f1118;
+    --border: #1e2333; --gold: #c9a84c; --gold-dim: #7a6230; --gold-glow: rgba(201,168,76,0.1);
+    --blue: #7eb8d4; --green: #5db88a; --green-dim: rgba(93,184,138,0.15); --green-border: rgba(93,184,138,0.35);
+    --red: #d46a6a; --red-dim: rgba(212,106,106,0.15); --red-border: rgba(212,106,106,0.35);
+    --amber: #d4965a;
+    --text-1: #e8e4dc; --text-2: #8a8c99; --text-3: #4a4e62;
+    --tag-bg: #1a1e2c; --tag-border: #252a3a;
+  }
+  html { background: var(--bg); color: var(--text-1); font-family: 'Syne', sans-serif; -webkit-font-smoothing: antialiased; }
+  body { min-height: 100vh; padding-bottom: 80px; }
+  ::-webkit-scrollbar { width: 4px; }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+
+  /* Header */
+  .hdr { position: sticky; top: 0; z-index: 10; background: var(--bg-surface); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 12px 24px; gap: 16px; flex-wrap: wrap; }
+  .hdr-left { display: flex; align-items: center; gap: 10px; }
+  .hdr-gem { color: var(--gold); font-size: 14px; }
+  .hdr-title { font-family: 'DM Serif Display', serif; font-size: 16px; color: var(--text-1); }
+  .hdr-right { display: flex; align-items: center; gap: 12px; }
+  .score-tally { font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: var(--text-3); white-space: nowrap; }
+  .score-tally span { color: var(--gold); }
+  .hdr-url { font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: var(--text-3); background: var(--tag-bg); border: 1px solid var(--tag-border); border-radius: 5px; padding: 4px 10px; text-decoration: none; white-space: nowrap; transition: color 0.2s, border-color 0.2s; }
+  .hdr-url:hover { color: var(--gold); border-color: var(--gold-dim); }
+
+  /* Content */
+  .content { max-width: 800px; margin: 0 auto; padding: 40px 24px; display: flex; flex-direction: column; gap: 40px; }
+  .framing { font-family: 'DM Serif Display', serif; font-size: 16px; color: var(--gold); border-left: 2px solid var(--gold); padding-left: 14px; line-height: 1.55; font-style: italic; }
+  .section { display: flex; flex-direction: column; gap: 14px; }
+  .sec-label { font-family: 'IBM Plex Mono', monospace; font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--text-3); }
+
+  /* Terminology */
+  .term-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .term-table th { font-family: 'IBM Plex Mono', monospace; font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-3); text-align: left; padding: 8px 12px; background: var(--bg-surface); border-bottom: 1px solid var(--border); }
+  .term-table td { padding: 9px 12px; border-bottom: 1px solid var(--border); vertical-align: top; color: var(--text-2); line-height: 1.5; }
+  .term-table tr:nth-child(even) td { background: var(--bg-row-alt); }
+  .term-table td:first-child { font-family: 'IBM Plex Mono', monospace; font-size: 11.5px; color: var(--blue); white-space: nowrap; }
+
+  /* Code block */
+  .code-block { background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px; padding: 16px 18px; font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: var(--text-2); line-height: 1.65; overflow-x: auto; white-space: pre; }
+  .code-label { font-family: 'IBM Plex Mono', monospace; font-size: 9px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--text-3); margin-bottom: 8px; }
+
+  /* Logic Flow */
+  .logic-flow { font-size: 14px; line-height: 1.8; color: var(--text-2); display: flex; flex-direction: column; gap: 14px; }
+
+  /* Step-by-Step */
+  .steps-list { list-style: none; display: flex; flex-direction: column; gap: 10px; counter-reset: steps; }
+  .step-item { counter-increment: steps; background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px; padding: 14px 16px 14px 54px; position: relative; }
+  .step-item::before { content: counter(steps); position: absolute; left: 14px; top: 14px; font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: var(--gold); background: var(--gold-glow); border: 1px solid var(--gold-dim); border-radius: 4px; width: 26px; height: 26px; display: flex; align-items: center; justify-content: center; }
+  .step-name { font-size: 13.5px; font-weight: 500; color: var(--text-1); margin-bottom: 7px; line-height: 1.4; }
+  .step-why { font-size: 12.5px; color: var(--text-2); line-height: 1.55; margin-bottom: 4px; display: flex; gap: 6px; }
+  .step-why-label { font-family: 'IBM Plex Mono', monospace; font-size: 9px; color: var(--green); background: rgba(93,184,138,0.1); border: 1px solid rgba(93,184,138,0.2); border-radius: 3px; padding: 2px 5px; flex-shrink: 0; margin-top: 2px; letter-spacing: 0.06em; }
+  .step-warn { font-size: 12.5px; color: var(--text-2); line-height: 1.55; display: flex; gap: 6px; margin-top: 4px; }
+  .step-warn-label { font-family: 'IBM Plex Mono', monospace; font-size: 9px; color: var(--amber); background: rgba(212,150,90,0.1); border: 1px solid rgba(212,150,90,0.2); border-radius: 3px; padding: 2px 5px; flex-shrink: 0; margin-top: 2px; letter-spacing: 0.06em; }
+  .step-sub { list-style: none; margin-top: 8px; display: flex; flex-direction: column; gap: 5px; padding-left: 0; border-left: 1px solid var(--border); margin-left: 2px; }
+  .step-sub li { font-size: 12.5px; color: var(--text-2); line-height: 1.55; padding-left: 12px; font-family: 'IBM Plex Mono', monospace; }
+
+  /* Quiz */
+  .quiz-cards { display: flex; flex-direction: column; gap: 14px; }
+  .quiz-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px; padding: 18px 20px; transition: border-color 0.2s; }
+  .quiz-card.answered-correct { border-left: 3px solid var(--green); }
+  .quiz-card.answered-wrong { border-left: 3px solid var(--red); }
+  .q-num { font-family: 'IBM Plex Mono', monospace; font-size: 10px; color: var(--gold); margin-bottom: 3px; }
+  .q-type { font-family: 'IBM Plex Mono', monospace; font-size: 9px; color: var(--text-3); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 10px; }
+  .q-text { font-size: 13.5px; font-weight: 500; color: var(--text-1); line-height: 1.55; margin-bottom: 14px; }
+  .q-text code { font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: var(--blue); background: var(--tag-bg); padding: 1px 5px; border-radius: 3px; }
+
+  .q-options { display: flex; flex-direction: column; gap: 7px; margin-bottom: 14px; }
+  .q-option { display: flex; gap: 10px; align-items: flex-start; font-size: 13px; color: var(--text-2); line-height: 1.5; padding: 9px 12px; border: 1px solid var(--border); border-radius: 6px; cursor: pointer; transition: border-color 0.15s, background 0.15s; user-select: none; }
+  .q-option:hover { border-color: var(--gold-dim); background: var(--gold-glow); }
+  .q-option.selected { border-color: var(--gold); background: var(--gold-glow); }
+  .q-option.selected .q-letter { color: var(--gold); border-color: var(--gold-dim); background: rgba(201,168,76,0.15); }
+  .q-option.correct { border-color: var(--green); background: var(--green-dim); pointer-events: none; }
+  .q-option.correct .q-letter { color: var(--green); border-color: var(--green-border); background: rgba(93,184,138,0.15); }
+  .q-option.wrong { border-color: var(--red); background: var(--red-dim); pointer-events: none; }
+  .q-option.wrong .q-letter { color: var(--red); border-color: var(--red-border); background: rgba(212,106,106,0.15); }
+  .q-option.locked { pointer-events: none; }
+  .q-letter { font-family: 'IBM Plex Mono', monospace; font-size: 10px; background: var(--tag-bg); border: 1px solid var(--tag-border); border-radius: 3px; padding: 2px 6px; color: var(--text-3); flex-shrink: 0; margin-top: 1px; transition: color 0.15s, border-color 0.15s, background 0.15s; }
+
+  .check-btn { display: flex; align-items: center; gap: 8px; background: transparent; border: 1px solid var(--gold-dim); border-radius: 6px; padding: 9px 16px; font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: var(--gold); cursor: pointer; transition: all 0.2s; }
+  .check-btn:hover:not(:disabled) { background: var(--gold-glow); border-color: var(--gold); }
+  .check-btn:disabled { border-color: var(--border); color: var(--text-3); cursor: default; }
+
+  .q-feedback { display: none; margin-top: 12px; padding: 11px 14px; border-radius: 6px; font-size: 13px; line-height: 1.65; color: var(--text-2); }
+  .q-feedback.correct { display: block; background: var(--green-dim); border: 1px solid var(--green-border); }
+  .q-feedback.wrong { display: block; background: var(--red-dim); border: 1px solid var(--red-border); }
+  .q-feedback .fb-verdict { font-weight: 600; color: var(--text-1); margin-bottom: 4px; display: flex; align-items: center; gap: 6px; }
+  .q-feedback.correct .fb-verdict { color: var(--green); }
+  .q-feedback.wrong .fb-verdict { color: var(--red); }
+
+  /* Score summary */
+  .score-summary { background: var(--bg-card); border: 1px solid var(--border); border-radius: 10px; padding: 28px 24px; text-align: center; display: none; flex-direction: column; gap: 10px; }
+  .score-summary.visible { display: flex; }
+  .score-summary-num { font-family: 'DM Serif Display', serif; font-size: 36px; color: var(--gold); }
+  .score-summary-msg { font-size: 14px; color: var(--text-2); }
+</style>
+</head>
+<body>
+
+<header class="hdr">
+  <div class="hdr-left">
+    <span class="hdr-gem">◆</span>
+    <span class="hdr-title">Vulkan Tutorial — Instance</span>
+  </div>
+  <div class="hdr-right">
+    <span class="score-tally" id="score-tally">0 / 8 answered &middot; <span id="score-correct">0</span> correct</span>
+    <a class="hdr-url" href="https://vulkan-tutorial.com/en/Drawing_a_triangle/Setup/Instance" target="_blank" rel="noopener">vulkan-tutorial.com ↗</a>
+  </div>
+</header>
+
+<div class="content">
+
+  <p class="framing">Creating a VkInstance is the first real Vulkan call — it roots the object hierarchy, declares which window-system extensions the app needs, and establishes the connection between your code and the Vulkan driver.</p>
+
+  <!-- KEY TERMINOLOGY -->
+  <div class="section">
+    <div class="sec-label">Key Terminology</div>
+    <table class="term-table">
+      <thead>
+        <tr><th>Term</th><th>Definition</th><th>Why it matters here</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>VkInstance</td><td>The root Vulkan handle that represents the connection between the application and the Vulkan library</td><td>Every other Vulkan object (physical device, logical device, swap chain) descends from this handle — creating it correctly is the foundation of the entire app</td></tr>
+        <tr><td>VkApplicationInfo</td><td>A struct providing optional application metadata (name, version, engine, API version) to the Vulkan driver</td><td>Technically optional, but drivers can use it to enable engine-specific optimizations; must be pointed to by VkInstanceCreateInfo</td></tr>
+        <tr><td>VkInstanceCreateInfo</td><td>A mandatory struct specifying the global extensions and validation layers the instance should enable</td><td>The central configuration object for vkCreateInstance — everything funnels through it</td></tr>
+        <tr><td>sType</td><td>A required field on every Vulkan struct set to a VK_STRUCTURE_TYPE_* enum matching the struct</td><td>Allows Vulkan to identify struct types when they're passed as void* through extension chains; missing or wrong sType causes undefined behaviour</td></tr>
+        <tr><td>pNext</td><td>A pointer field on most Vulkan structs used to chain extension-specific info structs together</td><td>Set to nullptr when no extensions are being chained; the tutorial uses value-initialization ({}) to ensure this automatically</td></tr>
+        <tr><td>VkResult / VK_SUCCESS</td><td>VkResult is the integer return type of most Vulkan functions; VK_SUCCESS (0) means the call succeeded</td><td>The tutorial pattern is to inline vkCreateInstance in an if-not-equals check and throw on failure</td></tr>
+        <tr><td>vkCreateInstance</td><td>The function that creates the Vulkan instance; takes a createInfo pointer, optional allocator, and output handle pointer</td><td>Its three-parameter pattern — (info struct, allocator, handle out) — recurs for every subsequent vkCreateXXX call</td></tr>
+        <tr><td>vkDestroyInstance</td><td>Destroys the VkInstance and must be the last Vulkan call before program exit</td><td>All other Vulkan resources must be destroyed before this — destroying them after causes use-after-free in the driver</td></tr>
+        <tr><td>glfwGetRequiredInstanceExtensions</td><td>GLFW function that returns the array of Vulkan instance extension names needed for the current platform's window system</td><td>Because Vulkan is window-system-agnostic, these extensions are mandatory for surface creation; skipping them causes failure at surface creation time</td></tr>
+        <tr><td>vkEnumerateInstanceExtensionProperties</td><td>Queries all instance-level extensions supported by the Vulkan implementation</td><td>Uses the two-call pattern: first call with nullptr fills the count, second call with an allocated vector fills the details</td></tr>
+        <tr><td>VkExtensionProperties</td><td>Struct returned by vkEnumerateInstanceExtensionProperties containing an extension's name and version</td><td>Used to verify that required extensions are available before calling vkCreateInstance</td></tr>
+        <tr><td>VK_KHR_PORTABILITY_ENUMERATION_EXTENSION_NAME</td><td>Extension required on macOS (MoltenVK SDK ≥ 1.3.216) to enumerate portability-subset devices</td><td>Without it, vkCreateInstance returns VK_ERROR_INCOMPATIBLE_DRIVER on Apple platforms with recent SDKs</td></tr>
+        <tr><td>Global extensions</td><td>Extensions that apply to the entire Vulkan instance, not to a specific physical or logical device</td><td>Contrast with device extensions (like swap chain support) which are enabled later on a per-device basis</td></tr>
+        <tr><td>VK_MAKE_VERSION</td><td>Macro that packs major, minor, and patch integers into a uint32_t version number</td><td>Used to set applicationVersion, engineVersion, and apiVersion fields in VkApplicationInfo</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- COMPLETE CODE -->
+  <div class="section">
+    <div class="sec-label">Complete createInstance()</div>
+    <div class="code-label">Standard path (Windows / Linux)</div>
+    <div class="code-block">void createInstance() {
+    VkApplicationInfo appInfo{};
+    appInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
+    appInfo.pApplicationName = "Hello Triangle";
+    appInfo.applicationVersion = VK_MAKE_VERSION(1, 0, 0);
+    appInfo.pEngineName = "No Engine";
+    appInfo.engineVersion = VK_MAKE_VERSION(1, 0, 0);
+    appInfo.apiVersion = VK_API_VERSION_1_0;
+
+    VkInstanceCreateInfo createInfo{};
+    createInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
+    createInfo.pApplicationInfo = &amp;appInfo;
+
+    uint32_t glfwExtensionCount = 0;
+    const char** glfwExtensions;
+    glfwExtensions = glfwGetRequiredInstanceExtensions(&amp;glfwExtensionCount);
+
+    createInfo.enabledExtensionCount = glfwExtensionCount;
+    createInfo.ppEnabledExtensionNames = glfwExtensions;
+    createInfo.enabledLayerCount = 0;
+
+    if (vkCreateInstance(&amp;createInfo, nullptr, &amp;instance) != VK_SUCCESS) {
+        throw std::runtime_error("failed to create instance!");
+    }
+}</div>
+    <div class="code-label" style="margin-top:16px;">macOS fix (MoltenVK SDK ≥ 1.3.216)</div>
+    <div class="code-block">std::vector&lt;const char*&gt; requiredExtensions;
+for (uint32_t i = 0; i &lt; glfwExtensionCount; i++) {
+    requiredExtensions.emplace_back(glfwExtensions[i]);
+}
+requiredExtensions.emplace_back(VK_KHR_PORTABILITY_ENUMERATION_EXTENSION_NAME);
+
+createInfo.flags |= VK_INSTANCE_CREATE_ENUMERATE_PORTABILITY_BIT_KHR;
+createInfo.enabledExtensionCount = (uint32_t) requiredExtensions.size();
+createInfo.ppEnabledExtensionNames = requiredExtensions.data();</div>
+    <div class="code-label" style="margin-top:16px;">Optional: enumerate supported extensions</div>
+    <div class="code-block">uint32_t extensionCount = 0;
+vkEnumerateInstanceExtensionProperties(nullptr, &amp;extensionCount, nullptr);
+
+std::vector&lt;VkExtensionProperties&gt; extensions(extensionCount);
+vkEnumerateInstanceExtensionProperties(nullptr, &amp;extensionCount, extensions.data());
+
+std::cout &lt;&lt; "available extensions:\n";
+for (const auto&amp; extension : extensions) {
+    std::cout &lt;&lt; '\t' &lt;&lt; extension.extensionName &lt;&lt; '\n';
+}</div>
+    <div class="code-label" style="margin-top:16px;">Cleanup</div>
+    <div class="code-block">void cleanup() {
+    vkDestroyInstance(instance, nullptr);  // must come first
+
+    glfwDestroyWindow(window);
+    glfwTerminate();
+}</div>
+  </div>
+
+  <!-- LOGIC FLOW -->
+  <div class="section">
+    <div class="sec-label">Logic Flow</div>
+    <div class="logic-flow">
+      <p>The instance is Vulkan's root object — the first real API object created and the last destroyed. Everything else in the tutorial (physical device selection, logical device, swap chain) hangs off it. That makes instance creation the critical handshake between the application and the Vulkan driver, and the two structs involved — VkApplicationInfo and VkInstanceCreateInfo — each serve a distinct purpose in that handshake.</p>
+      <p>VkApplicationInfo is optional but meaningful. The driver can inspect the engine name and version and apply known optimizations or compatibility workarounds for well-known engines (Unreal, Unity, etc.). The tutorial fills it with placeholder values; real applications would use their actual names. The struct follows the universal Vulkan struct pattern: an sType field that identifies the struct type to the runtime, a pNext pointer for extension chaining (set to nullptr here via value-initialization), and then the actual data fields.</p>
+      <p>VkInstanceCreateInfo is where the mandatory work happens. It points to the application info struct and, crucially, lists the global extensions to enable. Vulkan has no built-in knowledge of any window system — it's intentionally portable across Win32, Cocoa, Wayland, and others. The extensions needed to bridge Vulkan to the active window system are provided by GLFW via glfwGetRequiredInstanceExtensions(), which returns a platform-appropriate list. Without those extensions, creating a window surface later will fail. Validation layers are also declared here, but the tutorial defers them to the next chapter — enabledLayerCount is set to zero for now.</p>
+      <p>The vkCreateInstance call itself establishes the three-argument pattern common to all vkCreateXXX functions: a pointer to the creation info struct, a pointer to a custom VkAllocationCallbacks (nullptr throughout this tutorial), and a pointer to the output handle. The return value is a VkResult; the tutorial inlines it in an if-not-equals-VK_SUCCESS check and throws on failure.</p>
+      <p>The macOS portability issue reveals an important evolution in the MoltenVK ecosystem. Since SDK 1.3.216, the VK_KHR_portability_subset device extension became mandatory on Apple GPUs, and to enumerate devices that expose it you must set VK_INSTANCE_CREATE_ENUMERATE_PORTABILITY_BIT_KHR on the instance flags and add VK_KHR_PORTABILITY_ENUMERATION_EXTENSION_NAME to the extension list. Omitting either causes VK_ERROR_INCOMPATIBLE_DRIVER — a misleading error code that makes it look like no Vulkan driver is present.</p>
+      <p>Extension enumeration with vkEnumerateInstanceExtensionProperties introduces a two-call pattern that reappears throughout Vulkan: call once with a nullptr array to get the count, allocate a vector of that size, call again to fill it. This pattern appears again for physical device enumeration, queue family queries, and swap chain details — recognizing it here makes subsequent chapters easier to follow.</p>
+    </div>
+  </div>
+
+  <!-- STEP-BY-STEP -->
+  <div class="section">
+    <div class="sec-label">Step-by-Step — Creating the Instance</div>
+    <ol class="steps-list">
+
+      <li class="step-item">
+        <div class="step-name">Add VkInstance as a private member and declare createInstance()</div>
+        <div class="step-why"><span class="step-why-label">WHY</span>The instance handle must outlive the createInstance() call so cleanup() can destroy it later. Making it a class member (not a local variable) ties its lifetime to the application object.</div>
+      </li>
+
+      <li class="step-item">
+        <div class="step-name">Call createInstance() from initVulkan()</div>
+        <div class="step-why"><span class="step-why-label">WHY</span>Instance creation is the first step in the Vulkan init sequence; it must precede everything else in initVulkan() because all subsequent vkCreate calls depend on a valid VkInstance.</div>
+      </li>
+
+      <li class="step-item">
+        <div class="step-name">Fill VkApplicationInfo</div>
+        <div class="step-why"><span class="step-why-label">WHY</span>Provides optional app metadata the driver may use for optimizations. Even with placeholder values, setting apiVersion to VK_API_VERSION_1_0 tells the driver the minimum Vulkan version the app targets.</div>
+        <div class="step-warn"><span class="step-warn-label">WATCH OUT</span>Always set sType to VK_STRUCTURE_TYPE_APPLICATION_INFO — missing or wrong sType produces undefined behaviour.</div>
+        <ul class="step-sub">
+          <li>a. appInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO</li>
+          <li>b. appInfo.pApplicationName = "Hello Triangle"</li>
+          <li>c. appInfo.applicationVersion = VK_MAKE_VERSION(1, 0, 0)</li>
+          <li>d. appInfo.pEngineName = "No Engine"</li>
+          <li>e. appInfo.engineVersion = VK_MAKE_VERSION(1, 0, 0)</li>
+          <li>f. appInfo.apiVersion = VK_API_VERSION_1_0</li>
+        </ul>
+      </li>
+
+      <li class="step-item">
+        <div class="step-name">Fill VkInstanceCreateInfo and link to appInfo</div>
+        <div class="step-why"><span class="step-why-label">WHY</span>This is the mandatory struct that drives instance creation. Linking pApplicationInfo = &amp;appInfo passes the optional metadata through.</div>
+        <div class="step-warn"><span class="step-warn-label">WATCH OUT</span>appInfo must remain in scope until vkCreateInstance returns — it's passed by pointer, not by value.</div>
+      </li>
+
+      <li class="step-item">
+        <div class="step-name">Query GLFW for required extensions and set them on createInfo</div>
+        <div class="step-why"><span class="step-why-label">WHY</span>Vulkan has no built-in window system support. GLFW's glfwGetRequiredInstanceExtensions() returns the platform-specific extension names that must be enabled for surface creation to succeed later.</div>
+        <div class="step-warn"><span class="step-warn-label">WATCH OUT</span>On macOS (MoltenVK SDK ≥ 1.3.216): copy the extensions into a vector, append VK_KHR_PORTABILITY_ENUMERATION_EXTENSION_NAME, and set VK_INSTANCE_CREATE_ENUMERATE_PORTABILITY_BIT_KHR on createInfo.flags — or vkCreateInstance returns VK_ERROR_INCOMPATIBLE_DRIVER.</div>
+        <ul class="step-sub">
+          <li>a. glfwGetRequiredInstanceExtensions(&amp;glfwExtensionCount)</li>
+          <li>b. createInfo.enabledExtensionCount = glfwExtensionCount</li>
+          <li>c. createInfo.ppEnabledExtensionNames = glfwExtensions</li>
+        </ul>
+      </li>
+
+      <li class="step-item">
+        <div class="step-name">Set enabledLayerCount = 0</div>
+        <div class="step-why"><span class="step-why-label">WHY</span>Validation layers are deferred to the next chapter. Setting the count to zero explicitly (value-initialization does this too) avoids reading uninitialized memory.</div>
+      </li>
+
+      <li class="step-item">
+        <div class="step-name">Call vkCreateInstance and check the result</div>
+        <div class="step-why"><span class="step-why-label">WHY</span>Returns VK_SUCCESS on success or an error code on failure. Throwing std::runtime_error on failure follows the tutorial's error propagation pattern — caught in main() and printed.</div>
+        <div class="step-warn"><span class="step-warn-label">WATCH OUT</span>VK_ERROR_EXTENSION_NOT_PRESENT means a requested extension isn't supported. Use vkEnumerateInstanceExtensionProperties beforehand to detect this.</div>
+      </li>
+
+      <li class="step-item">
+        <div class="step-name">Add vkDestroyInstance(instance, nullptr) as the first call in cleanup()</div>
+        <div class="step-why"><span class="step-why-label">WHY</span>All Vulkan resources created from the instance must be destroyed before the instance itself. Placing this first in cleanup() ensures it is always last in the destruction sequence as more resources are added in later chapters.</div>
+        <div class="step-warn"><span class="step-warn-label">WATCH OUT</span>vkDestroyInstance must come before glfwDestroyWindow — not after. Destroying the window first can cause issues when Vulkan surface objects (added later) still reference the GLFW window handle.</div>
+      </li>
+
+    </ol>
+  </div>
+
+  <!-- QUIZ -->
+  <div class="section">
+    <div class="sec-label">Quiz — 8 Questions</div>
+    <div class="quiz-cards">
+
+      <div class="quiz-card" data-answer="B">
+        <div class="q-num">Q1</div>
+        <div class="q-type">terminology</div>
+        <div class="q-text">What role does <code>VkApplicationInfo</code> play in instance creation — and is it mandatory?</div>
+        <div class="q-options">
+          <div class="q-option" data-option="A" onclick="selectOption(this)"><span class="q-letter">A</span>Mandatory — Vulkan uses it to validate that the app's API version matches the driver</div>
+          <div class="q-option" data-option="B" onclick="selectOption(this)"><span class="q-letter">B</span>Optional — it provides app metadata that may help the driver apply engine-specific optimizations</div>
+          <div class="q-option" data-option="C" onclick="selectOption(this)"><span class="q-letter">C</span>Mandatory — it contains the extension list that must be enabled at instance creation</div>
+          <div class="q-option" data-option="D" onclick="selectOption(this)"><span class="q-letter">D</span>Optional — it is only used by validation layers and has no effect in release builds</div>
+        </div>
+        <button class="check-btn" onclick="checkAnswer(this.closest('.quiz-card'))" disabled>Check Answer</button>
+        <div class="q-feedback">
+          <div class="fb-verdict"><span class="fb-icon"></span><span class="fb-text"></span></div>
+          <div class="fb-explanation"></div>
+        </div>
+      </div>
+
+      <div class="quiz-card" data-answer="C">
+        <div class="q-num">Q2</div>
+        <div class="q-type">conceptual</div>
+        <div class="q-text">Why does Vulkan require extensions to interface with any window system at all?</div>
+        <div class="q-options">
+          <div class="q-option" data-option="A" onclick="selectOption(this)"><span class="q-letter">A</span>Window system support was removed in Vulkan 1.1 to reduce binary size</div>
+          <div class="q-option" data-option="B" onclick="selectOption(this)"><span class="q-letter">B</span>GLFW wraps the extensions internally, so Vulkan never actually sees them</div>
+          <div class="q-option" data-option="C" onclick="selectOption(this)"><span class="q-letter">C</span>Vulkan is platform-agnostic by design, so window-system integration is deliberately out-of-core and provided per-platform via extensions</div>
+          <div class="q-option" data-option="D" onclick="selectOption(this)"><span class="q-letter">D</span>Extensions are only needed on Linux; Windows has built-in Vulkan surface support</div>
+        </div>
+        <button class="check-btn" onclick="checkAnswer(this.closest('.quiz-card'))" disabled>Check Answer</button>
+        <div class="q-feedback">
+          <div class="fb-verdict"><span class="fb-icon"></span><span class="fb-text"></span></div>
+          <div class="fb-explanation"></div>
+        </div>
+      </div>
+
+      <div class="quiz-card" data-answer="A">
+        <div class="q-num">Q3</div>
+        <div class="q-type">sequence</div>
+        <div class="q-text">What is the correct order of operations inside <code>createInstance()</code>?</div>
+        <div class="q-options">
+          <div class="q-option" data-option="A" onclick="selectOption(this)"><span class="q-letter">A</span>Fill VkApplicationInfo → fill VkInstanceCreateInfo → query GLFW extensions → call vkCreateInstance</div>
+          <div class="q-option" data-option="B" onclick="selectOption(this)"><span class="q-letter">B</span>Call vkCreateInstance → fill VkApplicationInfo → query GLFW extensions → fill VkInstanceCreateInfo</div>
+          <div class="q-option" data-option="C" onclick="selectOption(this)"><span class="q-letter">C</span>Query GLFW extensions → call vkCreateInstance → fill VkApplicationInfo → fill VkInstanceCreateInfo</div>
+          <div class="q-option" data-option="D" onclick="selectOption(this)"><span class="q-letter">D</span>Fill VkInstanceCreateInfo → fill VkApplicationInfo → call vkCreateInstance → query GLFW extensions</div>
+        </div>
+        <button class="check-btn" onclick="checkAnswer(this.closest('.quiz-card'))" disabled>Check Answer</button>
+        <div class="q-feedback">
+          <div class="fb-verdict"><span class="fb-icon"></span><span class="fb-text"></span></div>
+          <div class="fb-explanation"></div>
+        </div>
+      </div>
+
+      <div class="quiz-card" data-answer="D">
+        <div class="q-num">Q4</div>
+        <div class="q-type">gotcha</div>
+        <div class="q-text">On macOS with MoltenVK SDK 1.3.216+, <code>vkCreateInstance</code> returns <code>VK_ERROR_INCOMPATIBLE_DRIVER</code>. What two changes fix this?</div>
+        <div class="q-options">
+          <div class="q-option" data-option="A" onclick="selectOption(this)"><span class="q-letter">A</span>Enable the "MoltenVK" validation layer and set enabledLayerCount = 1</div>
+          <div class="q-option" data-option="B" onclick="selectOption(this)"><span class="q-letter">B</span>Replace glfwGetRequiredInstanceExtensions with a macOS-specific GLFW call</div>
+          <div class="q-option" data-option="C" onclick="selectOption(this)"><span class="q-letter">C</span>Call vkCreateInstance twice — first to detect the error code, then with a corrected createInfo</div>
+          <div class="q-option" data-option="D" onclick="selectOption(this)"><span class="q-letter">D</span>Add VK_KHR_PORTABILITY_ENUMERATION_EXTENSION_NAME to the extension list and set VK_INSTANCE_CREATE_ENUMERATE_PORTABILITY_BIT_KHR on createInfo.flags</div>
+        </div>
+        <button class="check-btn" onclick="checkAnswer(this.closest('.quiz-card'))" disabled>Check Answer</button>
+        <div class="q-feedback">
+          <div class="fb-verdict"><span class="fb-icon"></span><span class="fb-text"></span></div>
+          <div class="fb-explanation"></div>
+        </div>
+      </div>
+
+      <div class="quiz-card" data-answer="A">
+        <div class="q-num">Q5</div>
+        <div class="q-type">application</div>
+        <div class="q-text">Which function do you call to get the Vulkan instance extensions required for window-system surface creation on the current platform?</div>
+        <div class="q-options">
+          <div class="q-option" data-option="A" onclick="selectOption(this)"><span class="q-letter">A</span>glfwGetRequiredInstanceExtensions(&amp;count) — returns a const char** array and fills the count</div>
+          <div class="q-option" data-option="B" onclick="selectOption(this)"><span class="q-letter">B</span>vkEnumerateInstanceExtensionProperties(nullptr, &amp;count, nullptr) — fills the count and then the full list</div>
+          <div class="q-option" data-option="C" onclick="selectOption(this)"><span class="q-letter">C</span>vkGetInstanceExtensions(&amp;createInfo) — called before filling VkInstanceCreateInfo</div>
+          <div class="q-option" data-option="D" onclick="selectOption(this)"><span class="q-letter">D</span>glfwGetWindowExtensions(window, &amp;count) — requires a valid GLFWwindow pointer</div>
+        </div>
+        <button class="check-btn" onclick="checkAnswer(this.closest('.quiz-card'))" disabled>Check Answer</button>
+        <div class="q-feedback">
+          <div class="fb-verdict"><span class="fb-icon"></span><span class="fb-text"></span></div>
+          <div class="fb-explanation"></div>
+        </div>
+      </div>
+
+      <div class="quiz-card" data-answer="C">
+        <div class="q-num">Q6</div>
+        <div class="q-type">terminology</div>
+        <div class="q-text">Describe the two-call pattern used with <code>vkEnumerateInstanceExtensionProperties</code>.</div>
+        <div class="q-options">
+          <div class="q-option" data-option="A" onclick="selectOption(this)"><span class="q-letter">A</span>First call checks for errors; second call retrieves the extension list only if the first succeeds</div>
+          <div class="q-option" data-option="B" onclick="selectOption(this)"><span class="q-letter">B</span>First call lists extensions by validation layer; second call lists extensions by physical device</div>
+          <div class="q-option" data-option="C" onclick="selectOption(this)"><span class="q-letter">C</span>First call with nullptr for the array fills the count; second call with an allocated vector of that size fills the extension details</div>
+          <div class="q-option" data-option="D" onclick="selectOption(this)"><span class="q-letter">D</span>First call allocates GPU memory for the list; second call copies it to a CPU-accessible vector</div>
+        </div>
+        <button class="check-btn" onclick="checkAnswer(this.closest('.quiz-card'))" disabled>Check Answer</button>
+        <div class="q-feedback">
+          <div class="fb-verdict"><span class="fb-icon"></span><span class="fb-text"></span></div>
+          <div class="fb-explanation"></div>
+        </div>
+      </div>
+
+      <div class="quiz-card" data-answer="B">
+        <div class="q-num">Q7</div>
+        <div class="q-type">sequence</div>
+        <div class="q-text">In <code>cleanup()</code>, where does <code>vkDestroyInstance</code> go relative to <code>glfwDestroyWindow</code>?</div>
+        <div class="q-options">
+          <div class="q-option" data-option="A" onclick="selectOption(this)"><span class="q-letter">A</span>After glfwDestroyWindow — GLFW must release the surface handle before Vulkan can destroy the instance</div>
+          <div class="q-option" data-option="B" onclick="selectOption(this)"><span class="q-letter">B</span>Before glfwDestroyWindow — all Vulkan resources must be cleaned up before the instance is destroyed, and the instance must go before the GLFW window</div>
+          <div class="q-option" data-option="C" onclick="selectOption(this)"><span class="q-letter">C</span>Order doesn't matter — VkInstance and GLFWwindow are independent and either can be destroyed first</div>
+          <div class="q-option" data-option="D" onclick="selectOption(this)"><span class="q-letter">D</span>After glfwTerminate — the instance should be the absolute last thing cleaned up</div>
+        </div>
+        <button class="check-btn" onclick="checkAnswer(this.closest('.quiz-card'))" disabled>Check Answer</button>
+        <div class="q-feedback">
+          <div class="fb-verdict"><span class="fb-icon"></span><span class="fb-text"></span></div>
+          <div class="fb-explanation"></div>
+        </div>
+      </div>
+
+      <div class="quiz-card" data-answer="D">
+        <div class="q-num">Q8</div>
+        <div class="q-type">conceptual</div>
+        <div class="q-text">What is the purpose of the <code>sType</code> field that every Vulkan struct requires you to set explicitly?</div>
+        <div class="q-options">
+          <div class="q-option" data-option="A" onclick="selectOption(this)"><span class="q-letter">A</span>It specifies the Vulkan API version the struct was designed for, enabling forward-compatibility checks</div>
+          <div class="q-option" data-option="B" onclick="selectOption(this)"><span class="q-letter">C</span>It acts as a checksum that validation layers use to detect memory corruption in struct fields</div>
+          <div class="q-option" data-option="C" onclick="selectOption(this)"><span class="q-letter">B</span>It declares the shader stage the struct belongs to so the driver can route it correctly</div>
+          <div class="q-option" data-option="D" onclick="selectOption(this)"><span class="q-letter">D</span>It explicitly identifies the struct type so Vulkan can safely interpret void* pointers when traversing pNext extension chains</div>
+        </div>
+        <button class="check-btn" onclick="checkAnswer(this.closest('.quiz-card'))" disabled>Check Answer</button>
+        <div class="q-feedback">
+          <div class="fb-verdict"><span class="fb-icon"></span><span class="fb-text"></span></div>
+          <div class="fb-explanation"></div>
+        </div>
+      </div>
+
+    </div>
+
+    <div class="score-summary" id="score-summary">
+      <div class="score-summary-num" id="summary-num"></div>
+      <div class="score-summary-msg" id="summary-msg"></div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  const TOTAL = 8;
+  let answeredCount = 0;
+  let correctCount = 0;
+
+  const explanations = {
+    1: {
+      correct: 'B',
+      text: 'The tutorial states VkApplicationInfo is "technically optional" but may help the driver optimize for known engines. It is NOT mandatory — Vulkan will create the instance without it. The extension list lives in VkInstanceCreateInfo, not here.'
+    },
+    2: {
+      correct: 'C',
+      text: 'Vulkan is explicitly designed to be window-system agnostic. The tutorial notes: "Vulkan is a platform agnostic API, which means that you need an extension to interface with the window system." This applies to all platforms — there is no built-in surface support anywhere in core Vulkan.'
+    },
+    3: {
+      correct: 'A',
+      text: 'VkApplicationInfo must be filled before VkInstanceCreateInfo can point to it (pApplicationInfo = &appInfo). GLFW extensions are then queried and set on createInfo. Finally vkCreateInstance is called with the completed createInfo. All other orderings leave the struct incomplete before creation.'
+    },
+    4: {
+      correct: 'D',
+      text: 'Since MoltenVK SDK 1.3.216 the VK_KHR_portability_subset extension became mandatory on Apple GPUs. To enumerate devices exposing it you need both the extension name in ppEnabledExtensionNames and VK_INSTANCE_CREATE_ENUMERATE_PORTABILITY_BIT_KHR in createInfo.flags. Missing either causes VK_ERROR_INCOMPATIBLE_DRIVER — a misleading error that looks like no driver is present.'
+    },
+    5: {
+      correct: 'A',
+      text: 'glfwGetRequiredInstanceExtensions(&count) is the correct function. It returns a const char** of extension name strings and fills the count. vkEnumerateInstanceExtensionProperties lists ALL supported extensions (useful for optional feature detection) but does not filter to what GLFW specifically needs. Options C and D name functions that do not exist in the API.'
+    },
+    6: {
+      correct: 'C',
+      text: 'This two-call pattern appears throughout Vulkan: first call with nullptr for the data array fills only the count, then you allocate a vector of that size, then call again to fill the details. The tutorial uses it here and notes it will recur for physical devices, queue families, and swap chain capabilities.'
+    },
+    7: {
+      correct: 'B',
+      text: 'The tutorial\'s cleanup() shows vkDestroyInstance before glfwDestroyWindow. Future Vulkan objects (surfaces, devices) all depend on the instance — they must be destroyed before it. The instance in turn must be destroyed before GLFW teardown. The tutorial states: "All of the other Vulkan resources that we\'ll create in the following chapters should be cleaned up before the instance is destroyed."'
+    },
+    8: {
+      correct: 'D',
+      text: 'sType lets Vulkan identify a struct\'s concrete type when it arrives as a void* through the pNext chain. The driver traverses the chain by reading sType at each node to know how to cast and interpret the memory. A wrong or missing sType is undefined behaviour because Vulkan will misinterpret the struct layout.'
+    }
+  };
+
+  function getCardIndex(card) {
+    return parseInt(card.querySelector('.q-num').textContent.replace('Q', ''));
+  }
+
+  function selectOption(optionEl) {
+    const card = optionEl.closest('.quiz-card');
+    if (card.dataset.answered) return;
+    card.querySelectorAll('.q-option').forEach(o => o.classList.remove('selected'));
+    optionEl.classList.add('selected');
+    card.querySelector('.check-btn').disabled = false;
+  }
+
+  function checkAnswer(card) {
+    if (card.dataset.answered) return;
+    card.dataset.answered = 'true';
+
+    const correct = card.dataset.answer;
+    const selected = card.querySelector('.q-option.selected');
+    const chosen = selected ? selected.dataset.option : null;
+    const idx = getCardIndex(card);
+    const info = explanations[idx];
+
+    const isCorrect = chosen === correct;
+    if (isCorrect) correctCount++;
+    answeredCount++;
+
+    card.querySelectorAll('.q-option').forEach(o => {
+      o.classList.add('locked');
+      if (o.dataset.option === correct) o.classList.add('correct');
+      else if (o.dataset.option === chosen && !isCorrect) o.classList.add('wrong');
+    });
+
+    const feedback = card.querySelector('.q-feedback');
+    const icon = feedback.querySelector('.fb-icon');
+    const verdictText = feedback.querySelector('.fb-text');
+    const explanation = feedback.querySelector('.fb-explanation');
+
+    if (isCorrect) {
+      feedback.classList.add('correct');
+      icon.textContent = '✓';
+      verdictText.textContent = 'Correct';
+    } else {
+      feedback.classList.add('wrong');
+      icon.textContent = '✗';
+      verdictText.textContent = `Incorrect — correct answer is ${correct}`;
+    }
+    explanation.textContent = info.text;
+
+    const btn = card.querySelector('.check-btn');
+    btn.textContent = isCorrect ? '✓ Correct' : '✗ Answered';
+    btn.disabled = true;
+
+    card.classList.add(isCorrect ? 'answered-correct' : 'answered-wrong');
+
+    updateScore();
+  }
+
+  function updateScore() {
+    const tally = document.getElementById('score-tally');
+    const correctSpan = document.getElementById('score-correct');
+    tally.childNodes[0].textContent = `${answeredCount} / ${TOTAL} answered · `;
+    correctSpan.textContent = correctCount;
+
+    if (answeredCount === TOTAL) {
+      const summary = document.getElementById('score-summary');
+      const pct = correctCount / TOTAL;
+      let msg;
+      if (pct >= 0.9) msg = 'Excellent — the instance creation pattern is solid.';
+      else if (pct >= 0.7) msg = 'Good — review the questions you missed and re-read the relevant sections.';
+      else msg = 'Review recommended — go back through the Logic Flow and Step-by-Step sections.';
+      document.getElementById('summary-num').textContent = `${correctCount} / ${TOTAL}`;
+      document.getElementById('summary-msg').textContent = msg;
+      summary.classList.add('visible');
+    }
+  }
+</script>
+</body>
+</html>
