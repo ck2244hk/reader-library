@@ -1,0 +1,663 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Vulkan Tutorial — Validation Layers | Learning Session</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=IBM+Plex+Mono:wght@400;500&family=Syne:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #0d0f14; --bg-surface: #10131a; --bg-card: #12151d; --bg-row-alt: #0f1118;
+    --border: #1e2333; --gold: #c9a84c; --gold-dim: #7a6230; --gold-glow: rgba(201,168,76,0.1);
+    --blue: #7eb8d4; --green: #5db88a; --green-dim: rgba(93,184,138,0.15); --green-border: rgba(93,184,138,0.35);
+    --red: #d46a6a; --red-dim: rgba(212,106,106,0.15); --red-border: rgba(212,106,106,0.35);
+    --amber: #d4965a;
+    --text-1: #e8e4dc; --text-2: #8a8c99; --text-3: #4a4e62;
+    --tag-bg: #1a1e2c; --tag-border: #252a3a;
+  }
+  html { background: var(--bg); color: var(--text-1); font-family: 'Syne', sans-serif; -webkit-font-smoothing: antialiased; }
+  body { min-height: 100vh; padding-bottom: 80px; }
+  ::-webkit-scrollbar { width: 4px; }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+
+  .hdr { position: sticky; top: 0; z-index: 10; background: var(--bg-surface); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 12px 24px; gap: 16px; flex-wrap: wrap; }
+  .hdr-left { display: flex; align-items: center; gap: 10px; }
+  .hdr-gem { color: var(--gold); font-size: 14px; }
+  .hdr-title { font-family: 'DM Serif Display', serif; font-size: 16px; color: var(--text-1); }
+  .hdr-right { display: flex; align-items: center; gap: 12px; }
+  .score-tally { font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: var(--text-3); white-space: nowrap; }
+  .score-tally span { color: var(--gold); }
+  .hdr-url { font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: var(--text-3); background: var(--tag-bg); border: 1px solid var(--tag-border); border-radius: 5px; padding: 4px 10px; text-decoration: none; white-space: nowrap; transition: color 0.2s, border-color 0.2s; }
+  .hdr-url:hover { color: var(--gold); border-color: var(--gold-dim); }
+
+  .content { max-width: 800px; margin: 0 auto; padding: 40px 24px; display: flex; flex-direction: column; gap: 40px; }
+  .framing { font-family: 'DM Serif Display', serif; font-size: 16px; color: var(--gold); border-left: 2px solid var(--gold); padding-left: 14px; line-height: 1.55; font-style: italic; }
+  .section { display: flex; flex-direction: column; gap: 14px; }
+  .sec-label { font-family: 'IBM Plex Mono', monospace; font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--text-3); }
+
+  .term-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .term-table th { font-family: 'IBM Plex Mono', monospace; font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-3); text-align: left; padding: 8px 12px; background: var(--bg-surface); border-bottom: 1px solid var(--border); }
+  .term-table td { padding: 9px 12px; border-bottom: 1px solid var(--border); vertical-align: top; color: var(--text-2); line-height: 1.5; }
+  .term-table tr:nth-child(even) td { background: var(--bg-row-alt); }
+  .term-table td:first-child { font-family: 'IBM Plex Mono', monospace; font-size: 11.5px; color: var(--blue); white-space: nowrap; }
+
+  .code-block { background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px; padding: 16px 18px; font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: var(--text-2); line-height: 1.65; overflow-x: auto; white-space: pre; }
+  .code-label { font-family: 'IBM Plex Mono', monospace; font-size: 9px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--text-3); margin-bottom: 8px; }
+
+  .logic-flow { font-size: 14px; line-height: 1.8; color: var(--text-2); display: flex; flex-direction: column; gap: 14px; }
+
+  .steps-list { list-style: none; display: flex; flex-direction: column; gap: 10px; counter-reset: steps; }
+  .step-item { counter-increment: steps; background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px; padding: 14px 16px 14px 54px; position: relative; }
+  .step-item::before { content: counter(steps); position: absolute; left: 14px; top: 14px; font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: var(--gold); background: var(--gold-glow); border: 1px solid var(--gold-dim); border-radius: 4px; width: 26px; height: 26px; display: flex; align-items: center; justify-content: center; }
+  .step-name { font-size: 13.5px; font-weight: 500; color: var(--text-1); margin-bottom: 7px; line-height: 1.4; }
+  .step-why { font-size: 12.5px; color: var(--text-2); line-height: 1.55; margin-bottom: 4px; display: flex; gap: 6px; }
+  .step-why-label { font-family: 'IBM Plex Mono', monospace; font-size: 9px; color: var(--green); background: rgba(93,184,138,0.1); border: 1px solid rgba(93,184,138,0.2); border-radius: 3px; padding: 2px 5px; flex-shrink: 0; margin-top: 2px; letter-spacing: 0.06em; }
+  .step-warn { font-size: 12.5px; color: var(--text-2); line-height: 1.55; display: flex; gap: 6px; margin-top: 4px; }
+  .step-warn-label { font-family: 'IBM Plex Mono', monospace; font-size: 9px; color: var(--amber); background: rgba(212,150,90,0.1); border: 1px solid rgba(212,150,90,0.2); border-radius: 3px; padding: 2px 5px; flex-shrink: 0; margin-top: 2px; letter-spacing: 0.06em; }
+  .step-sub { list-style: none; margin-top: 8px; display: flex; flex-direction: column; gap: 5px; padding-left: 0; border-left: 1px solid var(--border); margin-left: 2px; }
+  .step-sub li { font-size: 12.5px; color: var(--text-2); line-height: 1.55; padding-left: 12px; font-family: 'IBM Plex Mono', monospace; }
+
+  .quiz-cards { display: flex; flex-direction: column; gap: 14px; }
+  .quiz-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px; padding: 18px 20px; transition: border-color 0.2s; }
+  .quiz-card.answered-correct { border-left: 3px solid var(--green); }
+  .quiz-card.answered-wrong { border-left: 3px solid var(--red); }
+  .q-num { font-family: 'IBM Plex Mono', monospace; font-size: 10px; color: var(--gold); margin-bottom: 3px; }
+  .q-type { font-family: 'IBM Plex Mono', monospace; font-size: 9px; color: var(--text-3); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 10px; }
+  .q-text { font-size: 13.5px; font-weight: 500; color: var(--text-1); line-height: 1.55; margin-bottom: 14px; }
+  .q-text code { font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: var(--blue); background: var(--tag-bg); padding: 1px 5px; border-radius: 3px; }
+  .q-options { display: flex; flex-direction: column; gap: 7px; margin-bottom: 14px; }
+  .q-option { display: flex; gap: 10px; align-items: flex-start; font-size: 13px; color: var(--text-2); line-height: 1.5; padding: 9px 12px; border: 1px solid var(--border); border-radius: 6px; cursor: pointer; transition: border-color 0.15s, background 0.15s; user-select: none; }
+  .q-option:hover { border-color: var(--gold-dim); background: var(--gold-glow); }
+  .q-option.selected { border-color: var(--gold); background: var(--gold-glow); }
+  .q-option.selected .q-letter { color: var(--gold); border-color: var(--gold-dim); background: rgba(201,168,76,0.15); }
+  .q-option.correct { border-color: var(--green); background: var(--green-dim); pointer-events: none; }
+  .q-option.correct .q-letter { color: var(--green); border-color: var(--green-border); background: rgba(93,184,138,0.15); }
+  .q-option.wrong { border-color: var(--red); background: var(--red-dim); pointer-events: none; }
+  .q-option.wrong .q-letter { color: var(--red); border-color: var(--red-border); background: rgba(212,106,106,0.15); }
+  .q-option.locked { pointer-events: none; }
+  .q-letter { font-family: 'IBM Plex Mono', monospace; font-size: 10px; background: var(--tag-bg); border: 1px solid var(--tag-border); border-radius: 3px; padding: 2px 6px; color: var(--text-3); flex-shrink: 0; margin-top: 1px; transition: color 0.15s, border-color 0.15s, background 0.15s; }
+  .check-btn { display: flex; align-items: center; gap: 8px; background: transparent; border: 1px solid var(--gold-dim); border-radius: 6px; padding: 9px 16px; font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: var(--gold); cursor: pointer; transition: all 0.2s; }
+  .check-btn:hover:not(:disabled) { background: var(--gold-glow); border-color: var(--gold); }
+  .check-btn:disabled { border-color: var(--border); color: var(--text-3); cursor: default; }
+  .q-feedback { display: none; margin-top: 12px; padding: 11px 14px; border-radius: 6px; font-size: 13px; line-height: 1.65; color: var(--text-2); }
+  .q-feedback.correct { display: block; background: var(--green-dim); border: 1px solid var(--green-border); }
+  .q-feedback.wrong { display: block; background: var(--red-dim); border: 1px solid var(--red-border); }
+  .q-feedback .fb-verdict { font-weight: 600; margin-bottom: 4px; display: flex; align-items: center; gap: 6px; }
+  .q-feedback.correct .fb-verdict { color: var(--green); }
+  .q-feedback.wrong .fb-verdict { color: var(--red); }
+  .score-summary { background: var(--bg-card); border: 1px solid var(--border); border-radius: 10px; padding: 28px 24px; text-align: center; display: none; flex-direction: column; gap: 10px; }
+  .score-summary.visible { display: flex; }
+  .score-summary-num { font-family: 'DM Serif Display', serif; font-size: 36px; color: var(--gold); }
+  .score-summary-msg { font-size: 14px; color: var(--text-2); }
+</style>
+</head>
+<body>
+
+<header class="hdr">
+  <div class="hdr-left">
+    <span class="hdr-gem">◆</span>
+    <span class="hdr-title">Vulkan Tutorial — Validation Layers</span>
+  </div>
+  <div class="hdr-right">
+    <span class="score-tally" id="score-tally">0 / 12 answered &middot; <span id="score-correct">0</span> correct</span>
+    <a class="hdr-url" href="https://vulkan-tutorial.com/en/Drawing_a_triangle/Setup/Validation_layers" target="_blank" rel="noopener">vulkan-tutorial.com ↗</a>
+  </div>
+</header>
+
+<div class="content">
+
+  <p class="framing">Vulkan trades driver-side error checking for performance — validation layers add it back in debug builds by intercepting every API call, and a debug messenger routes the findings to your own callback function.</p>
+
+  <!-- KEY TERMINOLOGY -->
+  <div class="section">
+    <div class="sec-label">Key Terminology</div>
+    <table class="term-table">
+      <thead>
+        <tr><th>Term</th><th>Definition</th><th>Why it matters here</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>Validation layers</td><td>Optional Vulkan components that intercept API calls and apply additional checks, leak detection, thread-safety tracking, and logging</td><td>Vulkan does almost no error checking by default — validation layers are the primary debugging tool for the entire tutorial</td></tr>
+        <tr><td>VK_LAYER_KHRONOS_validation</td><td>The unified LunarG SDK layer that bundles all standard validation checks into a single layer name</td><td>The only layer name the tutorial enables; previously separate layers (core, parameter, object) were merged into this one</td></tr>
+        <tr><td>NDEBUG</td><td>Standard C++ preprocessor macro defined by the compiler in release builds; absent in debug builds</td><td>Used to conditionally set enableValidationLayers = false in release and true in debug — layers carry a performance cost not wanted in shipping builds</td></tr>
+        <tr><td>vkEnumerateInstanceLayerProperties</td><td>Queries all validation layers supported by the current Vulkan installation (same two-call pattern as extension enumeration)</td><td>Used in checkValidationLayerSupport() to verify the requested layer is installed before trying to enable it</td></tr>
+        <tr><td>VkLayerProperties</td><td>Struct returned by vkEnumerateInstanceLayerProperties containing a layer's name, spec version, implementation version, and description</td><td>The layerName field is strcmp'd against each requested layer name to confirm availability</td></tr>
+        <tr><td>VK_EXT_debug_utils</td><td>Instance extension that provides the debug messenger API (VkDebugUtilsMessengerEXT and related functions)</td><td>Must be added to the extension list when validation layers are enabled — the callback system doesn't exist without it</td></tr>
+        <tr><td>VkDebugUtilsMessengerEXT</td><td>Handle for an active debug messenger — the object that routes validation messages to your callback</td><td>A private class member alongside VkInstance; must be explicitly created and destroyed with proxy functions</td></tr>
+        <tr><td>VkDebugUtilsMessengerCreateInfoEXT</td><td>Struct configuring which message severities and types to receive, and the function pointer to call</td><td>Filters noise — the tutorial subscribes to VERBOSE | WARNING | ERROR severities and GENERAL | VALIDATION | PERFORMANCE types</td></tr>
+        <tr><td>pfnUserCallback</td><td>Function pointer field in VkDebugUtilsMessengerCreateInfoEXT pointing to the debugCallback function</td><td>This is the function Vulkan calls when it has a message — must have the exact VKAPI_ATTR VkBool32 VKAPI_CALL signature</td></tr>
+        <tr><td>VKAPI_ATTR / VKAPI_CALL</td><td>Calling-convention specifiers required for any function pointer that Vulkan will call back into</td><td>Missing either causes undefined behaviour on platforms where Vulkan's calling convention differs from the default C++ one</td></tr>
+        <tr><td>vkGetInstanceProcAddr</td><td>Runtime function lookup that returns a function pointer for a named Vulkan function, especially extension functions</td><td>vkCreateDebugUtilsMessengerEXT is an extension function not in the static Vulkan headers — it must be loaded at runtime via this call</td></tr>
+        <tr><td>Proxy functions</td><td>Hand-written C++ wrappers (CreateDebugUtilsMessengerEXT, DestroyDebugUtilsMessengerEXT) that call vkGetInstanceProcAddr and then invoke the loaded function pointer</td><td>Necessary because extension functions are not directly callable — the linker has no symbol for them</td></tr>
+        <tr><td>pNext chain</td><td>A singly-linked list of extension structs threaded through the pNext pointer of Vulkan structs</td><td>Used here to attach VkDebugUtilsMessengerCreateInfoEXT to VkInstanceCreateInfo so validation messages are captured even during vkCreateInstance itself</td></tr>
+        <tr><td>populateDebugMessengerCreateInfo</td><td>Helper function that fills a VkDebugUtilsMessengerCreateInfoEXT, shared between setupDebugMessenger() and the pNext slot in createInstance()</td><td>Avoids duplicating the messenger configuration; ensures both the live messenger and the instance-creation debug path use identical settings</td></tr>
+        <tr><td>Message severity levels</td><td>VERBOSE (diagnostic) &lt; INFO (informational) &lt; WARNING (likely bug) &lt; ERROR (invalid behaviour, may crash)</td><td>The tutorial filters out INFO to reduce noise; WARNING and ERROR are the actionable signals</td></tr>
+        <tr><td>Message type flags</td><td>GENERAL (unrelated to spec), VALIDATION (spec violation), PERFORMANCE (non-optimal use)</td><td>All three are enabled so no category of issue is silently dropped</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- KEY CODE -->
+  <div class="section">
+    <div class="sec-label">Key Code</div>
+
+    <div class="code-label">Global config — layer list and debug toggle</div>
+    <div class="code-block">const std::vector&lt;const char*&gt; validationLayers = {
+    "VK_LAYER_KHRONOS_validation"
+};
+
+#ifdef NDEBUG
+    const bool enableValidationLayers = false;
+#else
+    const bool enableValidationLayers = true;
+#endif</div>
+
+    <div class="code-label" style="margin-top:16px;">checkValidationLayerSupport()</div>
+    <div class="code-block">bool checkValidationLayerSupport() {
+    uint32_t layerCount;
+    vkEnumerateInstanceLayerProperties(&amp;layerCount, nullptr);
+
+    std::vector&lt;VkLayerProperties&gt; availableLayers(layerCount);
+    vkEnumerateInstanceLayerProperties(&amp;layerCount, availableLayers.data());
+
+    for (const char* layerName : validationLayers) {
+        bool layerFound = false;
+        for (const auto&amp; layerProperties : availableLayers) {
+            if (strcmp(layerName, layerProperties.layerName) == 0) {
+                layerFound = true;
+                break;
+            }
+        }
+        if (!layerFound) return false;
+    }
+    return true;
+}</div>
+
+    <div class="code-label" style="margin-top:16px;">getRequiredExtensions() — adds debug utils when layers are on</div>
+    <div class="code-block">std::vector&lt;const char*&gt; getRequiredExtensions() {
+    uint32_t glfwExtensionCount = 0;
+    const char** glfwExtensions;
+    glfwExtensions = glfwGetRequiredInstanceExtensions(&amp;glfwExtensionCount);
+
+    std::vector&lt;const char*&gt; extensions(glfwExtensions,
+                                         glfwExtensions + glfwExtensionCount);
+
+    if (enableValidationLayers) {
+        extensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
+    }
+
+    return extensions;
+}</div>
+
+    <div class="code-label" style="margin-top:16px;">Debug callback function</div>
+    <div class="code-block">static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(
+    VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
+    VkDebugUtilsMessageTypeFlagsEXT messageType,
+    const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
+    void* pUserData) {
+
+    std::cerr &lt;&lt; "validation layer: " &lt;&lt; pCallbackData-&gt;pMessage &lt;&lt; std::endl;
+
+    return VK_FALSE;
+}</div>
+
+    <div class="code-label" style="margin-top:16px;">Proxy functions for extension-provided create/destroy</div>
+    <div class="code-block">VkResult CreateDebugUtilsMessengerEXT(VkInstance instance,
+    const VkDebugUtilsMessengerCreateInfoEXT* pCreateInfo,
+    const VkAllocationCallbacks* pAllocator,
+    VkDebugUtilsMessengerEXT* pDebugMessenger) {
+    auto func = (PFN_vkCreateDebugUtilsMessengerEXT)
+        vkGetInstanceProcAddr(instance, "vkCreateDebugUtilsMessengerEXT");
+    if (func != nullptr)
+        return func(instance, pCreateInfo, pAllocator, pDebugMessenger);
+    else
+        return VK_ERROR_EXTENSION_NOT_PRESENT;
+}
+
+void DestroyDebugUtilsMessengerEXT(VkInstance instance,
+    VkDebugUtilsMessengerEXT debugMessenger,
+    const VkAllocationCallbacks* pAllocator) {
+    auto func = (PFN_vkDestroyDebugUtilsMessengerEXT)
+        vkGetInstanceProcAddr(instance, "vkDestroyDebugUtilsMessengerEXT");
+    if (func != nullptr)
+        func(instance, debugMessenger, pAllocator);
+}</div>
+
+    <div class="code-label" style="margin-top:16px;">populateDebugMessengerCreateInfo() — shared config helper</div>
+    <div class="code-block">void populateDebugMessengerCreateInfo(VkDebugUtilsMessengerCreateInfoEXT&amp; createInfo) {
+    createInfo = {};
+    createInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT;
+    createInfo.messageSeverity =
+        VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT |
+        VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT |
+        VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT;
+    createInfo.messageType =
+        VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT    |
+        VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT |
+        VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
+    createInfo.pfnUserCallback = debugCallback;
+}</div>
+
+    <div class="code-label" style="margin-top:16px;">pNext trick — catch vkCreateInstance / vkDestroyInstance errors</div>
+    <div class="code-block">// inside createInstance(), after filling createInfo:
+VkDebugUtilsMessengerCreateInfoEXT debugCreateInfo{};
+if (enableValidationLayers) {
+    createInfo.enabledLayerCount = static_cast&lt;uint32_t&gt;(validationLayers.size());
+    createInfo.ppEnabledLayerNames = validationLayers.data();
+
+    populateDebugMessengerCreateInfo(debugCreateInfo);
+    createInfo.pNext = (VkDebugUtilsMessengerCreateInfoEXT*) &amp;debugCreateInfo;
+} else {
+    createInfo.enabledLayerCount = 0;
+    createInfo.pNext = nullptr;
+}</div>
+
+    <div class="code-label" style="margin-top:16px;">Cleanup order</div>
+    <div class="code-block">void cleanup() {
+    if (enableValidationLayers) {
+        DestroyDebugUtilsMessengerEXT(instance, debugMessenger, nullptr);
+    }
+    vkDestroyInstance(instance, nullptr);
+    glfwDestroyWindow(window);
+    glfwTerminate();
+}</div>
+  </div>
+
+  <!-- LOGIC FLOW -->
+  <div class="section">
+    <div class="sec-label">Logic Flow</div>
+    <div class="logic-flow">
+      <p>Vulkan's design philosophy is explicit and minimal — the driver does almost no error checking on its own. Even passing a null pointer to a required parameter may produce no error, just undefined behaviour. Validation layers exist to recover the debugging ergonomics sacrificed for that performance gain. They work by inserting themselves between the application and the real Vulkan driver, intercepting every function call to check parameters, track object lifetimes, and log output. The LunarG SDK consolidates all of this into a single layer name: VK_LAYER_KHRONOS_validation.</p>
+      <p>The enableValidationLayers boolean, toggled by the NDEBUG preprocessor macro, is the master switch. It gates every layer-related code path so that release builds run with zero validation overhead. Before enabling layers, checkValidationLayerSupport() uses the familiar two-call vkEnumerateInstanceLayerProperties pattern to confirm the layer is actually installed — trying to enable a layer that isn't present would cause vkCreateInstance to fail.</p>
+      <p>Once layers are enabled on VkInstanceCreateInfo, they begin intercepting calls immediately — but messages have nowhere to go without a callback. That's where VK_EXT_debug_utils comes in. The extension provides VkDebugUtilsMessengerEXT, an object that holds a function pointer (pfnUserCallback) and filter settings (which severities and types to report). The tutorial's debugCallback prints to stderr and returns VK_FALSE, which tells Vulkan not to abort the triggering call. Returning VK_TRUE would abort it — useful only when stress-testing layers themselves.</p>
+      <p>The messenger create and destroy functions aren't in the static Vulkan headers because they're extension functions. This means you can't call them directly — the linker has no symbol. The proxy pattern solves this: hand-written wrappers call vkGetInstanceProcAddr to load the function pointer at runtime, then invoke it. If the extension isn't present, the proxy returns VK_ERROR_EXTENSION_NOT_PRESENT rather than crashing.</p>
+      <p>A subtle limitation: the messenger object doesn't exist during vkCreateInstance or vkDestroyInstance. Any errors in those two calls would be silent. The fix is the pNext chain trick — populating VkInstanceCreateInfo.pNext with a pointer to a VkDebugUtilsMessengerCreateInfoEXT causes the Vulkan runtime to use a temporary messenger for the duration of vkCreateInstance and vkDestroyInstance only. The populateDebugMessengerCreateInfo() helper is extracted specifically so the same filter settings are shared between this pNext messenger and the live one created in setupDebugMessenger().</p>
+      <p>Cleanup order is now more complex: DestroyDebugUtilsMessengerEXT must be called before vkDestroyInstance (the messenger depends on the instance), and vkDestroyInstance must come before GLFW teardown. As more Vulkan objects are added in future chapters they must all be destroyed before the messenger, which in turn goes before the instance.</p>
+    </div>
+  </div>
+
+  <!-- STEP-BY-STEP -->
+  <div class="section">
+    <div class="sec-label">Step-by-Step — Wiring Up Validation</div>
+    <ol class="steps-list">
+
+      <li class="step-item">
+        <div class="step-name">Define the validationLayers vector and the NDEBUG-controlled enableValidationLayers bool</div>
+        <div class="step-why"><span class="step-why-label">WHY</span>Centralising the layer list means changing which layers are active is a one-line edit. The NDEBUG toggle ensures zero validation overhead in release builds.</div>
+      </li>
+
+      <li class="step-item">
+        <div class="step-name">Implement checkValidationLayerSupport() using vkEnumerateInstanceLayerProperties</div>
+        <div class="step-why"><span class="step-why-label">WHY</span>Enabling a layer that isn't installed causes vkCreateInstance to fail. Checking first gives a clear error message rather than a cryptic Vulkan error code.</div>
+        <div class="step-warn"><span class="step-warn-label">WATCH OUT</span>Same two-call pattern as extension enumeration: first call fills the count, second fills a vector of VkLayerProperties. strcmp each requested name against layerProperties.layerName.</div>
+      </li>
+
+      <li class="step-item">
+        <div class="step-name">Call checkValidationLayerSupport() at the top of createInstance() and throw on failure</div>
+        <div class="step-why"><span class="step-why-label">WHY</span>Fails fast with a readable message before any Vulkan objects are created, making the problem immediately obvious.</div>
+      </li>
+
+      <li class="step-item">
+        <div class="step-name">Replace the inline GLFW extension query with getRequiredExtensions(), which appends VK_EXT_DEBUG_UTILS_EXTENSION_NAME when layers are on</div>
+        <div class="step-why"><span class="step-why-label">WHY</span>The debug messenger API lives in this extension — without it, the messenger structs and functions don't exist. Adding it unconditionally in release builds would waste memory and isn't needed.</div>
+      </li>
+
+      <li class="step-item">
+        <div class="step-name">Conditionally set enabledLayerCount and ppEnabledLayerNames on VkInstanceCreateInfo</div>
+        <div class="step-why"><span class="step-why-label">WHY</span>This is the actual instruction to Vulkan to load the validation layers. Without this, checkValidationLayerSupport may pass but layers are never activated.</div>
+      </li>
+
+      <li class="step-item">
+        <div class="step-name">Write the static debugCallback function with the required VKAPI_ATTR / VKAPI_CALL signature</div>
+        <div class="step-why"><span class="step-why-label">WHY</span>This is the function Vulkan calls when a validation message fires. Printing pCallbackData->pMessage to stderr gives readable output. Returning VK_FALSE is the standard non-aborting response.</div>
+        <div class="step-warn"><span class="step-warn-label">WATCH OUT</span>The calling convention specifiers are mandatory — omitting them causes undefined behaviour on platforms where Vulkan's ABI differs from the C++ default.</div>
+      </li>
+
+      <li class="step-item">
+        <div class="step-name">Implement the CreateDebugUtilsMessengerEXT and DestroyDebugUtilsMessengerEXT proxy functions</div>
+        <div class="step-why"><span class="step-why-label">WHY</span>These extension functions have no linker symbol — they must be resolved at runtime via vkGetInstanceProcAddr. If the function isn't found (extension absent), the create proxy returns VK_ERROR_EXTENSION_NOT_PRESENT.</div>
+      </li>
+
+      <li class="step-item">
+        <div class="step-name">Extract populateDebugMessengerCreateInfo() and call it from both setupDebugMessenger() and createInstance()</div>
+        <div class="step-why"><span class="step-why-label">WHY</span>Ensures the pNext debug messenger (for vkCreateInstance/vkDestroyInstance coverage) and the live messenger use identical severity and type filters.</div>
+      </li>
+
+      <li class="step-item">
+        <div class="step-name">Set createInfo.pNext = &amp;debugCreateInfo inside createInstance() when validation is enabled</div>
+        <div class="step-why"><span class="step-why-label">WHY</span>The live messenger can't be active during its own creation call. Chaining a temporary messenger config through pNext is the only way to catch bugs in vkCreateInstance and vkDestroyInstance.</div>
+        <div class="step-warn"><span class="step-warn-label">WATCH OUT</span>debugCreateInfo must stay in scope until vkCreateInstance returns — it's referenced by pointer. Local scope inside the if block is sufficient here.</div>
+      </li>
+
+      <li class="step-item">
+        <div class="step-name">Add VkDebugUtilsMessengerEXT debugMessenger as a private member and call setupDebugMessenger() from initVulkan()</div>
+        <div class="step-why"><span class="step-why-label">WHY</span>The messenger handle must persist for the application's lifetime so it continues receiving messages until cleanup. setupDebugMessenger() must run after createInstance() since it needs a valid VkInstance.</div>
+      </li>
+
+      <li class="step-item">
+        <div class="step-name">Destroy the messenger first in cleanup(), before vkDestroyInstance</div>
+        <div class="step-why"><span class="step-why-label">WHY</span>The messenger depends on the instance — destroying the instance first leaves the messenger with a dangling handle. Reverse creation order: messenger → instance → GLFW window → glfwTerminate.</div>
+        <div class="step-warn"><span class="step-warn-label">WATCH OUT</span>Guard the destroy call with if (enableValidationLayers) — in release builds debugMessenger is never created, so destroying it would be undefined.</div>
+      </li>
+
+    </ol>
+  </div>
+
+  <!-- QUIZ -->
+  <div class="section">
+    <div class="sec-label">Quiz — 12 Questions</div>
+    <div class="quiz-cards">
+
+      <div class="quiz-card" data-answer="C">
+        <div class="q-num">Q1</div>
+        <div class="q-type">terminology</div>
+        <div class="q-text">What do validation layers actually do at runtime?</div>
+        <div class="q-options">
+          <div class="q-option" data-option="A" onclick="selectOption(this)"><span class="q-letter">A</span>They recompile shaders with added bounds checks before submitting them to the GPU</div>
+          <div class="q-option" data-option="B" onclick="selectOption(this)"><span class="q-letter">B</span>They add a second Vulkan driver that runs in parallel and cross-checks results</div>
+          <div class="q-option" data-option="C" onclick="selectOption(this)"><span class="q-letter">C</span>They intercept Vulkan API calls to check parameters, track object lifetimes, enforce thread safety, and log messages</div>
+          <div class="q-option" data-option="D" onclick="selectOption(this)"><span class="q-letter">D</span>They patch the GPU driver at startup to enable built-in error reporting</div>
+        </div>
+        <button class="check-btn" onclick="checkAnswer(this.closest('.quiz-card'))" disabled>Check Answer</button>
+        <div class="q-feedback"><div class="fb-verdict"><span class="fb-icon"></span><span class="fb-text"></span></div><div class="fb-explanation"></div></div>
+      </div>
+
+      <div class="quiz-card" data-answer="A">
+        <div class="q-num">Q2</div>
+        <div class="q-type">terminology</div>
+        <div class="q-text">What does the <code>NDEBUG</code> preprocessor macro control in this chapter, and when is it defined?</div>
+        <div class="q-options">
+          <div class="q-option" data-option="A" onclick="selectOption(this)"><span class="q-letter">A</span>It's defined in release builds; the tutorial uses its presence to set enableValidationLayers = false, disabling layers with zero overhead in production</div>
+          <div class="q-option" data-option="B" onclick="selectOption(this)"><span class="q-letter">B</span>It's defined in debug builds; its presence enables extra verbose logging in GLFW</div>
+          <div class="q-option" data-option="C" onclick="selectOption(this)"><span class="q-letter">C</span>It's a Vulkan-specific macro defined when the Vulkan SDK validation layers are installed</div>
+          <div class="q-option" data-option="D" onclick="selectOption(this)"><span class="q-letter">D</span>It must be manually defined by the developer in every file that uses validation layers</div>
+        </div>
+        <button class="check-btn" onclick="checkAnswer(this.closest('.quiz-card'))" disabled>Check Answer</button>
+        <div class="q-feedback"><div class="fb-verdict"><span class="fb-icon"></span><span class="fb-text"></span></div><div class="fb-explanation"></div></div>
+      </div>
+
+      <div class="quiz-card" data-answer="D">
+        <div class="q-num">Q3</div>
+        <div class="q-type">conceptual</div>
+        <div class="q-text">Why must proxy functions be written for <code>vkCreateDebugUtilsMessengerEXT</code> and <code>vkDestroyDebugUtilsMessengerEXT</code> instead of calling them directly?</div>
+        <div class="q-options">
+          <div class="q-option" data-option="A" onclick="selectOption(this)"><span class="q-letter">A</span>They require a special calling convention that only proxy functions can provide</div>
+          <div class="q-option" data-option="B" onclick="selectOption(this)"><span class="q-letter">B</span>They are deprecated in Vulkan 1.1 and the proxy pattern provides a forward-compatible shim</div>
+          <div class="q-option" data-option="C" onclick="selectOption(this)"><span class="q-letter">C</span>Calling them directly would bypass the validation layers and defeat their purpose</div>
+          <div class="q-option" data-option="D" onclick="selectOption(this)"><span class="q-letter">D</span>They are extension functions with no static linker symbol — they must be looked up at runtime via vkGetInstanceProcAddr</div>
+        </div>
+        <button class="check-btn" onclick="checkAnswer(this.closest('.quiz-card'))" disabled>Check Answer</button>
+        <div class="q-feedback"><div class="fb-verdict"><span class="fb-icon"></span><span class="fb-text"></span></div><div class="fb-explanation"></div></div>
+      </div>
+
+      <div class="quiz-card" data-answer="B">
+        <div class="q-num">Q4</div>
+        <div class="q-type">sequence</div>
+        <div class="q-text">In <code>initVulkan()</code>, what is the correct call order for the two functions added in this chapter?</div>
+        <div class="q-options">
+          <div class="q-option" data-option="A" onclick="selectOption(this)"><span class="q-letter">A</span>setupDebugMessenger() → createInstance() — the messenger must exist before the instance is created</div>
+          <div class="q-option" data-option="B" onclick="selectOption(this)"><span class="q-letter">B</span>createInstance() → setupDebugMessenger() — the messenger requires a valid VkInstance handle</div>
+          <div class="q-option" data-option="C" onclick="selectOption(this)"><span class="q-letter">C</span>Either order is valid — they are independent and do not share state</div>
+          <div class="q-option" data-option="D" onclick="selectOption(this)"><span class="q-letter">D</span>They must be called simultaneously via separate threads to avoid a race condition</div>
+        </div>
+        <button class="check-btn" onclick="checkAnswer(this.closest('.quiz-card'))" disabled>Check Answer</button>
+        <div class="q-feedback"><div class="fb-verdict"><span class="fb-icon"></span><span class="fb-text"></span></div><div class="fb-explanation"></div></div>
+      </div>
+
+      <div class="quiz-card" data-answer="C">
+        <div class="q-num">Q5</div>
+        <div class="q-type">gotcha</div>
+        <div class="q-text">Why can't the live debug messenger catch validation errors that occur inside <code>vkCreateInstance</code> or <code>vkDestroyInstance</code>?</div>
+        <div class="q-options">
+          <div class="q-option" data-option="A" onclick="selectOption(this)"><span class="q-letter">A</span>Those two functions bypass the validation layer chain by design for performance reasons</div>
+          <div class="q-option" data-option="B" onclick="selectOption(this)"><span class="q-letter">B</span>The debug callback signature doesn't support the error types generated during instance lifecycle calls</div>
+          <div class="q-option" data-option="C" onclick="selectOption(this)"><span class="q-letter">C</span>The messenger object doesn't exist yet when vkCreateInstance runs, and it's already destroyed before vkDestroyInstance completes</div>
+          <div class="q-option" data-option="D" onclick="selectOption(this)"><span class="q-letter">D</span>Instance-level errors are always fatal and the driver terminates before the callback can fire</div>
+        </div>
+        <button class="check-btn" onclick="checkAnswer(this.closest('.quiz-card'))" disabled>Check Answer</button>
+        <div class="q-feedback"><div class="fb-verdict"><span class="fb-icon"></span><span class="fb-text"></span></div><div class="fb-explanation"></div></div>
+      </div>
+
+      <div class="quiz-card" data-answer="A">
+        <div class="q-num">Q6</div>
+        <div class="q-type">application</div>
+        <div class="q-text">How does the tutorial work around the messenger's inability to cover <code>vkCreateInstance</code> and <code>vkDestroyInstance</code>?</div>
+        <div class="q-options">
+          <div class="q-option" data-option="A" onclick="selectOption(this)"><span class="q-letter">A</span>A VkDebugUtilsMessengerCreateInfoEXT is attached to VkInstanceCreateInfo.pNext so the Vulkan runtime uses a temporary messenger for those two calls</div>
+          <div class="q-option" data-option="B" onclick="selectOption(this)"><span class="q-letter">B</span>The messenger is created before vkCreateInstance by passing a pre-allocated VkInstance handle</div>
+          <div class="q-option" data-option="C" onclick="selectOption(this)"><span class="q-letter">C</span>A second validation layer (VK_LAYER_KHRONOS_instance_lifecycle) is enabled specifically for those calls</div>
+          <div class="q-option" data-option="D" onclick="selectOption(this)"><span class="q-letter">D</span>The debugCallback is registered as a global function pointer before any Vulkan calls are made</div>
+        </div>
+        <button class="check-btn" onclick="checkAnswer(this.closest('.quiz-card'))" disabled>Check Answer</button>
+        <div class="q-feedback"><div class="fb-verdict"><span class="fb-icon"></span><span class="fb-text"></span></div><div class="fb-explanation"></div></div>
+      </div>
+
+      <div class="quiz-card" data-answer="D">
+        <div class="q-num">Q7</div>
+        <div class="q-type">terminology</div>
+        <div class="q-text">What are the four message severity levels, in increasing order of severity?</div>
+        <div class="q-options">
+          <div class="q-option" data-option="A" onclick="selectOption(this)"><span class="q-letter">A</span>PERFORMANCE → VALIDATION → GENERAL → ERROR</div>
+          <div class="q-option" data-option="B" onclick="selectOption(this)"><span class="q-letter">B</span>INFO → VERBOSE → WARNING → ERROR</div>
+          <div class="q-option" data-option="C" onclick="selectOption(this)"><span class="q-letter">C</span>WARNING → INFO → ERROR → VERBOSE</div>
+          <div class="q-option" data-option="D" onclick="selectOption(this)"><span class="q-letter">D</span>VERBOSE → INFO → WARNING → ERROR</div>
+        </div>
+        <button class="check-btn" onclick="checkAnswer(this.closest('.quiz-card'))" disabled>Check Answer</button>
+        <div class="q-feedback"><div class="fb-verdict"><span class="fb-icon"></span><span class="fb-text"></span></div><div class="fb-explanation"></div></div>
+      </div>
+
+      <div class="quiz-card" data-answer="B">
+        <div class="q-num">Q8</div>
+        <div class="q-type">gotcha</div>
+        <div class="q-text">What should the <code>debugCallback</code> function return, and what would happen if it returned <code>VK_TRUE</code> instead?</div>
+        <div class="q-options">
+          <div class="q-option" data-option="A" onclick="selectOption(this)"><span class="q-letter">A</span>It should return VK_SUCCESS; returning VK_TRUE causes the message to be logged twice</div>
+          <div class="q-option" data-option="B" onclick="selectOption(this)"><span class="q-letter">B</span>It should return VK_FALSE; returning VK_TRUE aborts the Vulkan call that triggered the message, which is only useful for testing the layers themselves</div>
+          <div class="q-option" data-option="C" onclick="selectOption(this)"><span class="q-letter">C</span>It should return VK_TRUE; returning VK_FALSE silently suppresses the message</div>
+          <div class="q-option" data-option="D" onclick="selectOption(this)"><span class="q-letter">D</span>The return value is ignored — it only exists to satisfy the function pointer type requirement</div>
+        </div>
+        <button class="check-btn" onclick="checkAnswer(this.closest('.quiz-card'))" disabled>Check Answer</button>
+        <div class="q-feedback"><div class="fb-verdict"><span class="fb-icon"></span><span class="fb-text"></span></div><div class="fb-explanation"></div></div>
+      </div>
+
+      <div class="quiz-card" data-answer="C">
+        <div class="q-num">Q9</div>
+        <div class="q-type">application</div>
+        <div class="q-text">Why is <code>VK_EXT_DEBUG_UTILS_EXTENSION_NAME</code> added to the extension list only when <code>enableValidationLayers</code> is true?</div>
+        <div class="q-options">
+          <div class="q-option" data-option="A" onclick="selectOption(this)"><span class="q-letter">A</span>Including the extension in release builds causes a driver conflict with production-mode Vulkan</div>
+          <div class="q-option" data-option="B" onclick="selectOption(this)"><span class="q-letter">B</span>The extension is only available when the Vulkan SDK is installed, which isn't guaranteed on end-user machines</div>
+          <div class="q-option" data-option="C" onclick="selectOption(this)"><span class="q-letter">C</span>The debug messenger is only needed when layers are active; including it unconditionally wastes resources and isn't appropriate for shipping builds</div>
+          <div class="q-option" data-option="D" onclick="selectOption(this)"><span class="q-letter">D</span>Enabling the extension without validation layers causes vkCreateInstance to return VK_ERROR_EXTENSION_NOT_PRESENT</div>
+        </div>
+        <button class="check-btn" onclick="checkAnswer(this.closest('.quiz-card'))" disabled>Check Answer</button>
+        <div class="q-feedback"><div class="fb-verdict"><span class="fb-icon"></span><span class="fb-text"></span></div><div class="fb-explanation"></div></div>
+      </div>
+
+      <div class="quiz-card" data-answer="A">
+        <div class="q-num">Q10</div>
+        <div class="q-type">sequence</div>
+        <div class="q-text">What is the correct destruction order in <code>cleanup()</code> after this chapter?</div>
+        <div class="q-options">
+          <div class="q-option" data-option="A" onclick="selectOption(this)"><span class="q-letter">A</span>DestroyDebugUtilsMessengerEXT → vkDestroyInstance → glfwDestroyWindow → glfwTerminate</div>
+          <div class="q-option" data-option="B" onclick="selectOption(this)"><span class="q-letter">B</span>vkDestroyInstance → DestroyDebugUtilsMessengerEXT → glfwDestroyWindow → glfwTerminate</div>
+          <div class="q-option" data-option="C" onclick="selectOption(this)"><span class="q-letter">C</span>glfwDestroyWindow → DestroyDebugUtilsMessengerEXT → vkDestroyInstance → glfwTerminate</div>
+          <div class="q-option" data-option="D" onclick="selectOption(this)"><span class="q-letter">D</span>DestroyDebugUtilsMessengerEXT → glfwDestroyWindow → vkDestroyInstance → glfwTerminate</div>
+        </div>
+        <button class="check-btn" onclick="checkAnswer(this.closest('.quiz-card'))" disabled>Check Answer</button>
+        <div class="q-feedback"><div class="fb-verdict"><span class="fb-icon"></span><span class="fb-text"></span></div><div class="fb-explanation"></div></div>
+      </div>
+
+      <div class="quiz-card" data-answer="D">
+        <div class="q-num">Q11</div>
+        <div class="q-type">conceptual</div>
+        <div class="q-text">Why is <code>populateDebugMessengerCreateInfo()</code> extracted into its own helper function?</div>
+        <div class="q-options">
+          <div class="q-option" data-option="A" onclick="selectOption(this)"><span class="q-letter">A</span>VkDebugUtilsMessengerCreateInfoEXT cannot be stack-allocated and must be managed through a function</div>
+          <div class="q-option" data-option="B" onclick="selectOption(this)"><span class="q-letter">B</span>The struct is so large that filling it inline inside createInstance() would exceed the stack frame limit</div>
+          <div class="q-option" data-option="C" onclick="selectOption(this)"><span class="q-letter">C</span>Vulkan requires messenger creation info to be produced by a registered factory function</div>
+          <div class="q-option" data-option="D" onclick="selectOption(this)"><span class="q-letter">D</span>The same configuration needs to be reused for both the live messenger in setupDebugMessenger() and the pNext temporary messenger in createInstance()</div>
+        </div>
+        <button class="check-btn" onclick="checkAnswer(this.closest('.quiz-card'))" disabled>Check Answer</button>
+        <div class="q-feedback"><div class="fb-verdict"><span class="fb-icon"></span><span class="fb-text"></span></div><div class="fb-explanation"></div></div>
+      </div>
+
+      <div class="quiz-card" data-answer="B">
+        <div class="q-num">Q12</div>
+        <div class="q-type">gotcha</div>
+        <div class="q-text">The tutorial suggests testing validation layers by intentionally removing the <code>DestroyDebugUtilsMessengerEXT</code> call from cleanup. What should you observe if layers are working correctly?</div>
+        <div class="q-options">
+          <div class="q-option" data-option="A" onclick="selectOption(this)"><span class="q-letter">A</span>The program crashes immediately on exit with a segmentation fault</div>
+          <div class="q-option" data-option="B" onclick="selectOption(this)"><span class="q-letter">B</span>Validation layer messages appear on exit reporting the undestroyed messenger as a resource leak</div>
+          <div class="q-option" data-option="C" onclick="selectOption(this)"><span class="q-letter">C</span>The GPU driver silently frees the messenger handle, and no message appears</div>
+          <div class="q-option" data-option="D" onclick="selectOption(this)"><span class="q-letter">D</span>vkDestroyInstance returns VK_ERROR_DEVICE_LOST because the messenger is still active</div>
+        </div>
+        <button class="check-btn" onclick="checkAnswer(this.closest('.quiz-card'))" disabled>Check Answer</button>
+        <div class="q-feedback"><div class="fb-verdict"><span class="fb-icon"></span><span class="fb-text"></span></div><div class="fb-explanation"></div></div>
+      </div>
+
+    </div>
+
+    <div class="score-summary" id="score-summary">
+      <div class="score-summary-num" id="summary-num"></div>
+      <div class="score-summary-msg" id="summary-msg"></div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  const TOTAL = 12;
+  let answeredCount = 0;
+  let correctCount = 0;
+
+  const explanations = {
+    1: {
+      correct: 'C',
+      text: 'Validation layers sit between the application and the real Vulkan driver, intercepting every API call. They check parameters against the spec, track object creation and destruction to find leaks, verify thread safety, and log every call. They do not touch shaders or run a second driver.'
+    },
+    2: {
+      correct: 'A',
+      text: 'NDEBUG is a standard C++ macro defined by the compiler in release (non-debug) builds. The tutorial uses #ifdef NDEBUG to set enableValidationLayers = false in release and implicitly true in debug. It\'s not Vulkan-specific and doesn\'t need to be defined manually.'
+    },
+    3: {
+      correct: 'D',
+      text: 'vkCreateDebugUtilsMessengerEXT and its destroy counterpart are extension functions. They have no entry in the static Vulkan headers the linker knows about. You must call vkGetInstanceProcAddr at runtime, cast the result to the appropriate PFN_ type, and then invoke it. If the extension isn\'t loaded, vkGetInstanceProcAddr returns nullptr.'
+    },
+    4: {
+      correct: 'B',
+      text: 'setupDebugMessenger() calls CreateDebugUtilsMessengerEXT, which needs a valid VkInstance as its first argument. createInstance() must therefore run first. Reversing the order means you\'re passing an uninitialized VkInstance handle to the proxy function.'
+    },
+    5: {
+      correct: 'C',
+      text: 'The messenger is created after vkCreateInstance completes — so it can\'t receive messages from that call. It is destroyed before vkDestroyInstance runs — so it can\'t receive those messages either. This is an inherent bootstrapping/teardown limitation of the messenger lifetime.'
+    },
+    6: {
+      correct: 'A',
+      text: 'Setting VkInstanceCreateInfo.pNext to point to a VkDebugUtilsMessengerCreateInfoEXT tells the Vulkan runtime to activate a temporary messenger for the duration of vkCreateInstance and vkDestroyInstance. The populateDebugMessengerCreateInfo() helper fills this struct with the same settings as the live messenger.'
+    },
+    7: {
+      correct: 'D',
+      text: 'The four message severity levels in increasing order are: VERBOSE (diagnostic noise), INFO (informational), WARNING (likely a bug in the application), ERROR (invalid behaviour that may cause crashes). The tutorial subscribes to VERBOSE | WARNING | ERROR, skipping INFO to reduce noise.'
+    },
+    8: {
+      correct: 'B',
+      text: 'The callback should return VK_FALSE, which tells Vulkan not to abort the call that triggered the message. Returning VK_TRUE aborts the triggering call — this is only appropriate when deliberately stress-testing validation layers. Normal usage always returns VK_FALSE.'
+    },
+    9: {
+      correct: 'C',
+      text: 'The debug messenger extension is only useful when validation layers are active — it provides the callback infrastructure that layers route their messages through. In release builds with no layers, including it wastes instance setup time and extension slots unnecessarily.'
+    },
+    10: {
+      correct: 'A',
+      text: 'Destruction must be the reverse of creation. The messenger was created after the instance, so it must be destroyed before the instance. The instance must be destroyed before GLFW teardown. Destroying the instance before the messenger leaves the messenger with a dangling VkInstance handle.'
+    },
+    11: {
+      correct: 'D',
+      text: 'The exact same VkDebugUtilsMessengerCreateInfoEXT configuration is needed in two places: as the argument to CreateDebugUtilsMessengerEXT in setupDebugMessenger(), and as the struct pointed to by VkInstanceCreateInfo.pNext in createInstance(). Extracting the helper ensures both use identical severity and type filters without code duplication.'
+    },
+    12: {
+      correct: 'B',
+      text: 'Validation layers track every object creation and expect a matching destruction. When the program exits without calling DestroyDebugUtilsMessengerEXT, the layers detect the undestroyed messenger handle and emit leak warning messages before the process exits. If no messages appear, the SDK may not be installed correctly.'
+    }
+  };
+
+  function getCardIndex(card) {
+    return parseInt(card.querySelector('.q-num').textContent.replace('Q', ''));
+  }
+
+  function selectOption(optionEl) {
+    const card = optionEl.closest('.quiz-card');
+    if (card.dataset.answered) return;
+    card.querySelectorAll('.q-option').forEach(o => o.classList.remove('selected'));
+    optionEl.classList.add('selected');
+    card.querySelector('.check-btn').disabled = false;
+  }
+
+  function checkAnswer(card) {
+    if (card.dataset.answered) return;
+    card.dataset.answered = 'true';
+
+    const correct = card.dataset.answer;
+    const selected = card.querySelector('.q-option.selected');
+    const chosen = selected ? selected.dataset.option : null;
+    const idx = getCardIndex(card);
+    const info = explanations[idx];
+
+    const isCorrect = chosen === correct;
+    if (isCorrect) correctCount++;
+    answeredCount++;
+
+    card.querySelectorAll('.q-option').forEach(o => {
+      o.classList.add('locked');
+      if (o.dataset.option === correct) o.classList.add('correct');
+      else if (o.dataset.option === chosen && !isCorrect) o.classList.add('wrong');
+    });
+
+    const feedback = card.querySelector('.q-feedback');
+    const icon = feedback.querySelector('.fb-icon');
+    const verdictText = feedback.querySelector('.fb-text');
+    const explanation = feedback.querySelector('.fb-explanation');
+
+    if (isCorrect) {
+      feedback.classList.add('correct');
+      icon.textContent = '✓';
+      verdictText.textContent = 'Correct';
+    } else {
+      feedback.classList.add('wrong');
+      icon.textContent = '✗';
+      verdictText.textContent = `Incorrect — correct answer is ${correct}`;
+    }
+    explanation.textContent = info.text;
+
+    const btn = card.querySelector('.check-btn');
+    btn.textContent = isCorrect ? '✓ Correct' : '✗ Answered';
+    btn.disabled = true;
+
+    card.classList.add(isCorrect ? 'answered-correct' : 'answered-wrong');
+    updateScore();
+  }
+
+  function updateScore() {
+    const tally = document.getElementById('score-tally');
+    const correctSpan = document.getElementById('score-correct');
+    tally.childNodes[0].textContent = `${answeredCount} / ${TOTAL} answered · `;
+    correctSpan.textContent = correctCount;
+
+    if (answeredCount === TOTAL) {
+      const summary = document.getElementById('score-summary');
+      const pct = correctCount / TOTAL;
+      let msg;
+      if (pct >= 0.9) msg = 'Excellent — validation layer internals are solid.';
+      else if (pct >= 0.7) msg = 'Good — review the questions you missed before moving on.';
+      else msg = 'Review recommended — revisit the proxy functions, pNext trick, and cleanup order.';
+      document.getElementById('summary-num').textContent = `${correctCount} / ${TOTAL}`;
+      document.getElementById('summary-msg').textContent = msg;
+      summary.classList.add('visible');
+    }
+  }
+</script>
+</body>
+</html>

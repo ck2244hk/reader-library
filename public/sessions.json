@@ -28,5 +28,15 @@
     "questionCount": 8,
     "file": "sessions/vulkan-instance-learning.html",
     "excerpt": "Creating a VkInstance — the root Vulkan object — by filling VkApplicationInfo and VkInstanceCreateInfo, querying GLFW extensions, and handling the macOS portability edge case."
+  },
+  {
+    "id": "vulkan-validation-layers",
+    "title": "Vulkan Tutorial — Validation Layers",
+    "url": "https://vulkan-tutorial.com/en/Drawing_a_triangle/Setup/Validation_layers",
+    "date": "2026-06-06",
+    "tags": ["graphics", "vulkan", "gpu", "cpp"],
+    "questionCount": 12,
+    "file": "sessions/vulkan-validation-layers-learning.html",
+    "excerpt": "Adding VK_LAYER_KHRONOS_validation, wiring up the debug messenger with proxy functions, and using the pNext chain to catch errors inside vkCreateInstance itself."
   }
 ]
