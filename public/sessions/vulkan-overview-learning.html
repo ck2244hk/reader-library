@@ -9,120 +9,71 @@
 <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=IBM+Plex+Mono:wght@400;500&family=Syne:wght@400;500&display=swap" rel="stylesheet">
 <style>
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
   :root {
-    --bg:         #0d0f14;
-    --bg-surface: #10131a;
-    --bg-card:    #12151d;
-    --bg-row-alt: #0f1118;
-    --border:     #1e2333;
-    --gold:       #c9a84c;
-    --gold-dim:   #7a6230;
-    --gold-glow:  rgba(201,168,76,0.1);
-    --blue:       #7eb8d4;
-    --text-1:     #e8e4dc;
-    --text-2:     #8a8c99;
-    --text-3:     #4a4e62;
-    --tag-bg:     #1a1e2c;
-    --tag-border: #252a3a;
+    --bg: #0d0f14; --bg-surface: #10131a; --bg-card: #12151d; --bg-row-alt: #0f1118;
+    --border: #1e2333; --gold: #c9a84c; --gold-dim: #7a6230; --gold-glow: rgba(201,168,76,0.1);
+    --blue: #7eb8d4; --green: #5db88a; --amber: #d4965a;
+    --text-1: #e8e4dc; --text-2: #8a8c99; --text-3: #4a4e62;
+    --tag-bg: #1a1e2c; --tag-border: #252a3a;
   }
-
   html { background: var(--bg); color: var(--text-1); font-family: 'Syne', sans-serif; -webkit-font-smoothing: antialiased; }
   body { min-height: 100vh; padding-bottom: 80px; }
-
   ::-webkit-scrollbar { width: 4px; }
   ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
 
-  /* ── Header ── */
-  .hdr {
-    position: sticky; top: 0; z-index: 10;
-    background: var(--bg-surface);
-    border-bottom: 1px solid var(--border);
-    display: flex; align-items: center; justify-content: space-between;
-    padding: 12px 24px; gap: 16px;
-  }
+  /* Header */
+  .hdr { position: sticky; top: 0; z-index: 10; background: var(--bg-surface); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 12px 24px; gap: 16px; }
   .hdr-left { display: flex; align-items: center; gap: 10px; }
   .hdr-gem { color: var(--gold); font-size: 14px; }
   .hdr-title { font-family: 'DM Serif Display', serif; font-size: 16px; color: var(--text-1); }
-  .hdr-url {
-    font-family: 'IBM Plex Mono', monospace; font-size: 11px;
-    color: var(--text-3); background: var(--tag-bg);
-    border: 1px solid var(--tag-border); border-radius: 5px;
-    padding: 4px 10px; text-decoration: none; white-space: nowrap;
-    transition: color 0.2s, border-color 0.2s;
-  }
+  .hdr-url { font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: var(--text-3); background: var(--tag-bg); border: 1px solid var(--tag-border); border-radius: 5px; padding: 4px 10px; text-decoration: none; white-space: nowrap; transition: color 0.2s, border-color 0.2s; }
   .hdr-url:hover { color: var(--gold); border-color: var(--gold-dim); }
 
-  /* ── Content ── */
+  /* Content */
   .content { max-width: 800px; margin: 0 auto; padding: 40px 24px; display: flex; flex-direction: column; gap: 40px; }
-
-  .framing {
-    font-family: 'DM Serif Display', serif; font-size: 16px;
-    color: var(--gold); border-left: 2px solid var(--gold);
-    padding-left: 14px; line-height: 1.55;
-    font-style: italic;
-  }
-
-  /* ── Section ── */
+  .framing { font-family: 'DM Serif Display', serif; font-size: 16px; color: var(--gold); border-left: 2px solid var(--gold); padding-left: 14px; line-height: 1.55; font-style: italic; }
   .section { display: flex; flex-direction: column; gap: 14px; }
-  .sec-label {
-    font-family: 'IBM Plex Mono', monospace; font-size: 10px;
-    letter-spacing: 0.14em; text-transform: uppercase; color: var(--text-3);
-  }
+  .sec-label { font-family: 'IBM Plex Mono', monospace; font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--text-3); }
 
-  /* ── Terminology Table ── */
+  /* Terminology */
   .term-table { width: 100%; border-collapse: collapse; font-size: 13px; }
-  .term-table th {
-    font-family: 'IBM Plex Mono', monospace; font-size: 10px;
-    letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-3);
-    text-align: left; padding: 8px 12px;
-    background: var(--bg-surface); border-bottom: 1px solid var(--border);
-  }
+  .term-table th { font-family: 'IBM Plex Mono', monospace; font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-3); text-align: left; padding: 8px 12px; background: var(--bg-surface); border-bottom: 1px solid var(--border); }
   .term-table td { padding: 9px 12px; border-bottom: 1px solid var(--border); vertical-align: top; color: var(--text-2); line-height: 1.5; }
   .term-table tr:nth-child(even) td { background: var(--bg-row-alt); }
   .term-table td:first-child { font-family: 'IBM Plex Mono', monospace; font-size: 11.5px; color: var(--blue); white-space: nowrap; }
 
-  /* ── Logic Flow ── */
+  /* Logic Flow */
   .logic-flow { font-size: 14px; line-height: 1.8; color: var(--text-2); display: flex; flex-direction: column; gap: 14px; }
 
-  /* ── Quiz ── */
+  /* Step-by-Step */
+  .steps-list { list-style: none; display: flex; flex-direction: column; gap: 10px; counter-reset: steps; }
+  .step-item { counter-increment: steps; background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px; padding: 14px 16px 14px 54px; position: relative; }
+  .step-item::before { content: counter(steps); position: absolute; left: 14px; top: 14px; font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: var(--gold); background: var(--gold-glow); border: 1px solid var(--gold-dim); border-radius: 4px; width: 26px; height: 26px; display: flex; align-items: center; justify-content: center; }
+  .step-name { font-size: 13.5px; font-weight: 500; color: var(--text-1); margin-bottom: 7px; line-height: 1.4; }
+  .step-why { font-size: 12.5px; color: var(--text-2); line-height: 1.55; margin-bottom: 4px; display: flex; gap: 6px; }
+  .step-why-label { font-family: 'IBM Plex Mono', monospace; font-size: 9px; color: var(--green); background: rgba(93,184,138,0.1); border: 1px solid rgba(93,184,138,0.2); border-radius: 3px; padding: 2px 5px; flex-shrink: 0; margin-top: 2px; letter-spacing: 0.06em; }
+  .step-warn { font-size: 12.5px; color: var(--text-2); line-height: 1.55; display: flex; gap: 6px; margin-top: 4px; }
+  .step-warn-label { font-family: 'IBM Plex Mono', monospace; font-size: 9px; color: var(--amber); background: rgba(212,150,90,0.1); border: 1px solid rgba(212,150,90,0.2); border-radius: 3px; padding: 2px 5px; flex-shrink: 0; margin-top: 2px; letter-spacing: 0.06em; }
+  .step-sub { list-style: none; margin-top: 8px; display: flex; flex-direction: column; gap: 5px; padding-left: 0; border-left: 1px solid var(--border); margin-left: 2px; }
+  .step-sub li { font-size: 12.5px; color: var(--text-2); line-height: 1.55; padding-left: 12px; font-family: 'IBM Plex Mono', monospace; }
+
+  /* Quiz */
   .quiz-cards { display: flex; flex-direction: column; gap: 12px; }
-  .quiz-card {
-    background: var(--bg-card); border: 1px solid var(--border);
-    border-radius: 8px; padding: 16px 18px;
-  }
-  .q-num { font-family: 'IBM Plex Mono', monospace; font-size: 10px; color: var(--gold); margin-bottom: 6px; }
+  .quiz-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px; padding: 16px 18px; }
+  .q-num { font-family: 'IBM Plex Mono', monospace; font-size: 10px; color: var(--gold); margin-bottom: 4px; }
+  .q-type { font-family: 'IBM Plex Mono', monospace; font-size: 9px; color: var(--text-3); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 8px; }
   .q-text { font-size: 13.5px; font-weight: 500; color: var(--text-1); line-height: 1.5; margin-bottom: 12px; }
   .q-options { display: flex; flex-direction: column; gap: 7px; }
   .q-option { display: flex; gap: 10px; align-items: flex-start; font-size: 13px; color: var(--text-2); line-height: 1.5; }
-  .q-letter {
-    font-family: 'IBM Plex Mono', monospace; font-size: 10px;
-    background: var(--tag-bg); border: 1px solid var(--tag-border);
-    border-radius: 3px; padding: 2px 6px; color: var(--text-3);
-    flex-shrink: 0; margin-top: 2px;
-  }
+  .q-letter { font-family: 'IBM Plex Mono', monospace; font-size: 10px; background: var(--tag-bg); border: 1px solid var(--tag-border); border-radius: 3px; padding: 2px 6px; color: var(--text-3); flex-shrink: 0; margin-top: 2px; }
 
-  /* ── Answer Key ── */
-  .answer-btn {
-    display: flex; align-items: center; gap: 8px;
-    background: transparent; border: 1px solid var(--border);
-    border-radius: 8px; padding: 12px 18px;
-    font-family: 'IBM Plex Mono', monospace; font-size: 11px;
-    color: var(--text-3); cursor: pointer; width: 100%;
-    transition: all 0.2s;
-  }
+  /* Answer Key */
+  .answer-btn { display: flex; align-items: center; gap: 8px; background: transparent; border: 1px solid var(--border); border-radius: 8px; padding: 12px 18px; font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: var(--text-3); cursor: pointer; width: 100%; transition: all 0.2s; }
   .answer-btn:hover { border-color: var(--gold-dim); color: var(--gold); }
   .answer-key { display: none; flex-direction: column; gap: 10px; margin-top: 10px; }
   .answer-key.open { display: flex; }
-  .answer-item {
-    background: var(--bg-card); border-left: 2px solid var(--gold);
-    border-radius: 0 6px 6px 0; padding: 11px 15px;
-    font-size: 13px; line-height: 1.65; color: var(--text-2);
-  }
-  .answer-item strong {
-    font-family: 'IBM Plex Mono', monospace; font-size: 11px;
-    color: var(--gold); display: block; margin-bottom: 4px;
-  }
+  .answer-item { background: var(--bg-card); border-left: 2px solid var(--gold); border-radius: 0 6px 6px 0; padding: 11px 15px; font-size: 13px; line-height: 1.65; color: var(--text-2); }
+  .answer-item strong { font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: var(--gold); display: block; margin-bottom: 4px; }
 </style>
 </head>
 <body>
@@ -137,8 +88,9 @@
 
 <div class="content">
 
-  <p class="framing">Learning breakdown for the Vulkan Tutorial Overview — why Vulkan exists, the 8-step triangle pipeline, and how the API is structured at a low level.</p>
+  <p class="framing">A conceptual and procedural breakdown of why Vulkan exists, what it costs to draw a single triangle, and how the API is structured — including the exact 8-step sequence every Vulkan program follows.</p>
 
+  <!-- KEY TERMINOLOGY -->
   <div class="section">
     <div class="sec-label">Key Terminology</div>
     <table class="term-table">
@@ -146,143 +98,267 @@
         <tr><th>Term</th><th>Definition</th><th>Why it matters here</th></tr>
       </thead>
       <tbody>
-        <tr><td>VkInstance</td><td>Root object that initializes the Vulkan API</td><td>Entry point — nothing else can happen before this exists</td></tr>
-        <tr><td>VkPhysicalDevice</td><td>Handle representing an actual GPU on the system</td><td>Query VRAM, features, and queue families before committing to a device</td></tr>
-        <tr><td>VkDevice</td><td>Logical software-side interface to a chosen physical GPU</td><td>Declare exactly which features you'll use at creation — no implicit defaults</td></tr>
-        <tr><td>Queue / Queue Family</td><td>Channel for submitting GPU work; families group queues by capability type</td><td>Every draw, compute, and transfer command goes through a queue — nothing happens implicitly</td></tr>
-        <tr><td>VkSwapchainKHR</td><td>Ring of render targets the GPU alternates rendering into</td><td>Ensures you never render into the image currently shown on screen</td></tr>
-        <tr><td>VkSurfaceKHR</td><td>Platform-agnostic abstraction over a native OS window</td><td>Bridges Vulkan (platform-blind) to whatever windowing system is in use</td></tr>
-        <tr><td>WSI</td><td>Window System Integration — the Vulkan extension family for display interaction</td><td>Explains why surface and swap chain types carry the KHR suffix</td></tr>
-        <tr><td>VkImageView</td><td>Descriptor defining how to interpret a raw image (format, aspect, mip range)</td><td>Swap chain images can't be used directly — they must be wrapped first</td></tr>
-        <tr><td>VkFramebuffer</td><td>Binds specific image views to render pass attachment slots</td><td>Render pass defines the slots; framebuffer says which images fill them</td></tr>
-        <tr><td>Render Pass</td><td>Upfront declaration of what attachments rendering uses and how to treat them</td><td>Driver needs load/store intent (e.g. clear to black) before the draw starts</td></tr>
-        <tr><td>VkPipeline</td><td>Fully baked, immutable object representing complete graphics pipeline state</td><td>No runtime shader swapping — each combination needs its own pipeline object</td></tr>
-        <tr><td>VkShaderModule</td><td>Compiled shader loaded from SPIR-V bytecode</td><td>Standardized format eliminating vendor-specific shader compilation differences</td></tr>
-        <tr><td>VkCommandBuffer</td><td>Pre-recorded list of GPU commands submitted as a unit</td><td>Recorded once, reused across frames — key to multithreaded rendering</td></tr>
-        <tr><td>VkCommandPool</td><td>Memory pool for allocating command buffers, tied to a queue family</td><td>Pool's family determines which queue its buffers can submit to</td></tr>
-        <tr><td>Semaphore</td><td>GPU-side sync primitive for ordering async operations</td><td>Ensures rendering waits for image acquisition, presentation waits for rendering</td></tr>
-        <tr><td>Validation Layers</td><td>Optional middleware between app and driver catching API misuse</td><td>Vulkan does zero error checking by default — layers are your dev-time safety net</td></tr>
-        <tr><td>SPIR-V</td><td>Standardized binary shader format all Vulkan drivers must accept</td><td>Replaces vendor-specific GLSL dialects with one portable format</td></tr>
+        <tr><td>VkInstance</td><td>The root Vulkan object that initializes the API for your application</td><td>Everything starts here — you can't query hardware or do anything else without it</td></tr>
+        <tr><td>VkPhysicalDevice</td><td>A handle representing an actual GPU detected on the system</td><td>You query this to inspect VRAM size, feature support, and queue families before committing</td></tr>
+        <tr><td>VkDevice</td><td>A logical interface to a chosen physical GPU, created with declared feature requirements</td><td>Distinct from the physical device — you explicitly state which features you'll use at creation time</td></tr>
+        <tr><td>VkPhysicalDeviceFeatures</td><td>A struct listing optional hardware capabilities (e.g. multi-viewport, 64-bit floats)</td><td>You must declare which of these you'll use when creating VkDevice — nothing is enabled by default</td></tr>
+        <tr><td>VkQueue / Queue Family</td><td>A channel for submitting GPU work; families group queues by supported operation type (graphics, compute, transfer)</td><td>All GPU work — drawing, memory ops — goes through queues asynchronously; no implicit execution</td></tr>
+        <tr><td>VkSurfaceKHR</td><td>A platform-agnostic abstraction over a native OS window for rendering into</td><td>The KHR suffix signals this is a WSI extension object — Vulkan core is intentionally platform-blind</td></tr>
+        <tr><td>VkSwapchainKHR</td><td>A collection of render target images the GPU cycles through for frame display</td><td>Ensures you always render into an image not currently being shown — prevents tearing</td></tr>
+        <tr><td>WSI</td><td>Window System Interface — the Vulkan extension family for OS/display interaction</td><td>Explains the KHR suffix on surface and swap chain types; not part of core Vulkan</td></tr>
+        <tr><td>VkImageView</td><td>A descriptor specifying how to interpret a raw VkImage (format, aspect, mip/layer range)</td><td>Swap chain images cannot be used directly — they must first be wrapped in an image view</td></tr>
+        <tr><td>VkFramebuffer</td><td>Binds specific VkImageViews to the attachment slots declared by a render pass</td><td>Render pass defines what attachment slots exist; framebuffer says which actual images fill them</td></tr>
+        <tr><td>Render Pass</td><td>An upfront declaration of what image attachments rendering will use and how to handle their contents</td><td>Driver needs load/store intent (e.g. clear to black before draw) declared before execution begins</td></tr>
+        <tr><td>VkPipeline</td><td>A fully baked, immutable object encoding the complete graphics pipeline state</td><td>No runtime state mutation — switching shaders or vertex layout requires creating a new pipeline object</td></tr>
+        <tr><td>VkShaderModule</td><td>A compiled shader loaded from SPIR-V bytecode</td><td>Vulkan standardized on SPIR-V to eliminate vendor-specific GLSL dialect inconsistencies</td></tr>
+        <tr><td>VkCommandBuffer</td><td>A pre-recorded sequence of GPU commands (draw calls, pipeline binds, render pass transitions)</td><td>GPU work is recorded first then submitted — enables reuse across frames and parallel recording</td></tr>
+        <tr><td>VkCommandPool</td><td>A memory allocator for command buffers, tied to a specific queue family</td><td>The pool's queue family constrains which queues its buffers can submit to</td></tr>
+        <tr><td>Semaphore</td><td>A GPU-side synchronization primitive for ordering async queue operations</td><td>Render must wait for image acquisition; presentation must wait for render — semaphores enforce this</td></tr>
+        <tr><td>Validation Layers</td><td>Optional middleware inserted between the Vulkan API and the driver to catch misuse</td><td>Vulkan does zero error checking by default — layers are the only dev-time safety net, zero cost in release</td></tr>
+        <tr><td>SPIR-V</td><td>A standardized binary intermediate shader format that all Vulkan drivers must accept</td><td>Replaces per-vendor GLSL dialects; compiled once, runs consistently across all Vulkan implementations</td></tr>
+        <tr><td>VkResult</td><td>An enum return type used by nearly all Vulkan functions indicating success or a specific error</td><td>Vulkan never throws exceptions — you must check VkResult on every call during development</td></tr>
+        <tr><td>vkAcquireNextImageKHR</td><td>Function that requests the next available image from the swap chain to render into</td><td>First call in the main loop — you can't render until you know which swap chain image to target</td></tr>
+        <tr><td>vkQueueSubmit</td><td>Function that submits a command buffer to a queue for GPU execution</td><td>The actual dispatch point — nothing runs on the GPU until you submit</td></tr>
+        <tr><td>vkQueuePresentKHR</td><td>Function that hands a finished swap chain image back for display</td><td>Final step in the main loop — must wait on the render semaphore before presenting</td></tr>
       </tbody>
     </table>
   </div>
 
+  <!-- LOGIC FLOW -->
   <div class="section">
     <div class="sec-label">Logic Flow</div>
     <div class="logic-flow">
-      <p>Vulkan exists because older graphics APIs like OpenGL were designed for simple, fixed-function hardware and then had modern features bolted on over decades. The result was drivers that guessed at programmer intent — inconsistent behavior across vendors, fragile shader compilation, and poor CPU parallelism. Vulkan strips the API to its mechanical core: the programmer is explicit about everything, and the driver makes no assumptions.</p>
-      <p>The triangle walkthrough is really an argument for why that explicitness exists at every layer. You don't just "open a window and draw" — you negotiate with hardware first (Instance → PhysicalDevice → Device), set up the display pipeline next (Surface → Swapchain → ImageViews → Framebuffers), declare rendering intent upfront (RenderPass → Pipeline), then package draw commands into reusable buffers before the main loop even begins.</p>
-      <p>The central insight is that almost nothing in Vulkan is mutable at runtime. The graphics pipeline compiles like a binary — not a stateful object you tweak on the fly. This mirrors how GPUs actually execute work, giving drivers zero ambiguity. The cost is verbosity: even a triangle requires ~10 distinct object types. But once you see each object as information the driver would otherwise have to guess, the structure becomes logical rather than arbitrary.</p>
-      <p>The API section reinforces this philosophy. Naming conventions (vk prefix, struct-heavy params, explicit sType fields) and the VkResult return pattern push all error responsibility to the application. Validation layers are the escape hatch — restoring developer-friendly error messages during development without adding overhead to production builds.</p>
+      <p>Vulkan was built from scratch because older graphics APIs like OpenGL were designed for fixed-function hardware and then had programmable features grafted on incrementally. The result was driver code bloated with heuristics — guessing at programmer intent to map modern workloads onto architectures the original API never anticipated. This is why the same game can behave differently across GPU vendors, and why driver updates can meaningfully affect performance without touching the game itself. Vulkan's answer is to strip all guesswork from the driver by making the programmer explicitly declare every intent upfront.</p>
+      <p>The triangle walkthrough is the page's core argument for why that explicitness is necessary at every layer. To render a single triangle you must negotiate with hardware (Instance → PhysicalDevice → Device), establish the display pipeline (Surface → Swapchain → ImageViews → Framebuffers), declare your rendering contract with the driver (RenderPass → Pipeline), and pre-package your GPU commands (CommandPool → CommandBuffer) — all before the main loop begins. Each object in this chain exists because the driver needs information it would otherwise have to guess. The Framebuffer isn't redundant with the Render Pass; the Render Pass defines what attachment slots exist, while the Framebuffer names which actual images fill them.</p>
+      <p>The most distinctive design decision is pipeline immutability. In OpenGL you can swap shaders at runtime with a single call. In Vulkan, switching shaders or changing vertex layout requires building an entirely new VkPipeline object. The page frames this as the difference between ahead-of-time and just-in-time compilation — by locking in all state upfront, the driver can fully optimize once and produce consistent runtime performance. The cost is that you must anticipate every shader/state combination your program needs and pre-bake each one.</p>
+      <p>The API conventions section reinforces the same philosophy at a micro level. The vk/Vk/VK_ prefix system, struct-heavy parameter passing, explicit sType fields, and VkResult return codes all push responsibility to the application layer — the driver never absorbs uncertainty. Validation layers are the designated escape hatch: they restore error checking during development by inserting themselves between the API and the driver, then vanish completely in release builds with zero overhead.</p>
     </div>
   </div>
 
+  <!-- STEP-BY-STEP -->
   <div class="section">
-    <div class="sec-label">Quiz — 8 Questions</div>
+    <div class="sec-label">Step-by-Step — Triangle Pipeline</div>
+    <ol class="steps-list">
+
+      <li class="step-item">
+        <div class="step-name">Create a VkInstance</div>
+        <div class="step-why"><span class="step-why-label">WHY</span>Initializes the Vulkan API for your application — nothing else can exist without this root object.</div>
+        <div class="step-warn"><span class="step-warn-label">WATCH OUT</span>Declare all required API extensions here (e.g. WSI extensions) — they cannot be added after instance creation.</div>
+      </li>
+
+      <li class="step-item">
+        <div class="step-name">Select a VkPhysicalDevice</div>
+        <div class="step-why"><span class="step-why-label">WHY</span>Queries available GPUs and picks one based on VRAM size, feature support, and queue family availability.</div>
+        <div class="step-warn"><span class="step-warn-label">WATCH OUT</span>A device may have Vulkan support but lack graphics queue families — always verify queue family support during selection.</div>
+      </li>
+
+      <li class="step-item">
+        <div class="step-name">Create a VkDevice and VkQueue</div>
+        <div class="step-why"><span class="step-why-label">WHY</span>Creates the logical interface to the chosen GPU and retrieves the queue handle used to submit all work.</div>
+        <div class="step-warn"><span class="step-warn-label">WATCH OUT</span>You must explicitly list every VkPhysicalDeviceFeature you intend to use (e.g. multi-viewport) — unspecified features are off even if the hardware supports them.</div>
+      </li>
+
+      <li class="step-item">
+        <div class="step-name">Create a window, VkSurfaceKHR, and VkSwapchainKHR</div>
+        <div class="step-why"><span class="step-why-label">WHY</span>Establishes the display target — the swap chain provides the ring of images you'll render into and cycle for presentation.</div>
+        <div class="step-warn"><span class="step-warn-label">WATCH OUT</span>Surface and swap chain are WSI extension objects (KHR suffix) — not core Vulkan. Skip this step only if doing pure offscreen rendering.</div>
+        <ul class="step-sub">
+          <li>a. Create OS window (e.g. via GLFW)</li>
+          <li>b. Create VkSurfaceKHR from the native window handle</li>
+          <li>c. Create VkSwapchainKHR bound to that surface</li>
+        </ul>
+      </li>
+
+      <li class="step-item">
+        <div class="step-name">Wrap swap chain images into VkImageViews</div>
+        <div class="step-why"><span class="step-why-label">WHY</span>Raw swap chain images cannot be used as render targets directly — VkImageView declares how each image is interpreted (format, aspect, mip range).</div>
+        <div class="step-warn"><span class="step-warn-label">WATCH OUT</span>Create one VkImageView per swap chain image — you'll need to select the right one at draw time.</div>
+      </li>
+
+      <li class="step-item">
+        <div class="step-name">Create a Render Pass</div>
+        <div class="step-why"><span class="step-why-label">WHY</span>Declares to the driver what image attachments rendering will use and how their contents should be handled (load/store ops like clear-to-black).</div>
+      </li>
+
+      <li class="step-item">
+        <div class="step-name">Create VkFramebuffers</div>
+        <div class="step-why"><span class="step-why-label">WHY</span>Binds specific VkImageViews to the attachment slots declared in the render pass — one framebuffer per swap chain image.</div>
+        <div class="step-warn"><span class="step-warn-label">WATCH OUT</span>Framebuffers must be created after both the render pass and image views exist, and recreated if the swap chain is recreated.</div>
+      </li>
+
+      <li class="step-item">
+        <div class="step-name">Set up the VkPipeline (graphics pipeline)</div>
+        <div class="step-why"><span class="step-why-label">WHY</span>Bakes shader modules, viewport, depth ops, blending state, and the render pass reference into an immutable pipeline object the GPU can fully optimize.</div>
+        <div class="step-warn"><span class="step-warn-label">WATCH OUT</span>Changing shaders or vertex layout requires a completely new VkPipeline — pre-create all combinations you need. There is no default blend state.</div>
+      </li>
+
+      <li class="step-item">
+        <div class="step-name">Allocate a VkCommandPool and record VkCommandBuffers</div>
+        <div class="step-why"><span class="step-why-label">WHY</span>GPU commands (begin render pass, bind pipeline, draw, end render pass) must be pre-recorded into command buffers before they can be submitted.</div>
+        <div class="step-warn"><span class="step-warn-label">WATCH OUT</span>Record one command buffer per possible swap chain image — re-recording every frame is valid but less efficient.</div>
+        <ul class="step-sub">
+          <li>a. Create VkCommandPool (tied to a queue family)</li>
+          <li>b. Allocate one VkCommandBuffer per swap chain image</li>
+          <li>c. Record: begin render pass → bind pipeline → draw 3 vertices → end render pass</li>
+        </ul>
+      </li>
+
+      <li class="step-item">
+        <div class="step-name">Run the main loop</div>
+        <div class="step-why"><span class="step-why-label">WHY</span>Drives frame production by acquiring a swap chain image, submitting the right command buffer, and returning the image for presentation.</div>
+        <div class="step-warn"><span class="step-warn-label">WATCH OUT</span>Queue operations are asynchronous — use semaphores to ensure render waits on acquisition and presentation waits on render completion.</div>
+        <ul class="step-sub">
+          <li>a. vkAcquireNextImageKHR → get image index</li>
+          <li>b. vkQueueSubmit → execute the matching command buffer</li>
+          <li>c. vkQueuePresentKHR → return image to swap chain for display</li>
+        </ul>
+      </li>
+
+    </ol>
+  </div>
+
+  <!-- QUIZ -->
+  <div class="section">
+    <div class="sec-label">Quiz — 10 Questions</div>
     <div class="quiz-cards">
 
       <div class="quiz-card">
         <div class="q-num">Q1</div>
+        <div class="q-type">conceptual</div>
         <div class="q-text">Why did Vulkan need to be designed from scratch rather than extending OpenGL?</div>
         <div class="q-options">
-          <div class="q-option"><span class="q-letter">A</span>OpenGL lacked support for 3D rendering on modern hardware</div>
-          <div class="q-option"><span class="q-letter">B</span>Older APIs accumulated abstractions built for fixed-function hardware, making it impossible to cleanly expose modern GPU features and multi-threading</div>
-          <div class="q-option"><span class="q-letter">C</span>OpenGL was proprietary and Khronos wanted an open alternative</div>
-          <div class="q-option"><span class="q-letter">D</span>GPU manufacturers refused to write OpenGL drivers for mobile GPUs</div>
+          <div class="q-option"><span class="q-letter">A</span>OpenGL lacked support for fragment shaders on modern GPUs</div>
+          <div class="q-option"><span class="q-letter">B</span>Older APIs accumulated abstractions designed for fixed-function hardware, forcing drivers to guess at programmer intent — causing vendor inconsistency and poor multi-threading</div>
+          <div class="q-option"><span class="q-letter">C</span>OpenGL was proprietary and Khronos needed an open cross-platform replacement</div>
+          <div class="q-option"><span class="q-letter">D</span>Mobile GPUs refused to support the OpenGL instruction set</div>
         </div>
       </div>
 
       <div class="quiz-card">
         <div class="q-num">Q2</div>
+        <div class="q-type">terminology</div>
         <div class="q-text">What is the difference between VkPhysicalDevice and VkDevice?</div>
         <div class="q-options">
-          <div class="q-option"><span class="q-letter">A</span>VkPhysicalDevice is for integrated GPUs; VkDevice is for discrete ones</div>
-          <div class="q-option"><span class="q-letter">B</span>VkPhysicalDevice represents the actual hardware; VkDevice is the logical interface you create to use it, specifying which features you need</div>
-          <div class="q-option"><span class="q-letter">C</span>They are interchangeable names for the same concept</div>
-          <div class="q-option"><span class="q-letter">D</span>VkDevice selects the GPU; VkPhysicalDevice controls its memory layout</div>
+          <div class="q-option"><span class="q-letter">A</span>VkPhysicalDevice is for discrete GPUs; VkDevice is for integrated GPUs</div>
+          <div class="q-option"><span class="q-letter">B</span>VkPhysicalDevice represents the actual hardware and is queried for capabilities; VkDevice is the logical interface you create to use it, where you declare required features</div>
+          <div class="q-option"><span class="q-letter">C</span>They refer to the same underlying object — VkDevice is just the newer API name</div>
+          <div class="q-option"><span class="q-letter">D</span>VkDevice handles memory allocation; VkPhysicalDevice handles command submission</div>
         </div>
       </div>
 
       <div class="quiz-card">
         <div class="q-num">Q3</div>
-        <div class="q-text">Why does the swap chain exist?</div>
+        <div class="q-type">terminology</div>
+        <div class="q-text">What does the KHR suffix on VkSurfaceKHR and VkSwapchainKHR indicate?</div>
         <div class="q-options">
-          <div class="q-option"><span class="q-letter">A</span>To compress rendered images before they reach the display</div>
-          <div class="q-option"><span class="q-letter">B</span>To allow multiple GPUs to render frames in parallel</div>
-          <div class="q-option"><span class="q-letter">C</span>To ensure rendering always targets an image not currently on screen, preventing torn or incomplete frames</div>
-          <div class="q-option"><span class="q-letter">D</span>To convert Vulkan's internal format to what the monitor expects</div>
+          <div class="q-option"><span class="q-letter">A</span>These objects are hardware-accelerated and require a Khronos-certified driver</div>
+          <div class="q-option"><span class="q-letter">B</span>These are part of a Vulkan extension (WSI), not core Vulkan — because the core API is intentionally platform-agnostic</div>
+          <div class="q-option"><span class="q-letter">C</span>These are deprecated types maintained only for Khronos compatibility</div>
+          <div class="q-option"><span class="q-letter">D</span>These require kernel-level privileges and direct hardware access</div>
         </div>
       </div>
 
       <div class="quiz-card">
         <div class="q-num">Q4</div>
-        <div class="q-text">What does the KHR suffix on VkSurfaceKHR and VkSwapchainKHR indicate?</div>
+        <div class="q-type">conceptual</div>
+        <div class="q-text">Why does Vulkan require creating an entirely new VkPipeline to switch shaders, instead of swapping them at runtime?</div>
         <div class="q-options">
-          <div class="q-option"><span class="q-letter">A</span>These are Khronos-recommended features guaranteed to be present</div>
-          <div class="q-option"><span class="q-letter">B</span>These belong to a Vulkan extension (WSI), not the core API — because Vulkan itself is platform-agnostic</div>
-          <div class="q-option"><span class="q-letter">C</span>These are deprecated types scheduled for removal</div>
-          <div class="q-option"><span class="q-letter">D</span>These require kernel-level drivers to function</div>
+          <div class="q-option"><span class="q-letter">A</span>Shader modules are stored in read-only GPU memory after compilation</div>
+          <div class="q-option"><span class="q-letter">B</span>Locking in all pipeline state upfront is the equivalent of ahead-of-time compilation — it lets the driver fully optimize once, making runtime performance more predictable</div>
+          <div class="q-option"><span class="q-letter">C</span>This is a known limitation of SPIR-V bytecode that will be addressed in a future Vulkan version</div>
+          <div class="q-option"><span class="q-letter">D</span>Pipeline objects are immutable because they are cached in a shared driver registry across applications</div>
         </div>
       </div>
 
       <div class="quiz-card">
         <div class="q-num">Q5</div>
-        <div class="q-text">Why must you create an entirely new VkPipeline when switching shaders, rather than swapping them at runtime?</div>
+        <div class="q-type">logic / relationship</div>
+        <div class="q-text">What is the relationship between a Render Pass and a VkFramebuffer?</div>
         <div class="q-options">
-          <div class="q-option"><span class="q-letter">A</span>Shaders are write-protected after compilation in Vulkan</div>
-          <div class="q-option"><span class="q-letter">B</span>Pipeline objects are stored in GPU VRAM and cannot be modified</div>
-          <div class="q-option"><span class="q-letter">C</span>Baking pipeline state upfront lets the driver fully optimize for that exact configuration, making runtime performance more predictable</div>
-          <div class="q-option"><span class="q-letter">D</span>This is a known SPIR-V limitation that will be resolved in Vulkan 2.0</div>
+          <div class="q-option"><span class="q-letter">A</span>They are interchangeable — a framebuffer is just a render pass with image views attached</div>
+          <div class="q-option"><span class="q-letter">B</span>The render pass declares what attachment slots exist and how to handle them; the framebuffer binds specific VkImageViews to those slots</div>
+          <div class="q-option"><span class="q-letter">C</span>The framebuffer declares the attachment layout; the render pass selects which GPU executes it</div>
+          <div class="q-option"><span class="q-letter">D</span>A render pass contains multiple framebuffers and selects between them per draw call</div>
         </div>
       </div>
 
       <div class="quiz-card">
         <div class="q-num">Q6</div>
-        <div class="q-text">The tutorial says you need to record a command buffer for each possible swap chain image. Why not just record it fresh every frame?</div>
+        <div class="q-type">application</div>
+        <div class="q-text">You want to implement your own window manager directly on top of Vulkan without relying on an existing compositor. Which Vulkan extension enables this?</div>
         <div class="q-options">
-          <div class="q-option"><span class="q-letter">A</span>Vulkan doesn't allow command buffers to be re-recorded once submitted</div>
-          <div class="q-option"><span class="q-letter">B</span>Re-recording every frame is possible but less efficient — pre-recording allows reuse and is the recommended approach for static draw sequences</div>
-          <div class="q-option"><span class="q-letter">C</span>Command buffers expire after one use and must be pre-allocated per image</div>
-          <div class="q-option"><span class="q-letter">D</span>The GPU can only accept one command buffer at a time across all frames</div>
+          <div class="q-option"><span class="q-letter">A</span>VK_KHR_surface, by creating an offscreen surface with no window handle</div>
+          <div class="q-option"><span class="q-letter">B</span>VK_KHR_display and VK_KHR_display_swapchain, which allow creating a surface representing the entire screen</div>
+          <div class="q-option"><span class="q-letter">C</span>VK_EXT_headless_surface, which bypasses the display system entirely</div>
+          <div class="q-option"><span class="q-letter">D</span>VK_KHR_wayland_surface, which gives direct access to the Wayland compositor protocol</div>
         </div>
       </div>
 
       <div class="quiz-card">
         <div class="q-num">Q7</div>
-        <div class="q-text">VK_KHR_display lets you render directly to a display without a window manager. Why is this specifically relevant for someone building a custom compositor?</div>
+        <div class="q-type">gotcha</div>
+        <div class="q-text">Validation layers are described as insertable between the API and the graphics driver. Why are they completely disabled in production builds?</div>
         <div class="q-options">
-          <div class="q-option"><span class="q-letter">A</span>It allows higher frame rates by bypassing vsync entirely</div>
-          <div class="q-option"><span class="q-letter">B</span>It exposes a full-screen surface so you can implement your own window management on top of Vulkan, without depending on an existing compositor</div>
-          <div class="q-option"><span class="q-letter">C</span>It provides raw display hardware access needed for HDR output</div>
-          <div class="q-option"><span class="q-letter">D</span>It is required for any Vulkan program running on Linux</div>
+          <div class="q-option"><span class="q-letter">A</span>They produce visual artifacts in release builds that weren't present during development</div>
+          <div class="q-option"><span class="q-letter">B</span>They require elevated system privileges not available to released applications</div>
+          <div class="q-option"><span class="q-letter">C</span>They add runtime overhead — parameter validation, memory tracking — that's valuable in development but unnecessary once the code is known correct</div>
+          <div class="q-option"><span class="q-letter">D</span>They are incompatible with swap chains in non-debug driver configurations</div>
         </div>
       </div>
 
       <div class="quiz-card">
         <div class="q-num">Q8</div>
-        <div class="q-text">Validation layers sit between the API and driver. Why are they disabled in production builds?</div>
+        <div class="q-type">gotcha</div>
+        <div class="q-text">The tutorial says you need to record a command buffer for each possible swap chain image rather than recording it fresh every frame. Why?</div>
         <div class="q-options">
-          <div class="q-option"><span class="q-letter">A</span>They cause visual artifacts in release builds</div>
-          <div class="q-option"><span class="q-letter">B</span>They require elevated system privileges to run</div>
-          <div class="q-option"><span class="q-letter">C</span>They add runtime overhead — parameter checking, memory tracking — useful during development but unnecessary once correctness is established</div>
-          <div class="q-option"><span class="q-letter">D</span>They are incompatible with swap chains outside of debug mode</div>
+          <div class="q-option"><span class="q-letter">A</span>Vulkan prohibits re-recording command buffers that have already been submitted</div>
+          <div class="q-option"><span class="q-letter">B</span>Re-recording every frame is valid but less efficient — pre-recording allows the same buffers to be reused, which is the preferred approach for static draw sequences</div>
+          <div class="q-option"><span class="q-letter">C</span>Command buffers are automatically freed after submission and cannot be reset</div>
+          <div class="q-option"><span class="q-letter">D</span>The GPU can only hold one command buffer in memory at a time across all frames in flight</div>
+        </div>
+      </div>
+
+      <div class="quiz-card">
+        <div class="q-num">Q9</div>
+        <div class="q-type">sequence</div>
+        <div class="q-text">What must be created before you can create VkFramebuffers?</div>
+        <div class="q-options">
+          <div class="q-option"><span class="q-letter">A</span>VkCommandPool and VkCommandBuffer</div>
+          <div class="q-option"><span class="q-letter">B</span>Both the Render Pass and the VkImageViews — the framebuffer needs attachment slot definitions from the render pass and actual image handles from the image views</div>
+          <div class="q-option"><span class="q-letter">C</span>The VkPipeline — framebuffers must reference the pipeline's output format</div>
+          <div class="q-option"><span class="q-letter">D</span>Only the VkSwapchainKHR — framebuffers are created directly from swap chain images</div>
+        </div>
+      </div>
+
+      <div class="quiz-card">
+        <div class="q-num">Q10</div>
+        <div class="q-type">sequence</div>
+        <div class="q-text">Which of the following is the correct order of the three calls inside Vulkan's main loop per frame?</div>
+        <div class="q-options">
+          <div class="q-option"><span class="q-letter">A</span>vkQueueSubmit → vkAcquireNextImageKHR → vkQueuePresentKHR</div>
+          <div class="q-option"><span class="q-letter">B</span>vkQueuePresentKHR → vkAcquireNextImageKHR → vkQueueSubmit</div>
+          <div class="q-option"><span class="q-letter">C</span>vkAcquireNextImageKHR → vkQueueSubmit → vkQueuePresentKHR</div>
+          <div class="q-option"><span class="q-letter">D</span>vkAcquireNextImageKHR → vkQueuePresentKHR → vkQueueSubmit</div>
         </div>
       </div>
 
     </div>
   </div>
 
+  <!-- ANSWER KEY -->
   <div class="section">
     <button class="answer-btn" onclick="toggleAnswers(this)">📋 Show Answer Key</button>
     <div class="answer-key" id="answer-key">
-      <div class="answer-item"><strong>Q1 → B</strong>Older APIs had abstractions built for fixed-function hardware that couldn't cleanly expose modern features like multi-threading or compute. Architectural debt, not ownership or mobile issues.</div>
-      <div class="answer-item"><strong>Q2 → B</strong>The physical device is the hardware (queried for VRAM, features). The logical device is created to interact with it, declaring which features you'll use. Always two separate objects.</div>
-      <div class="answer-item"><strong>Q3 → C</strong>The swap chain implements double/triple buffering — render into an off-screen image, then hand it off. Prevents the display from ever showing a partially-rendered frame.</div>
-      <div class="answer-item"><strong>Q4 → B</strong>KHR marks a Khronos extension, not core Vulkan. The page explicitly notes Vulkan is platform-agnostic, which is why window/display interaction lives in the WSI extension layer.</div>
-      <div class="answer-item"><strong>Q5 → C</strong>The page draws the ahead-of-time vs. just-in-time compilation analogy. Baking state upfront gives the driver full optimization context with no runtime ambiguity to resolve.</div>
-      <div class="answer-item"><strong>Q6 → B</strong>The tutorial explicitly says re-recording every frame "is not as efficient." Pre-recording is preferred so the same buffer can be selected and reused each frame.</div>
-      <div class="answer-item"><strong>Q7 → B</strong>The page states VK_KHR_display "could be used to implement your own window manager." For a Bevy-as-compositor build, this is exactly the mechanism to skip a host compositor entirely.</div>
-      <div class="answer-item"><strong>Q8 → C</strong>The page says layers can be "completely disabled when releasing for zero overhead." Runtime checking cost only — no mention of artifacts, privileges, or swap chain incompatibility.</div>
+      <div class="answer-item"><strong>Q1 → B</strong>The page explicitly argues that existing APIs had abstractions designed for fixed-function hardware that couldn't cleanly expose modern GPU features like compute or multi-threading. Vendor inconsistency and driver guesswork — not ownership or mobile refusal — were the core problems.</div>
+      <div class="answer-item"><strong>Q2 → B</strong>VkPhysicalDevice is the actual hardware handle used to query capabilities (VRAM, queue families, feature support). VkDevice is the logical object you create to actually use that hardware, declaring at creation which VkPhysicalDeviceFeatures you need. They are always two separate objects.</div>
+      <div class="answer-item"><strong>Q3 → B</strong>KHR marks a Khronos ratified extension, not core Vulkan. The page explicitly notes Vulkan is "completely platform agnostic" — which is precisely why window/display interaction lives in the WSI extension layer rather than the core API.</div>
+      <div class="answer-item"><strong>Q4 → B</strong>The page uses the ahead-of-time vs. just-in-time analogy directly. Baking all state into VkPipeline upfront gives the driver full optimization context. The trade-off is pre-creating all shader/state combinations you'll ever need.</div>
+      <div class="answer-item"><strong>Q5 → B</strong>The page states this precisely: "a render pass only describes the type of images" while "a VkFramebuffer actually binds specific images to these slots." They are complementary — neither alone is sufficient.</div>
+      <div class="answer-item"><strong>Q6 → B</strong>The page explicitly mentions VK_KHR_display and VK_KHR_display_swapchain as the way to "create a surface that represents the entire screen" and notes this "could be used to implement your own window manager." Directly relevant to a Bevy-as-compositor project.</div>
+      <div class="answer-item"><strong>Q7 → C</strong>The page says validation layers "can be enabled during development and then completely disabled when releasing your application for zero overhead." No mention of artifacts, privileges, or swap chain incompatibility — those are invented distractors.</div>
+      <div class="answer-item"><strong>Q8 → B</strong>The page says "the alternative would be to record the command buffer again every frame, which is not as efficient." Re-recording is explicitly allowed — it's just not the recommended approach for static draw sequences.</div>
+      <div class="answer-item"><strong>Q9 → B</strong>The page states framebuffers must reference the render pass (for slot definitions) and image views (for actual image handles). Step 6 (Render Pass) and Step 5 (Image Views) must both precede Step 7 (Framebuffers) in the triangle pipeline sequence.</div>
+      <div class="answer-item"><strong>Q10 → C</strong>The page describes this order explicitly: "We first acquire an image from the swap chain with vkAcquireNextImageKHR. We can then select the appropriate command buffer... and execute it with vkQueueSubmit. Finally, we return the image to the swap chain... with vkQueuePresentKHR." Acquire → Submit → Present.</div>
     </div>
   </div>
 
