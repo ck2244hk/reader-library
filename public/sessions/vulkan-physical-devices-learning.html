@@ -1,0 +1,559 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Vulkan Tutorial — Physical Devices &amp; Queue Families | Learning Session</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=IBM+Plex+Mono:wght@400;500&family=Syne:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #0d0f14; --bg-surface: #10131a; --bg-card: #12151d; --bg-row-alt: #0f1118;
+    --border: #1e2333; --gold: #c9a84c; --gold-dim: #7a6230; --gold-glow: rgba(201,168,76,0.1);
+    --blue: #7eb8d4; --green: #5db88a; --green-dim: rgba(93,184,138,0.15); --green-border: rgba(93,184,138,0.35);
+    --red: #d46a6a; --red-dim: rgba(212,106,106,0.15); --red-border: rgba(212,106,106,0.35);
+    --amber: #d4965a;
+    --text-1: #e8e4dc; --text-2: #8a8c99; --text-3: #4a4e62;
+    --tag-bg: #1a1e2c; --tag-border: #252a3a;
+  }
+  html { background: var(--bg); color: var(--text-1); font-family: 'Syne', sans-serif; -webkit-font-smoothing: antialiased; }
+  body { min-height: 100vh; padding-bottom: 80px; }
+  ::-webkit-scrollbar { width: 4px; }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+
+  .hdr { position: sticky; top: 0; z-index: 10; background: var(--bg-surface); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 12px 24px; gap: 16px; flex-wrap: wrap; }
+  .hdr-left { display: flex; align-items: center; gap: 10px; }
+  .hdr-gem { color: var(--gold); font-size: 14px; }
+  .hdr-title { font-family: 'DM Serif Display', serif; font-size: 16px; color: var(--text-1); }
+  .hdr-right { display: flex; align-items: center; gap: 12px; }
+  .score-tally { font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: var(--text-3); white-space: nowrap; }
+  .score-tally span { color: var(--gold); }
+  .hdr-url { font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: var(--text-3); background: var(--tag-bg); border: 1px solid var(--tag-border); border-radius: 5px; padding: 4px 10px; text-decoration: none; white-space: nowrap; transition: color 0.2s, border-color 0.2s; }
+  .hdr-url:hover { color: var(--gold); border-color: var(--gold-dim); }
+
+  .content { max-width: 800px; margin: 0 auto; padding: 40px 24px; display: flex; flex-direction: column; gap: 40px; }
+  .framing { font-family: 'DM Serif Display', serif; font-size: 16px; color: var(--gold); border-left: 2px solid var(--gold); padding-left: 14px; line-height: 1.55; font-style: italic; }
+  .section { display: flex; flex-direction: column; gap: 14px; }
+  .sec-label { font-family: 'IBM Plex Mono', monospace; font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--text-3); }
+
+  .term-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .term-table th { font-family: 'IBM Plex Mono', monospace; font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-3); text-align: left; padding: 8px 12px; background: var(--bg-surface); border-bottom: 1px solid var(--border); }
+  .term-table td { padding: 9px 12px; border-bottom: 1px solid var(--border); vertical-align: top; color: var(--text-2); line-height: 1.5; }
+  .term-table tr:nth-child(even) td { background: var(--bg-row-alt); }
+  .term-table td:first-child { font-family: 'IBM Plex Mono', monospace; font-size: 11.5px; color: var(--blue); white-space: nowrap; }
+
+  .code-block { background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px; padding: 16px 18px; font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: var(--text-2); line-height: 1.65; overflow-x: auto; white-space: pre; }
+  .code-label { font-family: 'IBM Plex Mono', monospace; font-size: 9px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--text-3); margin-bottom: 8px; }
+
+  .logic-flow { font-size: 14px; line-height: 1.8; color: var(--text-2); display: flex; flex-direction: column; gap: 14px; }
+
+  .steps-list { list-style: none; display: flex; flex-direction: column; gap: 10px; counter-reset: steps; }
+  .step-item { counter-increment: steps; background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px; padding: 14px 16px 14px 54px; position: relative; }
+  .step-item::before { content: counter(steps); position: absolute; left: 14px; top: 14px; font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: var(--gold); background: var(--gold-glow); border: 1px solid var(--gold-dim); border-radius: 4px; width: 26px; height: 26px; display: flex; align-items: center; justify-content: center; }
+  .step-name { font-size: 13.5px; font-weight: 500; color: var(--text-1); margin-bottom: 7px; line-height: 1.4; }
+  .step-why { font-size: 12.5px; color: var(--text-2); line-height: 1.55; margin-bottom: 4px; display: flex; gap: 6px; }
+  .step-why-label { font-family: 'IBM Plex Mono', monospace; font-size: 9px; color: var(--green); background: rgba(93,184,138,0.1); border: 1px solid rgba(93,184,138,0.2); border-radius: 3px; padding: 2px 5px; flex-shrink: 0; margin-top: 2px; letter-spacing: 0.06em; }
+  .step-warn { font-size: 12.5px; color: var(--text-2); line-height: 1.55; display: flex; gap: 6px; margin-top: 4px; }
+  .step-warn-label { font-family: 'IBM Plex Mono', monospace; font-size: 9px; color: var(--amber); background: rgba(212,150,90,0.1); border: 1px solid rgba(212,150,90,0.2); border-radius: 3px; padding: 2px 5px; flex-shrink: 0; margin-top: 2px; letter-spacing: 0.06em; }
+  .step-sub { list-style: none; margin-top: 8px; display: flex; flex-direction: column; gap: 5px; padding-left: 0; border-left: 1px solid var(--border); margin-left: 2px; }
+  .step-sub li { font-size: 12.5px; color: var(--text-2); line-height: 1.55; padding-left: 12px; font-family: 'IBM Plex Mono', monospace; }
+
+  .quiz-cards { display: flex; flex-direction: column; gap: 14px; }
+  .quiz-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px; padding: 18px 20px; transition: border-color 0.2s; }
+  .quiz-card.answered-correct { border-left: 3px solid var(--green); }
+  .quiz-card.answered-wrong { border-left: 3px solid var(--red); }
+  .q-num { font-family: 'IBM Plex Mono', monospace; font-size: 10px; color: var(--gold); margin-bottom: 3px; }
+  .q-type { font-family: 'IBM Plex Mono', monospace; font-size: 9px; color: var(--text-3); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 10px; }
+  .q-text { font-size: 13.5px; font-weight: 500; color: var(--text-1); line-height: 1.55; margin-bottom: 14px; }
+  .q-text code { font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: var(--blue); background: var(--tag-bg); padding: 1px 5px; border-radius: 3px; }
+  .q-options { display: flex; flex-direction: column; gap: 7px; margin-bottom: 14px; }
+  .q-option { display: flex; gap: 10px; align-items: flex-start; font-size: 13px; color: var(--text-2); line-height: 1.5; padding: 9px 12px; border: 1px solid var(--border); border-radius: 6px; cursor: pointer; transition: border-color 0.15s, background 0.15s; user-select: none; }
+  .q-option:hover { border-color: var(--gold-dim); background: var(--gold-glow); }
+  .q-option.selected { border-color: var(--gold); background: var(--gold-glow); }
+  .q-option.selected .q-letter { color: var(--gold); border-color: var(--gold-dim); background: rgba(201,168,76,0.15); }
+  .q-option.correct { border-color: var(--green); background: var(--green-dim); pointer-events: none; }
+  .q-option.correct .q-letter { color: var(--green); border-color: var(--green-border); background: rgba(93,184,138,0.15); }
+  .q-option.wrong { border-color: var(--red); background: var(--red-dim); pointer-events: none; }
+  .q-option.wrong .q-letter { color: var(--red); border-color: var(--red-border); background: rgba(212,106,106,0.15); }
+  .q-option.locked { pointer-events: none; }
+  .q-letter { font-family: 'IBM Plex Mono', monospace; font-size: 10px; background: var(--tag-bg); border: 1px solid var(--tag-border); border-radius: 3px; padding: 2px 6px; color: var(--text-3); flex-shrink: 0; margin-top: 1px; transition: color 0.15s, border-color 0.15s, background 0.15s; }
+  .check-btn { display: flex; align-items: center; gap: 8px; background: transparent; border: 1px solid var(--gold-dim); border-radius: 6px; padding: 9px 16px; font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: var(--gold); cursor: pointer; transition: all 0.2s; }
+  .check-btn:hover:not(:disabled) { background: var(--gold-glow); border-color: var(--gold); }
+  .check-btn:disabled { border-color: var(--border); color: var(--text-3); cursor: default; }
+  .q-feedback { display: none; margin-top: 12px; padding: 11px 14px; border-radius: 6px; font-size: 13px; line-height: 1.65; color: var(--text-2); }
+  .q-feedback.correct { display: block; background: var(--green-dim); border: 1px solid var(--green-border); }
+  .q-feedback.wrong { display: block; background: var(--red-dim); border: 1px solid var(--red-border); }
+  .q-feedback .fb-verdict { font-weight: 600; margin-bottom: 4px; display: flex; align-items: center; gap: 6px; }
+  .q-feedback.correct .fb-verdict { color: var(--green); }
+  .q-feedback.wrong .fb-verdict { color: var(--red); }
+  .score-summary { background: var(--bg-card); border: 1px solid var(--border); border-radius: 10px; padding: 28px 24px; text-align: center; display: none; flex-direction: column; gap: 10px; }
+  .score-summary.visible { display: flex; }
+  .score-summary-num { font-family: 'DM Serif Display', serif; font-size: 36px; color: var(--gold); }
+  .score-summary-msg { font-size: 14px; color: var(--text-2); }
+</style>
+</head>
+<body>
+
+<header class="hdr">
+  <div class="hdr-left">
+    <span class="hdr-gem">◆</span>
+    <span class="hdr-title">Vulkan Tutorial — Physical Devices &amp; Queue Families</span>
+  </div>
+  <div class="hdr-right">
+    <span class="score-tally" id="score-tally">0 / 9 answered &middot; <span id="score-correct">0</span> correct</span>
+    <a class="hdr-url" href="https://vulkan-tutorial.com/en/Drawing_a_triangle/Setup/Physical_devices_and_queue_families" target="_blank" rel="noopener">vulkan-tutorial.com ↗</a>
+  </div>
+</header>
+
+<div class="content">
+
+  <p class="framing">Physical device selection is a pure query phase — no Vulkan object is created. The real decision is whether a GPU exposes a queue family that supports graphics commands, tracked cleanly with std::optional to avoid sentinel-value traps.</p>
+
+  <!-- KEY TERMINOLOGY -->
+  <div class="section">
+    <div class="sec-label">Key Terminology</div>
+    <table class="term-table">
+      <thead>
+        <tr><th>Term</th><th>Definition</th><th>Why it matters here</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>VkPhysicalDevice</td><td>An opaque handle representing a GPU (or other Vulkan-capable device) available on the system</td><td>This is what the tutorial is selecting — stored as a class member initialized to VK_NULL_HANDLE and implicitly freed by the instance</td></tr>
+        <tr><td>VK_NULL_HANDLE</td><td>Vulkan's null value for all handle types, guaranteed to compare equal to zero</td><td>Initializing physicalDevice to it means a failed selection loop leaves a detectable null rather than garbage</td></tr>
+        <tr><td>vkEnumeratePhysicalDevices</td><td>Two-call function: first call fills device count, second fills a vector of VkPhysicalDevice handles</td><td>The same two-call pattern used for extensions and layers — count first, allocate, fill</td></tr>
+        <tr><td>VkPhysicalDeviceProperties</td><td>Struct filled by vkGetPhysicalDeviceProperties; contains device name, type, Vulkan version, and hardware limits</td><td>Used in suitability checks — e.g. VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU to prefer dedicated GPUs</td></tr>
+        <tr><td>VkPhysicalDeviceFeatures</td><td>Struct filled by vkGetPhysicalDeviceFeatures; contains boolean flags for optional capabilities like geometry shaders and texture compression</td><td>Distinct from Properties — features are optional capabilities the app may require, while properties are fixed facts about the device</td></tr>
+        <tr><td>VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU</td><td>Enum value in VkPhysicalDeviceProperties.deviceType indicating a dedicated GPU (not integrated or virtual)</td><td>Scoring strategies often give discrete GPUs a large bonus because they typically outperform integrated graphics</td></tr>
+        <tr><td>Queue family</td><td>A group of queues on a GPU that all support the same subset of operations (graphics, compute, transfer, sparse binding)</td><td>To submit any work to the GPU you must first identify which queue family index to use — this chapter finds the graphics family index</td></tr>
+        <tr><td>VkQueueFamilyProperties</td><td>Struct describing one queue family: the operation flags it supports and the number of queues in the family</td><td>The queueFlags field is bitmasked against VK_QUEUE_GRAPHICS_BIT to find a family that can process draw commands</td></tr>
+        <tr><td>VK_QUEUE_GRAPHICS_BIT</td><td>Flag bit indicating a queue family supports graphics commands (draw calls, render passes)</td><td>The only requirement checked in this chapter — without a graphics queue, the app cannot render anything</td></tr>
+        <tr><td>vkGetPhysicalDeviceQueueFamilyProperties</td><td>Two-call function that returns the VkQueueFamilyProperties array for a given physical device</td><td>Used inside findQueueFamilies to iterate every family and check its flags</td></tr>
+        <tr><td>QueueFamilyIndices</td><td>Tutorial-defined struct holding one std::optional&lt;uint32_t&gt; per required queue family</td><td>Centralises the "which family index did we find?" state; isComplete() on this struct is the single gate for suitability</td></tr>
+        <tr><td>std::optional&lt;uint32_t&gt;</td><td>C++17 type that wraps a value that may or may not be present; has_value() returns false until a value is assigned</td><td>Cleanly distinguishes "found queue family at index 0" from "haven't found one yet" — a plain uint32_t with sentinel -1 would be ambiguous and error-prone</td></tr>
+        <tr><td>isComplete()</td><td>Member function on QueueFamilyIndices that returns true when all required family indices have been found</td><td>Used both in isDeviceSuitable() to accept/reject a device, and as the early-exit condition in the search loop</td></tr>
+        <tr><td>rateDeviceSuitability</td><td>Optional scoring function that assigns each GPU a numeric score (discrete GPU bonus + max texture size) and picks the highest</td><td>Demonstrates how to prefer one GPU over another rather than accepting the first suitable one; tutorial uses the simpler return-true approach in practice</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- KEY CODE -->
+  <div class="section">
+    <div class="sec-label">Key Code</div>
+
+    <div class="code-label">pickPhysicalDevice() — enumerate, evaluate, select</div>
+    <div class="code-block">VkPhysicalDevice physicalDevice = VK_NULL_HANDLE;  // class member
+
+void pickPhysicalDevice() {
+    uint32_t deviceCount = 0;
+    vkEnumeratePhysicalDevices(instance, &amp;deviceCount, nullptr);
+
+    if (deviceCount == 0)
+        throw std::runtime_error("failed to find GPUs with Vulkan support!");
+
+    std::vector&lt;VkPhysicalDevice&gt; devices(deviceCount);
+    vkEnumeratePhysicalDevices(instance, &amp;deviceCount, devices.data());
+
+    for (const auto&amp; device : devices) {
+        if (isDeviceSuitable(device)) {
+            physicalDevice = device;
+            break;
+        }
+    }
+
+    if (physicalDevice == VK_NULL_HANDLE)
+        throw std::runtime_error("failed to find a suitable GPU!");
+}</div>
+
+    <div class="code-label" style="margin-top:16px;">QueueFamilyIndices struct and findQueueFamilies()</div>
+    <div class="code-block">struct QueueFamilyIndices {
+    std::optional&lt;uint32_t&gt; graphicsFamily;
+
+    bool isComplete() {
+        return graphicsFamily.has_value();
+    }
+};
+
+QueueFamilyIndices findQueueFamilies(VkPhysicalDevice device) {
+    QueueFamilyIndices indices;
+
+    uint32_t queueFamilyCount = 0;
+    vkGetPhysicalDeviceQueueFamilyProperties(device, &amp;queueFamilyCount, nullptr);
+
+    std::vector&lt;VkQueueFamilyProperties&gt; queueFamilies(queueFamilyCount);
+    vkGetPhysicalDeviceQueueFamilyProperties(device, &amp;queueFamilyCount, queueFamilies.data());
+
+    int i = 0;
+    for (const auto&amp; queueFamily : queueFamilies) {
+        if (queueFamily.queueFlags &amp; VK_QUEUE_GRAPHICS_BIT)
+            indices.graphicsFamily = i;
+
+        if (indices.isComplete()) break;
+
+        i++;
+    }
+
+    return indices;
+}</div>
+
+    <div class="code-label" style="margin-top:16px;">isDeviceSuitable() — delegates to findQueueFamilies</div>
+    <div class="code-block">bool isDeviceSuitable(VkPhysicalDevice device) {
+    QueueFamilyIndices indices = findQueueFamilies(device);
+    return indices.isComplete();
+}</div>
+
+    <div class="code-label" style="margin-top:16px;">Optional: scoring approach for multi-GPU selection</div>
+    <div class="code-block">int rateDeviceSuitability(VkPhysicalDevice device) {
+    VkPhysicalDeviceProperties deviceProperties;
+    VkPhysicalDeviceFeatures deviceFeatures;
+    vkGetPhysicalDeviceProperties(device, &amp;deviceProperties);
+    vkGetPhysicalDeviceFeatures(device, &amp;deviceFeatures);
+
+    int score = 0;
+    if (deviceProperties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU)
+        score += 1000;
+    score += deviceProperties.limits.maxImageDimension2D;
+    if (!deviceFeatures.geometryShader) return 0;  // hard requirement
+    return score;
+}
+
+// In pickPhysicalDevice():
+std::multimap&lt;int, VkPhysicalDevice&gt; candidates;
+for (const auto&amp; device : devices)
+    candidates.insert(std::make_pair(rateDeviceSuitability(device), device));
+
+if (candidates.rbegin()-&gt;first &gt; 0)
+    physicalDevice = candidates.rbegin()-&gt;second;
+else
+    throw std::runtime_error("failed to find a suitable GPU!");</div>
+  </div>
+
+  <!-- LOGIC FLOW -->
+  <div class="section">
+    <div class="sec-label">Logic Flow</div>
+    <div class="logic-flow">
+      <p>With a VkInstance in hand, the next task is selecting which GPU to use. This chapter is purely a query phase — no new Vulkan object is created. VkPhysicalDevice handles are enumerated from the instance using the familiar two-call pattern, and when the instance is destroyed those handles are implicitly cleaned up. There is nothing to add to cleanup().</p>
+      <p>The suitability check is where the chapter's design philosophy appears. The tutorial starts with isDeviceSuitable returning true — any GPU will do for now — but shows how to upgrade it with vkGetPhysicalDeviceProperties (device name, type, hardware limits) and vkGetPhysicalDeviceFeatures (optional capability flags). The scoring approach using std::multimap&lt;int, VkPhysicalDevice&gt; is presented as a production-worthy alternative: score each GPU, sort by score, pick the best. The key insight is that a hard requirement like geometry shader support should return 0 (eliminating the device entirely), while nice-to-haves like discrete GPU type add to the score without being blocking.</p>
+      <p>Queue families are the conceptual core of this chapter. A GPU doesn't expose one monolithic command queue — it exposes multiple families, each supporting a specific subset of operations. Graphics commands go to a graphics family. Compute shaders go to a compute family. Memory transfers can go to a dedicated transfer family. An application must identify the index of each family it needs before creating a logical device, because the logical device creation struct requires those indices.</p>
+      <p>The QueueFamilyIndices struct solves a subtle C++ problem. You need to distinguish "found queue family at index 0" from "haven't found one yet." A plain uint32_t initialised to -1 (which wraps to 4294967295 as an unsigned value) is technically valid but semantically fragile — what if index 4294967295 somehow existed? C++17's std::optional cleanly expresses the absence of a value: has_value() is false until explicitly assigned. This is not just stylistic; subsequent chapters add more required families (like a present queue for surface rendering), and the pattern scales cleanly: add another optional field to the struct, update isComplete(), and the rest of the code adapts automatically.</p>
+      <p>The isComplete() early-exit pattern in the search loop is an efficiency detail that matters more as the number of required families grows. Once all required indices are found there's no point scanning the remaining families. The break on isComplete() inside the loop means the search stops as soon as the struct is fully populated.</p>
+    </div>
+  </div>
+
+  <!-- STEP-BY-STEP -->
+  <div class="section">
+    <div class="sec-label">Step-by-Step — Selecting a Physical Device</div>
+    <ol class="steps-list">
+
+      <li class="step-item">
+        <div class="step-name">Add <code>VkPhysicalDevice physicalDevice = VK_NULL_HANDLE</code> as a private class member</div>
+        <div class="step-why"><span class="step-why-label">WHY</span>The handle must outlive pickPhysicalDevice() so later chapters (logical device, swap chain) can reference it. Initialising to VK_NULL_HANDLE makes the post-loop failure check unambiguous.</div>
+        <div class="step-warn"><span class="step-warn-label">WATCH OUT</span>Do NOT add a vkDestroyXXX call in cleanup() — VkPhysicalDevice handles are owned by the instance and freed automatically when the instance is destroyed.</div>
+      </li>
+
+      <li class="step-item">
+        <div class="step-name">Add <code>pickPhysicalDevice()</code> and call it from <code>initVulkan()</code> after <code>setupDebugMessenger()</code></div>
+        <div class="step-why"><span class="step-why-label">WHY</span>Physical device selection depends on a valid VkInstance but doesn't need the debug messenger — placing it after setupDebugMessenger() keeps the init sequence ordered by dependency.</div>
+      </li>
+
+      <li class="step-item">
+        <div class="step-name">Query device count with <code>vkEnumeratePhysicalDevices</code> and throw if zero</div>
+        <div class="step-why"><span class="step-why-label">WHY</span>A system with no Vulkan-capable GPU is a hard stop. Failing fast with a clear error message is better than crashing later with an uninitialised handle.</div>
+      </li>
+
+      <li class="step-item">
+        <div class="step-name">Fill <code>std::vector&lt;VkPhysicalDevice&gt;</code> with the second call to <code>vkEnumeratePhysicalDevices</code></div>
+        <div class="step-why"><span class="step-why-label">WHY</span>Same two-call pattern as extension and layer enumeration: first call fills count, second fills data. The vector is sized from the count so no buffer overflow is possible.</div>
+      </li>
+
+      <li class="step-item">
+        <div class="step-name">Define the <code>QueueFamilyIndices</code> struct with <code>std::optional&lt;uint32_t&gt; graphicsFamily</code> and <code>isComplete()</code></div>
+        <div class="step-why"><span class="step-why-label">WHY</span>std::optional distinguishes "not yet found" from "found at index 0" without a magic sentinel value. isComplete() becomes the single update point as more required families are added in later chapters.</div>
+      </li>
+
+      <li class="step-item">
+        <div class="step-name">Implement <code>findQueueFamilies()</code> using <code>vkGetPhysicalDeviceQueueFamilyProperties</code></div>
+        <div class="step-why"><span class="step-why-label">WHY</span>Iterates every queue family on the device and checks queueFlags against VK_QUEUE_GRAPHICS_BIT. Assigns the matching index to graphicsFamily and breaks early once isComplete().</div>
+        <ul class="step-sub">
+          <li>a. Two-call pattern to get count then fill vector of VkQueueFamilyProperties</li>
+          <li>b. Loop with integer index i; check queueFamily.queueFlags &amp; VK_QUEUE_GRAPHICS_BIT</li>
+          <li>c. Break as soon as indices.isComplete() — no need to scan remaining families</li>
+        </ul>
+      </li>
+
+      <li class="step-item">
+        <div class="step-name">Implement <code>isDeviceSuitable()</code> to call <code>findQueueFamilies</code> and return <code>indices.isComplete()</code></div>
+        <div class="step-why"><span class="step-why-label">WHY</span>Ties device selection to queue family availability — a GPU without a graphics queue cannot be used for rendering, no matter how capable it is otherwise.</div>
+      </li>
+
+      <li class="step-item">
+        <div class="step-name">Loop through devices in <code>pickPhysicalDevice()</code>, store first suitable device, throw if none found</div>
+        <div class="step-why"><span class="step-why-label">WHY</span>The post-loop VK_NULL_HANDLE check ensures a clean error if isDeviceSuitable() rejected every device — the handle is never used in an uninitialised state.</div>
+        <div class="step-warn"><span class="step-warn-label">WATCH OUT</span>The tutorial uses first-match selection for simplicity. If your system has both integrated and discrete GPUs and Vulkan picks the wrong one, upgrade to the scoring approach with std::multimap.</div>
+      </li>
+
+    </ol>
+  </div>
+
+  <!-- QUIZ -->
+  <div class="section">
+    <div class="sec-label">Quiz — 9 Questions</div>
+    <div class="quiz-cards">
+
+      <div class="quiz-card" data-answer="C">
+        <div class="q-num">Q1</div>
+        <div class="q-type">conceptual</div>
+        <div class="q-text">Why is there no <code>vkDestroyPhysicalDevice</code> call added to <code>cleanup()</code> in this chapter?</div>
+        <div class="q-options">
+          <div class="q-option" data-option="A" onclick="selectOption(this)"><span class="q-letter">A</span>VkPhysicalDevice handles are reference-counted and freed automatically when all logical devices derived from them are destroyed</div>
+          <div class="q-option" data-option="B" onclick="selectOption(this)"><span class="q-letter">B</span>Physical devices are destroyed implicitly by the GPU driver when the program exits</div>
+          <div class="q-option" data-option="C" onclick="selectOption(this)"><span class="q-letter">C</span>VkPhysicalDevice handles are owned by the VkInstance and implicitly freed when the instance is destroyed — there is no vkDestroyPhysicalDevice function</div>
+          <div class="q-option" data-option="D" onclick="selectOption(this)"><span class="q-letter">D</span>The tutorial defers physical device cleanup to the logical device chapter</div>
+        </div>
+        <button class="check-btn" onclick="checkAnswer(this.closest('.quiz-card'))" disabled>Check Answer</button>
+        <div class="q-feedback"><div class="fb-verdict"><span class="fb-icon"></span><span class="fb-text"></span></div><div class="fb-explanation"></div></div>
+      </div>
+
+      <div class="quiz-card" data-answer="B">
+        <div class="q-num">Q2</div>
+        <div class="q-type">terminology</div>
+        <div class="q-text">What is the difference between <code>VkPhysicalDeviceProperties</code> and <code>VkPhysicalDeviceFeatures</code>?</div>
+        <div class="q-options">
+          <div class="q-option" data-option="A" onclick="selectOption(this)"><span class="q-letter">A</span>Properties are queried at runtime; Features are declared at compile time via preprocessor defines</div>
+          <div class="q-option" data-option="B" onclick="selectOption(this)"><span class="q-letter">B</span>Properties contains fixed facts about the device (name, type, limits, Vulkan version); Features contains boolean flags for optional capabilities the device may or may not support</div>
+          <div class="q-option" data-option="C" onclick="selectOption(this)"><span class="q-letter">C</span>Properties describes the logical device; Features describes the physical device</div>
+          <div class="q-option" data-option="D" onclick="selectOption(this)"><span class="q-letter">D</span>They are interchangeable — both return the same information in different struct layouts</div>
+        </div>
+        <button class="check-btn" onclick="checkAnswer(this.closest('.quiz-card'))" disabled>Check Answer</button>
+        <div class="q-feedback"><div class="fb-verdict"><span class="fb-icon"></span><span class="fb-text"></span></div><div class="fb-explanation"></div></div>
+      </div>
+
+      <div class="quiz-card" data-answer="A">
+        <div class="q-num">Q3</div>
+        <div class="q-type">sequence</div>
+        <div class="q-text">What is the correct order of calls in <code>initVulkan()</code> after this chapter?</div>
+        <div class="q-options">
+          <div class="q-option" data-option="A" onclick="selectOption(this)"><span class="q-letter">A</span>createInstance() → setupDebugMessenger() → pickPhysicalDevice()</div>
+          <div class="q-option" data-option="B" onclick="selectOption(this)"><span class="q-letter">B</span>pickPhysicalDevice() → createInstance() → setupDebugMessenger()</div>
+          <div class="q-option" data-option="C" onclick="selectOption(this)"><span class="q-letter">C</span>createInstance() → pickPhysicalDevice() → setupDebugMessenger()</div>
+          <div class="q-option" data-option="D" onclick="selectOption(this)"><span class="q-letter">D</span>setupDebugMessenger() → pickPhysicalDevice() → createInstance()</div>
+        </div>
+        <button class="check-btn" onclick="checkAnswer(this.closest('.quiz-card'))" disabled>Check Answer</button>
+        <div class="q-feedback"><div class="fb-verdict"><span class="fb-icon"></span><span class="fb-text"></span></div><div class="fb-explanation"></div></div>
+      </div>
+
+      <div class="quiz-card" data-answer="D">
+        <div class="q-num">Q4</div>
+        <div class="q-type">terminology</div>
+        <div class="q-text">What are queue families, and why does the application need to identify them before creating a logical device?</div>
+        <div class="q-options">
+          <div class="q-option" data-option="A" onclick="selectOption(this)"><span class="q-letter">A</span>Named groups of Vulkan extension functions; the logical device creation struct lists which extensions to enable per family</div>
+          <div class="q-option" data-option="B" onclick="selectOption(this)"><span class="q-letter">B</span>Groups of physical devices with similar performance characteristics; used to balance load across GPUs</div>
+          <div class="q-option" data-option="C" onclick="selectOption(this)"><span class="q-letter">C</span>Fixed sets of Vulkan functions available on each GPU; must be declared when building the pipeline</div>
+          <div class="q-option" data-option="D" onclick="selectOption(this)"><span class="q-letter">D</span>Groups of GPU queues that all support the same subset of operations (graphics, compute, transfer); the logical device creation struct requires the index of each family the app will use</div>
+        </div>
+        <button class="check-btn" onclick="checkAnswer(this.closest('.quiz-card'))" disabled>Check Answer</button>
+        <div class="q-feedback"><div class="fb-verdict"><span class="fb-icon"></span><span class="fb-text"></span></div><div class="fb-explanation"></div></div>
+      </div>
+
+      <div class="quiz-card" data-answer="A">
+        <div class="q-num">Q5</div>
+        <div class="q-type">conceptual</div>
+        <div class="q-text">Why does the tutorial use <code>std::optional&lt;uint32_t&gt;</code> for queue family indices instead of a plain <code>uint32_t</code> initialised to a sentinel like <code>-1</code>?</div>
+        <div class="q-options">
+          <div class="q-option" data-option="A" onclick="selectOption(this)"><span class="q-letter">A</span>A uint32_t with -1 wraps to 4294967295 — technically a valid (though unlikely) index — making it an ambiguous sentinel; std::optional cleanly expresses "no value yet" without a magic number</div>
+          <div class="q-option" data-option="B" onclick="selectOption(this)"><span class="q-letter">B</span>Queue family indices can exceed uint32_t range on high-end GPUs, so optional wraps a larger integer type internally</div>
+          <div class="q-option" data-option="C" onclick="selectOption(this)"><span class="q-letter">C</span>std::optional is required because the Vulkan spec mandates it for all queue family index storage</div>
+          <div class="q-option" data-option="D" onclick="selectOption(this)"><span class="q-letter">D</span>uint32_t cannot hold negative values so -1 would cause a compile error, forcing the use of optional</div>
+        </div>
+        <button class="check-btn" onclick="checkAnswer(this.closest('.quiz-card'))" disabled>Check Answer</button>
+        <div class="q-feedback"><div class="fb-verdict"><span class="fb-icon"></span><span class="fb-text"></span></div><div class="fb-explanation"></div></div>
+      </div>
+
+      <div class="quiz-card" data-answer="C">
+        <div class="q-num">Q6</div>
+        <div class="q-type">application</div>
+        <div class="q-text">What flag do you check on <code>VkQueueFamilyProperties.queueFlags</code> to identify a queue family that supports draw commands?</div>
+        <div class="q-options">
+          <div class="q-option" data-option="A" onclick="selectOption(this)"><span class="q-letter">A</span>VK_QUEUE_COMPUTE_BIT — graphics queues always include compute support</div>
+          <div class="q-option" data-option="B" onclick="selectOption(this)"><span class="q-letter">B</span>VK_QUEUE_TRANSFER_BIT — all queues supporting graphics must also support transfer</div>
+          <div class="q-option" data-option="C" onclick="selectOption(this)"><span class="q-letter">C</span>VK_QUEUE_GRAPHICS_BIT — checked with a bitwise AND against queueFlags</div>
+          <div class="q-option" data-option="D" onclick="selectOption(this)"><span class="q-letter">D</span>VK_QUEUE_PRESENT_BIT — presentation queues are the only ones allowed to issue draw calls</div>
+        </div>
+        <button class="check-btn" onclick="checkAnswer(this.closest('.quiz-card'))" disabled>Check Answer</button>
+        <div class="q-feedback"><div class="fb-verdict"><span class="fb-icon"></span><span class="fb-text"></span></div><div class="fb-explanation"></div></div>
+      </div>
+
+      <div class="quiz-card" data-answer="D">
+        <div class="q-num">Q7</div>
+        <div class="q-type">conceptual</div>
+        <div class="q-text">What is the purpose of <code>isComplete()</code> on <code>QueueFamilyIndices</code>, and why is it better than checking each <code>has_value()</code> call inline?</div>
+        <div class="q-options">
+          <div class="q-option" data-option="A" onclick="selectOption(this)"><span class="q-letter">A</span>isComplete() caches the result for performance so has_value() isn't called repeatedly</div>
+          <div class="q-option" data-option="B" onclick="selectOption(this)"><span class="q-letter">B</span>It's required by std::optional's API — has_value() can only be called through a named method</div>
+          <div class="q-option" data-option="C" onclick="selectOption(this)"><span class="q-letter">C</span>It prevents reading unset optional values, which would throw an exception</div>
+          <div class="q-option" data-option="D" onclick="selectOption(this)"><span class="q-letter">D</span>It's a single update point — as more required queue families are added in later chapters, only isComplete() needs to change, not every call site that checks for completeness</div>
+        </div>
+        <button class="check-btn" onclick="checkAnswer(this.closest('.quiz-card'))" disabled>Check Answer</button>
+        <div class="q-feedback"><div class="fb-verdict"><span class="fb-icon"></span><span class="fb-text"></span></div><div class="fb-explanation"></div></div>
+      </div>
+
+      <div class="quiz-card" data-answer="B">
+        <div class="q-num">Q8</div>
+        <div class="q-type">gotcha</div>
+        <div class="q-text">In the scoring approach, <code>rateDeviceSuitability</code> returns <code>0</code> when <code>geometryShader</code> is not supported. What happens if every GPU on the system scores 0?</div>
+        <div class="q-options">
+          <div class="q-option" data-option="A" onclick="selectOption(this)"><span class="q-letter">A</span>The highest-scoring device (at index 0 in the map) is selected anyway as a fallback</div>
+          <div class="q-option" data-option="B" onclick="selectOption(this)"><span class="q-letter">B</span>candidates.rbegin()->first is 0, which fails the &gt; 0 check, so a "failed to find a suitable GPU!" exception is thrown even though devices exist</div>
+          <div class="q-option" data-option="C" onclick="selectOption(this)"><span class="q-letter">C</span>std::multimap sorts ties by insertion order, so the last device enumerated would be picked</div>
+          <div class="q-option" data-option="D" onclick="selectOption(this)"><span class="q-letter">D</span>vkEnumeratePhysicalDevices would have returned 0 devices first, so this case can't occur</div>
+        </div>
+        <button class="check-btn" onclick="checkAnswer(this.closest('.quiz-card'))" disabled>Check Answer</button>
+        <div class="q-feedback"><div class="fb-verdict"><span class="fb-icon"></span><span class="fb-text"></span></div><div class="fb-explanation"></div></div>
+      </div>
+
+      <div class="quiz-card" data-answer="C">
+        <div class="q-num">Q9</div>
+        <div class="q-type">application</div>
+        <div class="q-text">Why does <code>findQueueFamilies</code> break out of its loop early when <code>indices.isComplete()</code> returns true?</div>
+        <div class="q-options">
+          <div class="q-option" data-option="A" onclick="selectOption(this)"><span class="q-letter">A</span>Continuing would overwrite already-found indices with later family indices that have lower priority</div>
+          <div class="q-option" data-option="B" onclick="selectOption(this)"><span class="q-letter">B</span>vkGetPhysicalDeviceQueueFamilyProperties becomes invalid after the first graphics family is read</div>
+          <div class="q-option" data-option="C" onclick="selectOption(this)"><span class="q-letter">C</span>Once all required family indices are found there's no reason to scan remaining families — it's an efficiency optimisation that scales as more required families are added</div>
+          <div class="q-option" data-option="D" onclick="selectOption(this)"><span class="q-letter">D</span>The loop variable i would overflow if the iteration continued past the found family</div>
+        </div>
+        <button class="check-btn" onclick="checkAnswer(this.closest('.quiz-card'))" disabled>Check Answer</button>
+        <div class="q-feedback"><div class="fb-verdict"><span class="fb-icon"></span><span class="fb-text"></span></div><div class="fb-explanation"></div></div>
+      </div>
+
+    </div>
+
+    <div class="score-summary" id="score-summary">
+      <div class="score-summary-num" id="summary-num"></div>
+      <div class="score-summary-msg" id="summary-msg"></div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  const TOTAL = 9;
+  let answeredCount = 0;
+  let correctCount = 0;
+
+  const explanations = {
+    1: {
+      correct: 'C',
+      text: 'VkPhysicalDevice handles are not Vulkan objects that you create — they are enumerated from the instance. The instance owns them and releases them when it is destroyed. There is no vkDestroyPhysicalDevice function in the Vulkan API. Adding one to cleanup() would be a compile error.'
+    },
+    2: {
+      correct: 'B',
+      text: 'VkPhysicalDeviceProperties contains immutable facts about the device: its name, type (discrete/integrated/virtual/cpu), the Vulkan version it supports, and hardware limits like maxImageDimension2D. VkPhysicalDeviceFeatures contains boolean flags for optional capabilities — things the device may or may not support, such as geometry shaders, tessellation, anisotropic filtering, and multi-viewport rendering.'
+    },
+    3: {
+      correct: 'A',
+      text: 'createInstance() must run first as everything depends on a valid VkInstance. setupDebugMessenger() needs the instance and comes next. pickPhysicalDevice() also needs the instance and comes last in this chapter\'s additions. Placing it before the messenger would still work, but after is the tutorial\'s ordering.'
+    },
+    4: {
+      correct: 'D',
+      text: 'Queue families are groups of GPU queues that share the same supported operation types. A GPU may have separate families for graphics, compute, and transfer — each family\'s queues can only process the commands that family supports. When creating a logical device (next chapter), you must specify which queue family indices you want queues from, which is why finding those indices now is prerequisite work.'
+    },
+    5: {
+      correct: 'A',
+      text: 'Assigning -1 to a uint32_t silently wraps to 4294967295 due to unsigned overflow. While no real GPU has that many queue families, it\'s semantically imprecise — a "valid" index that happens to be huge. std::optional with has_value() makes "no value assigned yet" an explicit, type-safe state with no magic number anywhere.'
+    },
+    6: {
+      correct: 'C',
+      text: 'VK_QUEUE_GRAPHICS_BIT is the flag indicating a queue family can process graphics commands (draw calls, render passes). It\'s checked with a bitwise AND: queueFamily.queueFlags & VK_QUEUE_GRAPHICS_BIT. VK_QUEUE_PRESENT_BIT doesn\'t exist as a standalone flag — presentation support is checked differently (via vkGetPhysicalDeviceSurfaceSupportKHR) in the surface chapter.'
+    },
+    7: {
+      correct: 'D',
+      text: 'isComplete() centralises the "are we done?" check for queue family discovery. When future chapters require additional queue families (e.g., a presentation queue), you add another optional field and update isComplete() — all the loop break conditions, device suitability checks, and other call sites automatically pick up the new requirement without any other changes.'
+    },
+    8: {
+      correct: 'B',
+      text: 'A score of 0 from rateDeviceSuitability signals "device is unsuitable." The multimap sorts scores ascending, so candidates.rbegin() points to the highest-scoring entry. The check is candidates.rbegin()->first > 0 — if the best score is 0, the condition is false and the code throws. This correctly rejects all unsuitable GPUs even if they exist in the enumeration.'
+    },
+    9: {
+      correct: 'C',
+      text: 'Once isComplete() returns true, all required queue family indices have been found. There\'s no information to gain by continuing through the rest of the families. This matters more as requirements grow — if five queue families are needed, breaking early avoids scanning all remaining families after the fifth is found. It\'s a minor optimisation now but good practice for the pattern.'
+    }
+  };
+
+  function getCardIndex(card) {
+    return parseInt(card.querySelector('.q-num').textContent.replace('Q', ''));
+  }
+
+  function selectOption(optionEl) {
+    const card = optionEl.closest('.quiz-card');
+    if (card.dataset.answered) return;
+    card.querySelectorAll('.q-option').forEach(o => o.classList.remove('selected'));
+    optionEl.classList.add('selected');
+    card.querySelector('.check-btn').disabled = false;
+  }
+
+  function checkAnswer(card) {
+    if (card.dataset.answered) return;
+    card.dataset.answered = 'true';
+
+    const correct = card.dataset.answer;
+    const selected = card.querySelector('.q-option.selected');
+    const chosen = selected ? selected.dataset.option : null;
+    const idx = getCardIndex(card);
+    const info = explanations[idx];
+
+    const isCorrect = chosen === correct;
+    if (isCorrect) correctCount++;
+    answeredCount++;
+
+    card.querySelectorAll('.q-option').forEach(o => {
+      o.classList.add('locked');
+      if (o.dataset.option === correct) o.classList.add('correct');
+      else if (o.dataset.option === chosen && !isCorrect) o.classList.add('wrong');
+    });
+
+    const feedback = card.querySelector('.q-feedback');
+    const icon = feedback.querySelector('.fb-icon');
+    const verdictText = feedback.querySelector('.fb-text');
+    const explanation = feedback.querySelector('.fb-explanation');
+
+    if (isCorrect) {
+      feedback.classList.add('correct');
+      icon.textContent = '✓';
+      verdictText.textContent = 'Correct';
+    } else {
+      feedback.classList.add('wrong');
+      icon.textContent = '✗';
+      verdictText.textContent = `Incorrect — correct answer is ${correct}`;
+    }
+    explanation.textContent = info.text;
+
+    const btn = card.querySelector('.check-btn');
+    btn.textContent = isCorrect ? '✓ Correct' : '✗ Answered';
+    btn.disabled = true;
+
+    card.classList.add(isCorrect ? 'answered-correct' : 'answered-wrong');
+    updateScore();
+  }
+
+  function updateScore() {
+    const tally = document.getElementById('score-tally');
+    const correctSpan = document.getElementById('score-correct');
+    tally.childNodes[0].textContent = `${answeredCount} / ${TOTAL} answered · `;
+    correctSpan.textContent = correctCount;
+
+    if (answeredCount === TOTAL) {
+      const summary = document.getElementById('score-summary');
+      const pct = correctCount / TOTAL;
+      let msg;
+      if (pct >= 0.9) msg = 'Excellent — physical device selection and queue families are solid.';
+      else if (pct >= 0.7) msg = 'Good — review the questions you missed before moving to the logical device chapter.';
+      else msg = 'Review recommended — revisit the queue family search loop and the std::optional rationale.';
+      document.getElementById('summary-num').textContent = `${correctCount} / ${TOTAL}`;
+      document.getElementById('summary-msg').textContent = msg;
+      summary.classList.add('visible');
+    }
+  }
+</script>
+</body>
+</html>
