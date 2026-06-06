@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Vulkan Tutorial — Base Code | Learning Session</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=IBM+Plex+Mono:wght@400;500&family=Syne:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #0d0f14; --bg-surface: #10131a; --bg-card: #12151d; --bg-row-alt: #0f1118;
+    --border: #1e2333; --gold: #c9a84c; --gold-dim: #7a6230; --gold-glow: rgba(201,168,76,0.1);
+    --blue: #7eb8d4; --green: #5db88a; --amber: #d4965a;
+    --text-1: #e8e4dc; --text-2: #8a8c99; --text-3: #4a4e62;
+    --tag-bg: #1a1e2c; --tag-border: #252a3a;
+  }
+  html { background: var(--bg); color: var(--text-1); font-family: 'Syne', sans-serif; -webkit-font-smoothing: antialiased; }
+  body { min-height: 100vh; padding-bottom: 80px; }
+  ::-webkit-scrollbar { width: 4px; }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+
+  /* Header */
+  .hdr { position: sticky; top: 0; z-index: 10; background: var(--bg-surface); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 12px 24px; gap: 16px; }
+  .hdr-left { display: flex; align-items: center; gap: 10px; }
+  .hdr-gem { color: var(--gold); font-size: 14px; }
+  .hdr-title { font-family: 'DM Serif Display', serif; font-size: 16px; color: var(--text-1); }
+  .hdr-url { font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: var(--text-3); background: var(--tag-bg); border: 1px solid var(--tag-border); border-radius: 5px; padding: 4px 10px; text-decoration: none; white-space: nowrap; transition: color 0.2s, border-color 0.2s; }
+  .hdr-url:hover { color: var(--gold); border-color: var(--gold-dim); }
+
+  /* Content */
+  .content { max-width: 800px; margin: 0 auto; padding: 40px 24px; display: flex; flex-direction: column; gap: 40px; }
+  .framing { font-family: 'DM Serif Display', serif; font-size: 16px; color: var(--gold); border-left: 2px solid var(--gold); padding-left: 14px; line-height: 1.55; font-style: italic; }
+  .section { display: flex; flex-direction: column; gap: 14px; }
+  .sec-label { font-family: 'IBM Plex Mono', monospace; font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--text-3); }
+
+  /* Terminology */
+  .term-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .term-table th { font-family: 'IBM Plex Mono', monospace; font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-3); text-align: left; padding: 8px 12px; background: var(--bg-surface); border-bottom: 1px solid var(--border); }
+  .term-table td { padding: 9px 12px; border-bottom: 1px solid var(--border); vertical-align: top; color: var(--text-2); line-height: 1.5; }
+  .term-table tr:nth-child(even) td { background: var(--bg-row-alt); }
+  .term-table td:first-child { font-family: 'IBM Plex Mono', monospace; font-size: 11.5px; color: var(--blue); white-space: nowrap; }
+
+  /* Code block */
+  .code-block { background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px; padding: 16px 18px; font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: var(--text-2); line-height: 1.65; overflow-x: auto; white-space: pre; }
+  .code-label { font-family: 'IBM Plex Mono', monospace; font-size: 9px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--text-3); margin-bottom: 8px; }
+
+  /* Logic Flow */
+  .logic-flow { font-size: 14px; line-height: 1.8; color: var(--text-2); display: flex; flex-direction: column; gap: 14px; }
+
+  /* Step-by-Step */
+  .steps-list { list-style: none; display: flex; flex-direction: column; gap: 10px; counter-reset: steps; }
+  .step-item { counter-increment: steps; background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px; padding: 14px 16px 14px 54px; position: relative; }
+  .step-item::before { content: counter(steps); position: absolute; left: 14px; top: 14px; font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: var(--gold); background: var(--gold-glow); border: 1px solid var(--gold-dim); border-radius: 4px; width: 26px; height: 26px; display: flex; align-items: center; justify-content: center; }
+  .step-name { font-size: 13.5px; font-weight: 500; color: var(--text-1); margin-bottom: 7px; line-height: 1.4; }
+  .step-why { font-size: 12.5px; color: var(--text-2); line-height: 1.55; margin-bottom: 4px; display: flex; gap: 6px; }
+  .step-why-label { font-family: 'IBM Plex Mono', monospace; font-size: 9px; color: var(--green); background: rgba(93,184,138,0.1); border: 1px solid rgba(93,184,138,0.2); border-radius: 3px; padding: 2px 5px; flex-shrink: 0; margin-top: 2px; letter-spacing: 0.06em; }
+  .step-warn { font-size: 12.5px; color: var(--text-2); line-height: 1.55; display: flex; gap: 6px; margin-top: 4px; }
+  .step-warn-label { font-family: 'IBM Plex Mono', monospace; font-size: 9px; color: var(--amber); background: rgba(212,150,90,0.1); border: 1px solid rgba(212,150,90,0.2); border-radius: 3px; padding: 2px 5px; flex-shrink: 0; margin-top: 2px; letter-spacing: 0.06em; }
+  .step-sub { list-style: none; margin-top: 8px; display: flex; flex-direction: column; gap: 5px; padding-left: 0; border-left: 1px solid var(--border); margin-left: 2px; }
+  .step-sub li { font-size: 12.5px; color: var(--text-2); line-height: 1.55; padding-left: 12px; font-family: 'IBM Plex Mono', monospace; }
+
+  /* Quiz */
+  .quiz-cards { display: flex; flex-direction: column; gap: 12px; }
+  .quiz-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px; padding: 16px 18px; }
+  .q-num { font-family: 'IBM Plex Mono', monospace; font-size: 10px; color: var(--gold); margin-bottom: 4px; }
+  .q-type { font-family: 'IBM Plex Mono', monospace; font-size: 9px; color: var(--text-3); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 8px; }
+  .q-text { font-size: 13.5px; font-weight: 500; color: var(--text-1); line-height: 1.5; margin-bottom: 12px; }
+  .q-options { display: flex; flex-direction: column; gap: 7px; }
+  .q-option { display: flex; gap: 10px; align-items: flex-start; font-size: 13px; color: var(--text-2); line-height: 1.5; }
+  .q-letter { font-family: 'IBM Plex Mono', monospace; font-size: 10px; background: var(--tag-bg); border: 1px solid var(--tag-border); border-radius: 3px; padding: 2px 6px; color: var(--text-3); flex-shrink: 0; margin-top: 2px; }
+
+  /* Answer Key */
+  .answer-btn { display: flex; align-items: center; gap: 8px; background: transparent; border: 1px solid var(--border); border-radius: 8px; padding: 12px 18px; font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: var(--text-3); cursor: pointer; width: 100%; transition: all 0.2s; }
+  .answer-btn:hover { border-color: var(--gold-dim); color: var(--gold); }
+  .answer-key { display: none; flex-direction: column; gap: 10px; margin-top: 10px; }
+  .answer-key.open { display: flex; }
+  .answer-item { background: var(--bg-card); border-left: 2px solid var(--gold); border-radius: 0 6px 6px 0; padding: 11px 15px; font-size: 13px; line-height: 1.65; color: var(--text-2); }
+  .answer-item strong { font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: var(--gold); display: block; margin-bottom: 4px; }
+</style>
+</head>
+<body>
+
+<header class="hdr">
+  <div class="hdr-left">
+    <span class="hdr-gem">◆</span>
+    <span class="hdr-title">Vulkan Tutorial — Base Code</span>
+  </div>
+  <a class="hdr-url" href="https://vulkan-tutorial.com/en/Drawing_a_triangle/Setup/Base_code" target="_blank" rel="noopener">vulkan-tutorial.com ↗</a>
+</header>
+
+<div class="content">
+
+  <p class="framing">A close reading of the HelloTriangleApplication class skeleton — how Vulkan's explicit resource lifecycle, the three-method run() structure, and GLFW windowing integration form the scaffold every subsequent chapter builds on.</p>
+
+  <!-- KEY TERMINOLOGY -->
+  <div class="section">
+    <div class="sec-label">Key Terminology</div>
+    <table class="term-table">
+      <thead>
+        <tr><th>Term</th><th>Definition</th><th>Why it matters here</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>HelloTriangleApplication</td><td>A C++ class that owns all Vulkan and GLFW state and exposes a single run() entry point</td><td>Consolidating all objects as private members prevents scattered globals and makes teardown order explicit</td></tr>
+        <tr><td>initVulkan()</td><td>Private method that will host all Vulkan object creation calls, chapter by chapter</td><td>Keeping init separate from the window setup clarifies which objects are Vulkan vs. GLFW lifecycle</td></tr>
+        <tr><td>mainLoop()</td><td>Polls window events in a while loop until glfwWindowShouldClose returns true</td><td>This is where per-frame rendering calls will be added; structurally it never changes</td></tr>
+        <tr><td>cleanup()</td><td>Destroys all Vulkan and GLFW resources in reverse-creation order</td><td>Vulkan leaks resources silently without explicit destruction — cleanup() is the only safety net</td></tr>
+        <tr><td>vkCreateXXX / vkDestroyXXX</td><td>Paired naming convention for every Vulkan object: create allocates, destroy releases</td><td>Every vkCreate call demands a matching vkDestroy in cleanup() — no implicit reference counting</td></tr>
+        <tr><td>vkAllocateXXX / vkFreeXXX</td><td>Variant pairing used for objects drawn from a pool (e.g. command buffers from a command pool)</td><td>Signals a pool-backed allocation — freeing the pool implicitly frees its children</td></tr>
+        <tr><td>VkAllocationCallbacks</td><td>Optional parameter on all vkDestroyXXX calls for custom memory allocation strategies</td><td>Passing nullptr uses the driver's default allocator; custom allocators enable profiling or arena allocation</td></tr>
+        <tr><td>GLFW</td><td>A lightweight cross-platform library for creating windows and handling input events</td><td>Vulkan is window-system agnostic — GLFW abstracts over Win32/Cocoa/X11 so tutorial code stays portable</td></tr>
+        <tr><td>GLFW_INCLUDE_VULKAN</td><td>A preprocessor define that tells GLFW to include vulkan/vulkan.h internally</td><td>Replaces a separate #include &lt;vulkan/vulkan.h&gt; — ensures GLFW and Vulkan headers don't conflict</td></tr>
+        <tr><td>GLFW_CLIENT_API / GLFW_NO_API</td><td>A window hint pair that prevents GLFW from creating an OpenGL context for the window</td><td>Without this, GLFW defaults to OpenGL setup — which conflicts with Vulkan surface creation</td></tr>
+        <tr><td>GLFW_RESIZABLE / GLFW_FALSE</td><td>Window hint that locks window dimensions at creation time</td><td>Resizing requires swap chain recreation — disabled here to defer that complexity to a later chapter</td></tr>
+        <tr><td>glfwPollEvents()</td><td>Processes all pending OS events (input, window close, resize) without blocking</td><td>The event loop must drain the OS queue each frame; without this the window appears frozen</td></tr>
+        <tr><td>RAII</td><td>C++ pattern for tying resource lifetime to object scope using constructors/destructors</td><td>The tutorial intentionally avoids RAII to keep each vkCreate/vkDestroy pair explicit and teachable</td></tr>
+        <tr><td>std::runtime_error</td><td>C++ exception type thrown by Vulkan helper functions on API call failure</td><td>main() catches this and prints what() before returning EXIT_FAILURE — the only error reporting in base code</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- BASE CODE STRUCTURE -->
+  <div class="section">
+    <div class="sec-label">Complete Base Code</div>
+    <div class="code-label">HelloTriangleApplication — full skeleton</div>
+    <div class="code-block">#define GLFW_INCLUDE_VULKAN
+#include &lt;GLFW/glfw3.h&gt;
+
+#include &lt;iostream&gt;
+#include &lt;stdexcept&gt;
+#include &lt;cstdlib&gt;
+
+const uint32_t WIDTH = 800;
+const uint32_t HEIGHT = 600;
+
+class HelloTriangleApplication {
+public:
+    void run() {
+        initWindow();
+        initVulkan();
+        mainLoop();
+        cleanup();
+    }
+
+private:
+    GLFWwindow* window;
+
+    void initWindow() {
+        glfwInit();
+        glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
+        glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
+        window = glfwCreateWindow(WIDTH, HEIGHT, "Vulkan", nullptr, nullptr);
+    }
+
+    void initVulkan() {
+        // Vulkan object creation will be added here
+    }
+
+    void mainLoop() {
+        while (!glfwWindowShouldClose(window)) {
+            glfwPollEvents();
+        }
+    }
+
+    void cleanup() {
+        glfwDestroyWindow(window);
+        glfwTerminate();
+    }
+};
+
+int main() {
+    HelloTriangleApplication app;
+    try {
+        app.run();
+    } catch (const std::exception&amp; e) {
+        std::cerr &lt;&lt; e.what() &lt;&lt; std::endl;
+        return EXIT_FAILURE;
+    }
+    return EXIT_SUCCESS;
+}</div>
+  </div>
+
+  <!-- LOGIC FLOW -->
+  <div class="section">
+    <div class="sec-label">Logic Flow</div>
+    <div class="logic-flow">
+      <p>The base code chapter's purpose isn't to do any Vulkan work — it establishes the skeleton that every subsequent chapter fills in. The class-based design is a deliberate choice: by making all Vulkan and GLFW handles private members of HelloTriangleApplication, the tutorial ensures that object lifetimes are tied to the class, creation order is visible in run(), and destruction order can be controlled explicitly in cleanup(). Scattered globals would make both of these properties opaque.</p>
+      <p>The three-method structure — initWindow(), initVulkan(), mainLoop() — reflects a hard separation of concerns that persists across all chapters. GLFW setup lives only in initWindow(); everything Vulkan lives in initVulkan() (expanded into sub-calls as chapters progress); frame work eventually lives in mainLoop(). This separation makes it easy to locate where new code belongs as the tutorial grows to dozens of Vulkan objects.</p>
+      <p>Resource management is intentionally manual. C++ RAII patterns (smart pointers, destructors) could manage Vulkan object lifetimes automatically, but the tutorial avoids them to keep each vkCreate/vkDestroy pair explicit and traceable. This is purely pedagogical: in a production Vulkan codebase you would use RAII wrappers such as those provided by vulkan.hpp. The tutorial's manual approach makes visible the API contracts that RAII would otherwise hide.</p>
+      <p>The two GLFW window hints are load-bearing, not cosmetic. GLFW_NO_API is critical: omitting it causes GLFW to attempt OpenGL context creation, which conflicts with Vulkan's surface setup and produces cryptic errors. GLFW_RESIZABLE being false sidesteps swap chain recreation — a non-trivial topic saved for a dedicated chapter. Both hints signal that the tutorial is actively deferring complexity rather than ignoring it.</p>
+      <p>Error propagation follows a single pattern throughout the tutorial: Vulkan helper functions throw std::runtime_error on failure, which bubbles up through run() and is caught in main() where e.what() is printed. The VkResult-checking convention is thus hidden inside helpers — but the base code establishes where those throws land and how they terminate the program cleanly.</p>
+    </div>
+  </div>
+
+  <!-- STEP-BY-STEP -->
+  <div class="section">
+    <div class="sec-label">Step-by-Step — Building the Base</div>
+    <ol class="steps-list">
+
+      <li class="step-item">
+        <div class="step-name">Include GLFW with Vulkan support</div>
+        <div class="step-why"><span class="step-why-label">WHY</span>Using <code>#define GLFW_INCLUDE_VULKAN</code> before the GLFW header makes GLFW pull in vulkan/vulkan.h automatically, ensuring the two headers don't conflict.</div>
+        <div class="step-warn"><span class="step-warn-label">WATCH OUT</span>The define must come before the GLFW include — defining it after has no effect.</div>
+      </li>
+
+      <li class="step-item">
+        <div class="step-name">Define HelloTriangleApplication with a run() entry point</div>
+        <div class="step-why"><span class="step-why-label">WHY</span>Centralizing all state as private members and exposing only run() keeps the public interface minimal and makes the init → loop → cleanup sequence explicit.</div>
+      </li>
+
+      <li class="step-item">
+        <div class="step-name">Implement initWindow()</div>
+        <div class="step-why"><span class="step-why-label">WHY</span>Creates the OS window that Vulkan will render into. Must run before initVulkan() because surface creation (in a later chapter) requires a valid window handle.</div>
+        <div class="step-warn"><span class="step-warn-label">WATCH OUT</span>Set GLFW_CLIENT_API to GLFW_NO_API — the default opens an OpenGL context that breaks Vulkan surface setup. Set GLFW_RESIZABLE to GLFW_FALSE to avoid swap chain recreation complexity until it's covered.</div>
+        <ul class="step-sub">
+          <li>a. glfwInit()</li>
+          <li>b. glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API)</li>
+          <li>c. glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE)</li>
+          <li>d. window = glfwCreateWindow(WIDTH, HEIGHT, "Vulkan", nullptr, nullptr)</li>
+        </ul>
+      </li>
+
+      <li class="step-item">
+        <div class="step-name">Add initVulkan() placeholder</div>
+        <div class="step-why"><span class="step-why-label">WHY</span>An empty method now; subsequent chapters add vkCreate calls here in dependency order (instance → device → swap chain → pipeline → ...).</div>
+      </li>
+
+      <li class="step-item">
+        <div class="step-name">Implement mainLoop()</div>
+        <div class="step-why"><span class="step-why-label">WHY</span>Keeps the window alive and responsive by pumping OS events each iteration. The while condition checks for the window-close event set by GLFW when the user closes the window.</div>
+        <div class="step-warn"><span class="step-warn-label">WATCH OUT</span>glfwPollEvents() must be called every iteration — without it the OS marks the window as unresponsive.</div>
+      </li>
+
+      <li class="step-item">
+        <div class="step-name">Implement cleanup()</div>
+        <div class="step-why"><span class="step-why-label">WHY</span>Vulkan objects are not reference-counted — every created object must be explicitly destroyed or validation layers will report leaks. Cleanup runs in reverse-creation order.</div>
+        <div class="step-warn"><span class="step-warn-label">WATCH OUT</span>Destroy Vulkan objects before GLFW teardown. Destroying the window before Vulkan objects that reference its surface produces undefined behaviour.</div>
+        <ul class="step-sub">
+          <li>a. (future) Destroy all Vulkan objects in reverse order</li>
+          <li>b. glfwDestroyWindow(window)</li>
+          <li>c. glfwTerminate()</li>
+        </ul>
+      </li>
+
+      <li class="step-item">
+        <div class="step-name">Wrap run() in try/catch in main()</div>
+        <div class="step-why"><span class="step-why-label">WHY</span>Vulkan helper functions will throw std::runtime_error on failure. Catching here ensures errors surface with a readable message instead of a crash.</div>
+        <div class="step-warn"><span class="step-warn-label">WATCH OUT</span>Catching std::exception (not just std::runtime_error) is intentional — the tutorial also notes standard library exceptions like std::bad_alloc can propagate from Vulkan calls.</div>
+      </li>
+
+    </ol>
+  </div>
+
+  <!-- QUIZ -->
+  <div class="section">
+    <div class="sec-label">Quiz — 7 Questions</div>
+    <div class="quiz-cards">
+
+      <div class="quiz-card">
+        <div class="q-num">Q1</div>
+        <div class="q-type">gotcha</div>
+        <div class="q-text">What happens if you omit the <code>GLFW_CLIENT_API, GLFW_NO_API</code> window hint when creating a window for Vulkan rendering?</div>
+        <div class="q-options">
+          <div class="q-option"><span class="q-letter">A</span>Nothing — it's a hint and GLFW ignores it silently on modern drivers</div>
+          <div class="q-option"><span class="q-letter">B</span>GLFW creates an OpenGL context by default, which conflicts with Vulkan surface creation and produces errors</div>
+          <div class="q-option"><span class="q-letter">C</span>The window is created but Vulkan's validation layers report a format mismatch</div>
+          <div class="q-option"><span class="q-letter">D</span>The window dimensions are ignored and the OS uses its default size</div>
+        </div>
+      </div>
+
+      <div class="quiz-card">
+        <div class="q-num">Q2</div>
+        <div class="q-type">conceptual</div>
+        <div class="q-text">Why does the tutorial deliberately avoid using C++ RAII wrappers for Vulkan objects?</div>
+        <div class="q-options">
+          <div class="q-option"><span class="q-letter">A</span>RAII is incompatible with Vulkan because vkDestroyXXX functions return VkResult</div>
+          <div class="q-option"><span class="q-letter">B</span>Smart pointers cannot hold Vulkan handle types on all supported platforms</div>
+          <div class="q-option"><span class="q-letter">C</span>Manual create/destroy keeps each API contract explicit and visible, which is more instructive than hiding lifetimes inside destructors</div>
+          <div class="q-option"><span class="q-letter">D</span>RAII causes double-free errors when Vulkan objects share underlying GPU memory</div>
+        </div>
+      </div>
+
+      <div class="quiz-card">
+        <div class="q-num">Q3</div>
+        <div class="q-type">sequence</div>
+        <div class="q-text">In what order does <code>run()</code> call its four methods?</div>
+        <div class="q-options">
+          <div class="q-option"><span class="q-letter">A</span>initVulkan() → initWindow() → mainLoop() → cleanup()</div>
+          <div class="q-option"><span class="q-letter">B</span>initWindow() → initVulkan() → mainLoop() → cleanup()</div>
+          <div class="q-option"><span class="q-letter">C</span>initWindow() → mainLoop() → initVulkan() → cleanup()</div>
+          <div class="q-option"><span class="q-letter">D</span>initVulkan() → mainLoop() → initWindow() → cleanup()</div>
+        </div>
+      </div>
+
+      <div class="quiz-card">
+        <div class="q-num">Q4</div>
+        <div class="q-type">terminology</div>
+        <div class="q-text">What is the difference between the <code>vkCreateXXX/vkDestroyXXX</code> and <code>vkAllocateXXX/vkFreeXXX</code> naming patterns?</div>
+        <div class="q-options">
+          <div class="q-option"><span class="q-letter">A</span>Create/Destroy handles GPU-resident objects; Allocate/Free handles CPU-side descriptor structs</div>
+          <div class="q-option"><span class="q-letter">B</span>Allocate/Free is used for objects drawn from a pool; freeing the pool can implicitly free its children</div>
+          <div class="q-option"><span class="q-letter">C</span>They are interchangeable synonyms — the choice depends on driver preference</div>
+          <div class="q-option"><span class="q-letter">D</span>Create/Destroy is for Vulkan 1.0 objects; Allocate/Free is the Vulkan 1.2 replacement</div>
+        </div>
+      </div>
+
+      <div class="quiz-card">
+        <div class="q-num">Q5</div>
+        <div class="q-type">gotcha</div>
+        <div class="q-text">Why is <code>GLFW_RESIZABLE</code> set to <code>GLFW_FALSE</code> in the base code?</div>
+        <div class="q-options">
+          <div class="q-option"><span class="q-letter">A</span>Resizable windows are unsupported on Vulkan 1.0 and would crash at runtime</div>
+          <div class="q-option"><span class="q-letter">B</span>Allowing resizing requires swap chain recreation — a non-trivial topic deferred to a later chapter</div>
+          <div class="q-option"><span class="q-letter">C</span>GLFW_RESIZABLE conflicts with the GLFW_NO_API hint and must be disabled together</div>
+          <div class="q-option"><span class="q-letter">D</span>Resizable windows cannot be used with the 800×600 dimensions defined as constants</div>
+        </div>
+      </div>
+
+      <div class="quiz-card">
+        <div class="q-num">Q6</div>
+        <div class="q-type">application</div>
+        <div class="q-text">You want to add a Vulkan instance creation call. Which method should it go in, and why?</div>
+        <div class="q-options">
+          <div class="q-option"><span class="q-letter">A</span>initWindow() — because VkInstance creation must precede GLFW window creation</div>
+          <div class="q-option"><span class="q-letter">B</span>mainLoop() — so the instance is recreated fresh each frame</div>
+          <div class="q-option"><span class="q-letter">C</span>initVulkan() — it is the designated home for all Vulkan object creation, keeping it separate from window setup</div>
+          <div class="q-option"><span class="q-letter">D</span>cleanup() — Vulkan objects must be created lazily on first use</div>
+        </div>
+      </div>
+
+      <div class="quiz-card">
+        <div class="q-num">Q7</div>
+        <div class="q-type">conceptual</div>
+        <div class="q-text">Why does <code>main()</code> catch <code>std::exception</code> rather than only <code>std::runtime_error</code>?</div>
+        <div class="q-options">
+          <div class="q-option"><span class="q-letter">A</span>std::runtime_error is not a subclass of std::exception, so the broader catch is required</div>
+          <div class="q-option"><span class="q-letter">B</span>std::bad_alloc and other standard library exceptions can also propagate from Vulkan calls, so the broader catch ensures nothing escapes silently</div>
+          <div class="q-option"><span class="q-letter">C</span>The Vulkan SDK throws std::exception directly and does not use subclasses</div>
+          <div class="q-option"><span class="q-letter">D</span>Catching std::runtime_error is insufficient on Windows builds due to MSVC ABI differences</div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ANSWER KEY -->
+  <div class="section">
+    <button class="answer-btn" onclick="toggleAnswers(this)">📋 Show Answer Key</button>
+    <div class="answer-key" id="answer-key">
+      <div class="answer-item"><strong>Q1 → B</strong>GLFW defaults to creating an OpenGL context when no GLFW_CLIENT_API hint is set. The tutorial explicitly states this hint is required to prevent OpenGL context creation, which would conflict with Vulkan surface setup.</div>
+      <div class="answer-item"><strong>Q2 → C</strong>The tutorial states it will use explicit allocations to keep the source straightforward, noting that every Vulkan operation is explicit — RAII wrappers (like those in vulkan.hpp) are the production-grade approach but obscure the API contracts the tutorial is teaching.</div>
+      <div class="answer-item"><strong>Q3 → B</strong>initWindow() must precede initVulkan() because surface creation (added in a later chapter) needs a valid window handle. The order is: create the window, then set up Vulkan against it, then loop, then clean up.</div>
+      <div class="answer-item"><strong>Q4 → B</strong>The tutorial distinguishes these patterns: vkAllocateXXX / vkFreeXXX signals a pool-backed allocation (e.g., command buffers from a VkCommandPool). Freeing the pool can implicitly free its children, unlike top-level vkCreate objects which must each be destroyed individually.</div>
+      <div class="answer-item"><strong>Q5 → B</strong>The tutorial is direct: "Resizing is possible in Vulkan, but it requires additional work... Resize handling will be covered in a future chapter." GLFW_FALSE is a deliberate deferral, not a technical limitation.</div>
+      <div class="answer-item"><strong>Q6 → C</strong>initVulkan() is the designated home for all Vulkan object creation calls, explicitly kept separate from window/GLFW setup in initWindow(). VkInstance is the first call added there in the next chapter.</div>
+      <div class="answer-item"><strong>Q7 → B</strong>The tutorial notes the catch block handles both std::runtime_error (thrown by the app's own Vulkan helpers) and std::bad_alloc (which can surface from standard library operations during Vulkan setup). Catching the base class covers both without listing each subtype.</div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  function toggleAnswers(btn) {
+    const key = document.getElementById('answer-key');
+    const open = key.classList.toggle('open');
+    btn.textContent = open ? '📋 Hide Answer Key' : '📋 Show Answer Key';
+  }
+</script>
+</body>
+</html>

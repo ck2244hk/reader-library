@@ -8,5 +8,15 @@
     "questionCount": 8,
     "file": "sessions/vulkan-overview-learning.html",
     "excerpt": "Why Vulkan exists, the 8-step triangle pipeline, and how the API is structured at a low level."
+  },
+  {
+    "id": "vulkan-base-code",
+    "title": "Vulkan Tutorial — Base Code",
+    "url": "https://vulkan-tutorial.com/en/Drawing_a_triangle/Setup/Base_code",
+    "date": "2026-06-05",
+    "tags": ["graphics", "vulkan", "gpu", "cpp"],
+    "questionCount": 7,
+    "file": "sessions/vulkan-base-code-learning.html",
+    "excerpt": "The HelloTriangleApplication class structure, explicit Vulkan resource lifecycle, and GLFW window integration that form the base for every subsequent chapter."
   }
 ]
