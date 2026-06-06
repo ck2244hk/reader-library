@@ -273,6 +273,34 @@ No preamble in chat — just say "Here's your learning session:" and present the
 
 ---
 
+## Step 6: Commit and Push
+
+After every new learning session is written and sessions.json is updated, immediately commit and push to GitHub. Do this automatically — no need to ask.
+
+### Commit message format
+
+```
+add learning session: <Page Title>
+
+Source: <full URL>
+Questions: <N>
+```
+
+### Exact steps
+
+1. `git add public/sessions/<filename>.html public/sessions.json`
+2. `git commit -m "<message as above>"`
+3. `git push`
+
+### Rules
+
+- Stage only the new session HTML and sessions.json — never `git add -A`
+- If the task was an **update** to an existing session (not a new one), commit message is `update learning session: <Page Title>` and stage only the changed file(s)
+- Always push immediately after committing — CI redeploys to GitHub Pages on every push to main
+- Report the commit SHA and confirm the push succeeded before ending the turn
+
+---
+
 ## Edge Cases
 
 - **Page behind login / paywalled**: Tell the user, ask them to paste the text
