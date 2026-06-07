@@ -1,0 +1,532 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Vulkan Tutorial — Window Surface | Learning Session</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=IBM+Plex+Mono:wght@400;500&family=Syne:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #0d0f14; --bg-surface: #10131a; --bg-card: #12151d; --bg-row-alt: #0f1118;
+    --border: #1e2333; --gold: #c9a84c; --gold-dim: #7a6230; --gold-glow: rgba(201,168,76,0.1);
+    --blue: #7eb8d4; --green: #5db88a; --green-dim: rgba(93,184,138,0.15); --green-border: rgba(93,184,138,0.35);
+    --red: #d46a6a; --red-dim: rgba(212,106,106,0.15); --red-border: rgba(212,106,106,0.35);
+    --amber: #d4965a;
+    --text-1: #e8e4dc; --text-2: #8a8c99; --text-3: #4a4e62;
+    --tag-bg: #1a1e2c; --tag-border: #252a3a;
+  }
+  html { background: var(--bg); color: var(--text-1); font-family: 'Syne', sans-serif; -webkit-font-smoothing: antialiased; }
+  body { min-height: 100vh; padding-bottom: 80px; }
+  ::-webkit-scrollbar { width: 4px; }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+
+  .hdr { position: sticky; top: 0; z-index: 10; background: var(--bg-surface); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 12px 24px; gap: 16px; flex-wrap: wrap; }
+  .hdr-left { display: flex; align-items: center; gap: 10px; }
+  .hdr-gem { color: var(--gold); font-size: 14px; }
+  .hdr-title { font-family: 'DM Serif Display', serif; font-size: 16px; color: var(--text-1); }
+  .hdr-right { display: flex; align-items: center; gap: 12px; }
+  .score-tally { font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: var(--text-3); white-space: nowrap; }
+  .score-tally span { color: var(--gold); }
+  .hdr-url { font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: var(--text-3); background: var(--tag-bg); border: 1px solid var(--tag-border); border-radius: 5px; padding: 4px 10px; text-decoration: none; white-space: nowrap; transition: color 0.2s, border-color 0.2s; }
+  .hdr-url:hover { color: var(--gold); border-color: var(--gold-dim); }
+
+  .content { max-width: 800px; margin: 0 auto; padding: 40px 24px; display: flex; flex-direction: column; gap: 40px; }
+  .framing { font-family: 'DM Serif Display', serif; font-size: 16px; color: var(--gold); border-left: 2px solid var(--gold); padding-left: 14px; line-height: 1.55; font-style: italic; }
+  .section { display: flex; flex-direction: column; gap: 14px; }
+  .sec-label { font-family: 'IBM Plex Mono', monospace; font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--text-3); }
+
+  .term-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .term-table th { font-family: 'IBM Plex Mono', monospace; font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-3); text-align: left; padding: 8px 12px; background: var(--bg-surface); border-bottom: 1px solid var(--border); }
+  .term-table td { padding: 9px 12px; border-bottom: 1px solid var(--border); vertical-align: top; color: var(--text-2); line-height: 1.5; }
+  .term-table tr:nth-child(even) td { background: var(--bg-row-alt); }
+  .term-table td:first-child { font-family: 'IBM Plex Mono', monospace; font-size: 11.5px; color: var(--blue); white-space: nowrap; }
+
+  .code-block { background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px; padding: 16px 18px; font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: var(--text-2); line-height: 1.65; overflow-x: auto; white-space: pre; }
+  .code-label { font-family: 'IBM Plex Mono', monospace; font-size: 9px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--text-3); margin-bottom: 8px; }
+
+  .logic-flow { font-size: 14px; line-height: 1.8; color: var(--text-2); display: flex; flex-direction: column; gap: 14px; }
+
+  .steps-list { list-style: none; display: flex; flex-direction: column; gap: 10px; counter-reset: steps; }
+  .step-item { counter-increment: steps; background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px; padding: 14px 16px 14px 54px; position: relative; }
+  .step-item::before { content: counter(steps); position: absolute; left: 14px; top: 14px; font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: var(--gold); background: var(--gold-glow); border: 1px solid var(--gold-dim); border-radius: 4px; width: 26px; height: 26px; display: flex; align-items: center; justify-content: center; }
+  .step-name { font-size: 13.5px; font-weight: 500; color: var(--text-1); margin-bottom: 7px; line-height: 1.4; }
+  .step-why { font-size: 12.5px; color: var(--text-2); line-height: 1.55; margin-bottom: 4px; display: flex; gap: 6px; }
+  .step-why-label { font-family: 'IBM Plex Mono', monospace; font-size: 9px; color: var(--green); background: rgba(93,184,138,0.1); border: 1px solid rgba(93,184,138,0.2); border-radius: 3px; padding: 2px 5px; flex-shrink: 0; margin-top: 2px; letter-spacing: 0.06em; }
+  .step-warn { font-size: 12.5px; color: var(--text-2); line-height: 1.55; display: flex; gap: 6px; margin-top: 4px; }
+  .step-warn-label { font-family: 'IBM Plex Mono', monospace; font-size: 9px; color: var(--amber); background: rgba(212,150,90,0.1); border: 1px solid rgba(212,150,90,0.2); border-radius: 3px; padding: 2px 5px; flex-shrink: 0; margin-top: 2px; letter-spacing: 0.06em; }
+
+  .quiz-cards { display: flex; flex-direction: column; gap: 14px; }
+  .quiz-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px; padding: 18px 20px; transition: border-color 0.2s; }
+  .quiz-card.answered-correct { border-left: 3px solid var(--green); }
+  .quiz-card.answered-wrong { border-left: 3px solid var(--red); }
+  .q-num { font-family: 'IBM Plex Mono', monospace; font-size: 10px; color: var(--gold); margin-bottom: 3px; }
+  .q-type { font-family: 'IBM Plex Mono', monospace; font-size: 9px; color: var(--text-3); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 10px; }
+  .q-text { font-size: 13.5px; font-weight: 500; color: var(--text-1); line-height: 1.55; margin-bottom: 14px; }
+  .q-text code { font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: var(--blue); background: var(--tag-bg); padding: 1px 5px; border-radius: 3px; }
+  .q-options { display: flex; flex-direction: column; gap: 7px; margin-bottom: 14px; }
+  .q-option { display: flex; gap: 10px; align-items: flex-start; font-size: 13px; color: var(--text-2); line-height: 1.5; padding: 9px 12px; border: 1px solid var(--border); border-radius: 6px; cursor: pointer; transition: border-color 0.15s, background 0.15s; user-select: none; }
+  .q-option:hover { border-color: var(--gold-dim); background: var(--gold-glow); }
+  .q-option.selected { border-color: var(--gold); background: var(--gold-glow); }
+  .q-option.selected .q-letter { color: var(--gold); border-color: var(--gold-dim); background: rgba(201,168,76,0.15); }
+  .q-option.correct { border-color: var(--green); background: var(--green-dim); pointer-events: none; }
+  .q-option.correct .q-letter { color: var(--green); border-color: var(--green-border); background: rgba(93,184,138,0.15); }
+  .q-option.wrong { border-color: var(--red); background: var(--red-dim); pointer-events: none; }
+  .q-option.wrong .q-letter { color: var(--red); border-color: var(--red-border); background: rgba(212,106,106,0.15); }
+  .q-option.locked { pointer-events: none; }
+  .q-letter { font-family: 'IBM Plex Mono', monospace; font-size: 10px; background: var(--tag-bg); border: 1px solid var(--tag-border); border-radius: 3px; padding: 2px 6px; color: var(--text-3); flex-shrink: 0; margin-top: 1px; transition: color 0.15s, border-color 0.15s, background 0.15s; }
+  .check-btn { display: flex; align-items: center; gap: 8px; background: transparent; border: 1px solid var(--gold-dim); border-radius: 6px; padding: 9px 16px; font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: var(--gold); cursor: pointer; transition: all 0.2s; }
+  .check-btn:hover:not(:disabled) { background: var(--gold-glow); border-color: var(--gold); }
+  .check-btn:disabled { border-color: var(--border); color: var(--text-3); cursor: default; }
+  .q-feedback { display: none; margin-top: 12px; padding: 11px 14px; border-radius: 6px; font-size: 13px; line-height: 1.65; color: var(--text-2); }
+  .q-feedback.correct { display: block; background: var(--green-dim); border: 1px solid var(--green-border); }
+  .q-feedback.wrong { display: block; background: var(--red-dim); border: 1px solid var(--red-border); }
+  .q-feedback .fb-verdict { font-weight: 600; margin-bottom: 4px; display: flex; align-items: center; gap: 6px; }
+  .q-feedback.correct .fb-verdict { color: var(--green); }
+  .q-feedback.wrong .fb-verdict { color: var(--red); }
+  .score-summary { background: var(--bg-card); border: 1px solid var(--border); border-radius: 10px; padding: 28px 24px; text-align: center; display: none; flex-direction: column; gap: 10px; }
+  .score-summary.visible { display: flex; }
+  .score-summary-num { font-family: 'DM Serif Display', serif; font-size: 36px; color: var(--gold); }
+  .score-summary-msg { font-size: 14px; color: var(--text-2); }
+</style>
+</head>
+<body>
+
+<header class="hdr">
+  <div class="hdr-left">
+    <span class="hdr-gem">◆</span>
+    <span class="hdr-title">Vulkan Tutorial — Window Surface</span>
+  </div>
+  <div class="hdr-right">
+    <span class="score-tally" id="score-tally">0 / 8 answered &middot; <span id="score-correct">0</span> correct</span>
+    <a class="hdr-url" href="https://vulkan-tutorial.com/en/Drawing_a_triangle/Presentation/Window_surface" target="_blank" rel="noopener">vulkan-tutorial.com ↗</a>
+  </div>
+</header>
+
+<div class="content">
+
+  <p class="framing">Vulkan cannot render to a window without a VkSurfaceKHR — the WSI bridge between the API and the OS window system — and adding a present queue family introduces the first place where two required queues might or might not share a physical index.</p>
+
+  <!-- KEY TERMINOLOGY -->
+  <div class="section">
+    <div class="sec-label">Key Terminology</div>
+    <table class="term-table">
+      <thead>
+        <tr><th>Term</th><th>Definition</th><th>Why it matters here</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>VkSurfaceKHR</td><td>An abstract handle representing the renderable window surface, exposed by the VK_KHR_surface instance extension</td><td>Every swap chain (the mechanism for displaying images) is created from this surface — without it, rendered frames have nowhere to go</td></tr>
+        <tr><td>VK_KHR_surface</td><td>Instance extension that defines VkSurfaceKHR and its creation/query functions</td><td>Already included in the extension list returned by glfwGetRequiredInstanceExtensions — no manual addition needed</td></tr>
+        <tr><td>Window System Integration (WSI)</td><td>Umbrella term for Vulkan extensions (VK_KHR_surface, VK_KHR_win32_surface, VK_KHR_xcb_surface, etc.) that bridge Vulkan to platform window systems</td><td>Explains why surface creation looks different per platform and why GLFW's abstraction is preferred</td></tr>
+        <tr><td>glfwCreateWindowSurface</td><td>GLFW function that creates a VkSurfaceKHR for a GLFWwindow, handling platform-specific details internally</td><td>Preferred over vkCreateWin32SurfaceKHR and equivalents — using a portability library then writing platform-specific code defeats the purpose</td></tr>
+        <tr><td>vkCreateWin32SurfaceKHR</td><td>Windows-specific Vulkan function for surface creation, requiring HWND and HINSTANCE from the Win32 API</td><td>Shown in the tutorial to illustrate what glfwCreateWindowSurface abstracts; not the approach used in practice</td></tr>
+        <tr><td>vkDestroySurfaceKHR</td><td>Destroys the VkSurfaceKHR; takes the instance (not the device) as its first argument</td><td>Must be called before vkDestroyInstance — the surface is created from the instance, so it must be destroyed first</td></tr>
+        <tr><td>presentFamily</td><td>New std::optional&lt;uint32_t&gt; field added to QueueFamilyIndices tracking which queue family supports presenting to the surface</td><td>Distinct from graphicsFamily — checked via vkGetPhysicalDeviceSurfaceSupportKHR; isComplete() now requires both to have values</td></tr>
+        <tr><td>vkGetPhysicalDeviceSurfaceSupportKHR</td><td>Queries whether a specific queue family on a physical device can present rendered images to a given VkSurfaceKHR</td><td>Called inside findQueueFamilies for each family index — this is why the surface must exist before physical device selection</td></tr>
+        <tr><td>presentQueue</td><td>VkQueue handle for submitting presentation commands; may be the same underlying queue as graphicsQueue on many GPUs</td><td>Implicitly destroyed with the device — no explicit cleanup; added as a class member alongside graphicsQueue</td></tr>
+        <tr><td>std::set&lt;uint32_t&gt;</td><td>Used to collect unique queue family indices when building VkDeviceQueueCreateInfo structs</td><td>If graphicsFamily == presentFamily (same index), the set holds one entry — preventing two VkDeviceQueueCreateInfo structs for the same family, which is a spec violation</td></tr>
+        <tr><td>Surface creation timing</td><td>The surface must be created immediately after the instance, before physical device selection</td><td>vkGetPhysicalDeviceSurfaceSupportKHR is called during device evaluation and requires a valid VkSurfaceKHR — creating it later would break queue family discovery</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- KEY CODE -->
+  <div class="section">
+    <div class="sec-label">Key Code</div>
+
+    <div class="code-label">createSurface() — using GLFW abstraction</div>
+    <div class="code-block">VkSurfaceKHR surface;  // class member
+
+void createSurface() {
+    if (glfwCreateWindowSurface(instance, window, nullptr, &amp;surface)
+            != VK_SUCCESS) {
+        throw std::runtime_error("failed to create window surface!");
+    }
+}</div>
+
+    <div class="code-label" style="margin-top:16px;">Platform-specific alternative (Windows only — shown for reference)</div>
+    <div class="code-block">#define VK_USE_PLATFORM_WIN32_KHR
+#define GLFW_INCLUDE_VULKAN
+#include &lt;GLFW/glfw3.h&gt;
+#define GLFW_EXPOSE_NATIVE_WIN32
+#include &lt;GLFW/glfw3native.h&gt;
+
+VkWin32SurfaceCreateInfoKHR createInfo{};
+createInfo.sType = VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR;
+createInfo.hwnd = glfwGetWin32Window(window);
+createInfo.hinstance = GetModuleHandle(nullptr);
+
+vkCreateWin32SurfaceKHR(instance, &amp;createInfo, nullptr, &amp;surface);</div>
+
+    <div class="code-label" style="margin-top:16px;">Updated QueueFamilyIndices + findQueueFamilies()</div>
+    <div class="code-block">struct QueueFamilyIndices {
+    std::optional&lt;uint32_t&gt; graphicsFamily;
+    std::optional&lt;uint32_t&gt; presentFamily;   // &lt;-- new
+
+    bool isComplete() {
+        return graphicsFamily.has_value() &amp;&amp; presentFamily.has_value();
+    }
+};
+
+// Inside findQueueFamilies(), alongside the graphics check:
+VkBool32 presentSupport = false;
+vkGetPhysicalDeviceSurfaceSupportKHR(device, i, surface, &amp;presentSupport);
+if (presentSupport)
+    indices.presentFamily = i;</div>
+
+    <div class="code-label" style="margin-top:16px;">Updated createLogicalDevice() — unique family set</div>
+    <div class="code-block">#include &lt;set&gt;
+
+QueueFamilyIndices indices = findQueueFamilies(physicalDevice);
+
+std::vector&lt;VkDeviceQueueCreateInfo&gt; queueCreateInfos;
+std::set&lt;uint32_t&gt; uniqueQueueFamilies = {
+    indices.graphicsFamily.value(),
+    indices.presentFamily.value()
+};
+
+float queuePriority = 1.0f;
+for (uint32_t queueFamily : uniqueQueueFamilies) {
+    VkDeviceQueueCreateInfo queueCreateInfo{};
+    queueCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
+    queueCreateInfo.queueFamilyIndex = queueFamily;
+    queueCreateInfo.queueCount = 1;
+    queueCreateInfo.pQueuePriorities = &amp;queuePriority;
+    queueCreateInfos.push_back(queueCreateInfo);
+}
+
+// In VkDeviceCreateInfo:
+createInfo.queueCreateInfoCount = static_cast&lt;uint32_t&gt;(queueCreateInfos.size());
+createInfo.pQueueCreateInfos    = queueCreateInfos.data();
+
+// After vkCreateDevice:
+vkGetDeviceQueue(device, indices.presentFamily.value(), 0, &amp;presentQueue);</div>
+
+    <div class="code-label" style="margin-top:16px;">Updated initVulkan() and cleanup()</div>
+    <div class="code-block">void initVulkan() {
+    createInstance();
+    setupDebugMessenger();
+    createSurface();           // &lt;-- must come before pickPhysicalDevice
+    pickPhysicalDevice();
+    createLogicalDevice();
+}
+
+void cleanup() {
+    vkDestroyDevice(device, nullptr);
+    if (enableValidationLayers)
+        DestroyDebugUtilsMessengerEXT(instance, debugMessenger, nullptr);
+    vkDestroySurfaceKHR(instance, surface, nullptr);  // &lt;-- before instance
+    vkDestroyInstance(instance, nullptr);
+    glfwDestroyWindow(window);
+    glfwTerminate();
+}</div>
+  </div>
+
+  <!-- LOGIC FLOW -->
+  <div class="section">
+    <div class="sec-label">Logic Flow</div>
+    <div class="logic-flow">
+      <p>Vulkan is window-system agnostic — it has no built-in concept of a screen or window. To display rendered output, the application must create a VkSurfaceKHR, which is an abstract handle representing the OS window as a render target. This is provided by the VK_KHR_surface instance extension (already included through glfwGetRequiredInstanceExtensions). The tutorial first shows the Win32-specific path — VkWin32SurfaceCreateInfoKHR requiring HWND and HINSTANCE — to illustrate what the abstraction hides, then immediately moves to glfwCreateWindowSurface, which handles all platforms with a single call.</p>
+      <p>Surface creation timing is a non-obvious constraint. The surface must be created right after the instance and before physical device selection. The reason is vkGetPhysicalDeviceSurfaceSupportKHR, called inside findQueueFamilies during device evaluation — it needs a valid VkSurfaceKHR to check whether a queue family can present to that specific surface. Creating the surface after selecting the device would break this dependency.</p>
+      <p>The QueueFamilyIndices struct gains a presentFamily field alongside graphicsFamily. These represent two different GPU capabilities: graphicsFamily handles draw commands; presentFamily handles the handoff of finished frames to the OS display system. On most desktop hardware with a discrete GPU, the same queue family supports both — but the Vulkan spec does not guarantee this. The tutorial writes code that treats them as potentially distinct to be correct on all hardware, even though in practice they often share the same index.</p>
+      <p>When both families share an index, naively creating two VkDeviceQueueCreateInfo structs for the same family index violates the spec. std::set solves this elegantly: inserting graphicsFamily.value() and presentFamily.value() into a set automatically deduplicates them. The loop then produces either one or two VkDeviceQueueCreateInfo structs depending on whether the indices are distinct. This means no if-else branching on equality — the set handles it uniformly.</p>
+      <p>Cleanup ordering grows more complex. vkDestroyDevice still goes first. Then the debug messenger. Then vkDestroySurfaceKHR — the surface is tied to the instance, so it must be destroyed before vkDestroyInstance. GLFW teardown comes last. The presentQueue handle, like graphicsQueue, is implicitly destroyed with the device and needs no explicit call.</p>
+    </div>
+  </div>
+
+  <!-- STEP-BY-STEP -->
+  <div class="section">
+    <div class="sec-label">Step-by-Step — Adding the Window Surface</div>
+    <ol class="steps-list">
+
+      <li class="step-item">
+        <div class="step-name">Add <code>VkSurfaceKHR surface</code> as a private class member</div>
+        <div class="step-why"><span class="step-why-label">WHY</span>The surface handle must persist from after instance creation through cleanup; it's needed by both findQueueFamilies and swap chain creation in later chapters.</div>
+      </li>
+
+      <li class="step-item">
+        <div class="step-name">Implement <code>createSurface()</code> using <code>glfwCreateWindowSurface</code></div>
+        <div class="step-why"><span class="step-why-label">WHY</span>GLFW abstracts the platform-specific VkXxxSurfaceCreateInfoKHR structs. One call works on Windows, Linux, and macOS without any #ifdef branching.</div>
+        <div class="step-warn"><span class="step-warn-label">WATCH OUT</span>Do not use vkCreateWin32SurfaceKHR (or its equivalents) alongside GLFW — it defeats the purpose of using a portability library and won't compile on other platforms.</div>
+      </li>
+
+      <li class="step-item">
+        <div class="step-name">Call <code>createSurface()</code> from <code>initVulkan()</code> immediately after <code>setupDebugMessenger()</code> and before <code>pickPhysicalDevice()</code></div>
+        <div class="step-why"><span class="step-why-label">WHY</span>findQueueFamilies calls vkGetPhysicalDeviceSurfaceSupportKHR, which requires a valid surface. If the surface doesn't exist during device selection, present support cannot be queried.</div>
+      </li>
+
+      <li class="step-item">
+        <div class="step-name">Add <code>presentFamily</code> to <code>QueueFamilyIndices</code> and update <code>isComplete()</code></div>
+        <div class="step-why"><span class="step-why-label">WHY</span>The device must have both a graphics queue and a present queue. isComplete() now requires both — this change automatically propagates the new requirement to isDeviceSuitable() and the findQueueFamilies loop.</div>
+      </li>
+
+      <li class="step-item">
+        <div class="step-name">In <code>findQueueFamilies()</code>, query each family with <code>vkGetPhysicalDeviceSurfaceSupportKHR</code> and set <code>indices.presentFamily</code></div>
+        <div class="step-why"><span class="step-why-label">WHY</span>Present support is not implied by VK_QUEUE_GRAPHICS_BIT — a graphics-capable family may not support presentation to a particular surface on certain hardware and window system combinations.</div>
+      </li>
+
+      <li class="step-item">
+        <div class="step-name">In <code>createLogicalDevice()</code>, replace the single <code>VkDeviceQueueCreateInfo</code> with a vector built from a <code>std::set</code> of unique family indices</div>
+        <div class="step-why"><span class="step-why-label">WHY</span>Creating two VkDeviceQueueCreateInfo structs for the same family index is a spec violation. The set deduplicates automatically — when both families share an index, the loop produces one struct; when distinct, it produces two.</div>
+      </li>
+
+      <li class="step-item">
+        <div class="step-name">Add <code>VkQueue presentQueue</code> as a class member and retrieve it with <code>vkGetDeviceQueue</code> after device creation</div>
+        <div class="step-why"><span class="step-why-label">WHY</span>Even if presentQueue ends up pointing to the same underlying queue as graphicsQueue, the handle is used differently at submission time. Keeping them separate in code makes the intent clear and allows hardware with distinct queues to work correctly.</div>
+      </li>
+
+      <li class="step-item">
+        <div class="step-name">Add <code>vkDestroySurfaceKHR(instance, surface, nullptr)</code> to <code>cleanup()</code> before <code>vkDestroyInstance</code></div>
+        <div class="step-why"><span class="step-why-label">WHY</span>The surface is created from the instance and must be destroyed before it. Correct order: vkDestroyDevice → debug messenger → vkDestroySurfaceKHR → vkDestroyInstance → GLFW teardown.</div>
+        <div class="step-warn"><span class="step-warn-label">WATCH OUT</span>vkDestroySurfaceKHR takes the instance as its first argument, not the device — unlike most vkDestroyXXX calls for device-level objects.</div>
+      </li>
+
+    </ol>
+  </div>
+
+  <!-- QUIZ -->
+  <div class="section">
+    <div class="sec-label">Quiz — 8 Questions</div>
+    <div class="quiz-cards">
+
+      <div class="quiz-card" data-answer="B">
+        <div class="q-num">Q1</div>
+        <div class="q-type">terminology</div>
+        <div class="q-text">What is <code>VkSurfaceKHR</code> and which extension exposes it?</div>
+        <div class="q-options">
+          <div class="q-option" data-option="A" onclick="selectOption(this)"><span class="q-letter">A</span>A swap chain image handle, exposed by VK_KHR_swapchain</div>
+          <div class="q-option" data-option="B" onclick="selectOption(this)"><span class="q-letter">B</span>An abstract renderable window surface handle, exposed by VK_KHR_surface</div>
+          <div class="q-option" data-option="C" onclick="selectOption(this)"><span class="q-letter">C</span>A framebuffer attachment representing the OS window, exposed by VK_KHR_display</div>
+          <div class="q-option" data-option="D" onclick="selectOption(this)"><span class="q-letter">D</span>A platform-specific window handle wrapper, exposed by VK_KHR_win32_surface</div>
+        </div>
+        <button class="check-btn" onclick="checkAnswer(this.closest('.quiz-card'))" disabled>Check Answer</button>
+        <div class="q-feedback"><div class="fb-verdict"><span class="fb-icon"></span><span class="fb-text"></span></div><div class="fb-explanation"></div></div>
+      </div>
+
+      <div class="quiz-card" data-answer="C">
+        <div class="q-num">Q2</div>
+        <div class="q-type">conceptual</div>
+        <div class="q-text">Why does the tutorial use <code>glfwCreateWindowSurface</code> instead of <code>vkCreateWin32SurfaceKHR</code>?</div>
+        <div class="q-options">
+          <div class="q-option" data-option="A" onclick="selectOption(this)"><span class="q-letter">A</span>vkCreateWin32SurfaceKHR is deprecated in Vulkan 1.2 and must not be used in new code</div>
+          <div class="q-option" data-option="B" onclick="selectOption(this)"><span class="q-letter">B</span>glfwCreateWindowSurface performs additional validation that platform-specific calls skip</div>
+          <div class="q-option" data-option="C" onclick="selectOption(this)"><span class="q-letter">C</span>Using a cross-platform library and then writing platform-specific code defeats its purpose; GLFW's abstraction handles all platforms with one call</div>
+          <div class="q-option" data-option="D" onclick="selectOption(this)"><span class="q-letter">D</span>vkCreateWin32SurfaceKHR requires a VkDevice which doesn't exist yet at surface creation time</div>
+        </div>
+        <button class="check-btn" onclick="checkAnswer(this.closest('.quiz-card'))" disabled>Check Answer</button>
+        <div class="q-feedback"><div class="fb-verdict"><span class="fb-icon"></span><span class="fb-text"></span></div><div class="fb-explanation"></div></div>
+      </div>
+
+      <div class="quiz-card" data-answer="A">
+        <div class="q-num">Q3</div>
+        <div class="q-type">sequence</div>
+        <div class="q-text">Why must <code>createSurface()</code> be called before <code>pickPhysicalDevice()</code> in <code>initVulkan()</code>?</div>
+        <div class="q-options">
+          <div class="q-option" data-option="A" onclick="selectOption(this)"><span class="q-letter">A</span>findQueueFamilies calls vkGetPhysicalDeviceSurfaceSupportKHR during device evaluation, which requires a valid VkSurfaceKHR to already exist</div>
+          <div class="q-option" data-option="B" onclick="selectOption(this)"><span class="q-letter">B</span>vkEnumeratePhysicalDevices filters out GPUs that don't support the surface, so the surface must be provided first</div>
+          <div class="q-option" data-option="C" onclick="selectOption(this)"><span class="q-letter">C</span>The surface's memory requirements determine which physical device has enough VRAM to be selected</div>
+          <div class="q-option" data-option="D" onclick="selectOption(this)"><span class="q-letter">D</span>Order doesn't matter — surface creation and device selection are independent</div>
+        </div>
+        <button class="check-btn" onclick="checkAnswer(this.closest('.quiz-card'))" disabled>Check Answer</button>
+        <div class="q-feedback"><div class="fb-verdict"><span class="fb-icon"></span><span class="fb-text"></span></div><div class="fb-explanation"></div></div>
+      </div>
+
+      <div class="quiz-card" data-answer="D">
+        <div class="q-num">Q4</div>
+        <div class="q-type">terminology</div>
+        <div class="q-text">What does <code>vkGetPhysicalDeviceSurfaceSupportKHR</code> determine?</div>
+        <div class="q-options">
+          <div class="q-option" data-option="A" onclick="selectOption(this)"><span class="q-letter">A</span>Whether the physical device supports the VK_KHR_surface extension</div>
+          <div class="q-option" data-option="B" onclick="selectOption(this)"><span class="q-letter">B</span>Whether the surface format is compatible with the device's swap chain capabilities</div>
+          <div class="q-option" data-option="C" onclick="selectOption(this)"><span class="q-letter">C</span>Whether the device can create a VkSurfaceKHR for the current OS window</div>
+          <div class="q-option" data-option="D" onclick="selectOption(this)"><span class="q-letter">D</span>Whether a specific queue family index on the device can present rendered images to a given VkSurfaceKHR</div>
+        </div>
+        <button class="check-btn" onclick="checkAnswer(this.closest('.quiz-card'))" disabled>Check Answer</button>
+        <div class="q-feedback"><div class="fb-verdict"><span class="fb-icon"></span><span class="fb-text"></span></div><div class="fb-explanation"></div></div>
+      </div>
+
+      <div class="quiz-card" data-answer="B">
+        <div class="q-num">Q5</div>
+        <div class="q-type">conceptual</div>
+        <div class="q-text">Can the graphics and present queue families always be assumed to be the same index on all hardware?</div>
+        <div class="q-options">
+          <div class="q-option" data-option="A" onclick="selectOption(this)"><span class="q-letter">A</span>Yes — the Vulkan spec guarantees that any family supporting VK_QUEUE_GRAPHICS_BIT also supports presentation</div>
+          <div class="q-option" data-option="B" onclick="selectOption(this)"><span class="q-letter">B</span>No — the spec does not guarantee overlap; they must be treated as potentially distinct for cross-vendor correctness</div>
+          <div class="q-option" data-option="C" onclick="selectOption(this)"><span class="q-letter">C</span>Yes on discrete GPUs, no on integrated GPUs — the tutorial only targets discrete GPUs</div>
+          <div class="q-option" data-option="D" onclick="selectOption(this)"><span class="q-letter">D</span>No — they are always different indices; Vulkan requires separate families for graphics and presentation</div>
+        </div>
+        <button class="check-btn" onclick="checkAnswer(this.closest('.quiz-card'))" disabled>Check Answer</button>
+        <div class="q-feedback"><div class="fb-verdict"><span class="fb-icon"></span><span class="fb-text"></span></div><div class="fb-explanation"></div></div>
+      </div>
+
+      <div class="quiz-card" data-answer="C">
+        <div class="q-num">Q6</div>
+        <div class="q-type">application</div>
+        <div class="q-text">Why does the updated <code>createLogicalDevice()</code> use <code>std::set&lt;uint32_t&gt;</code> to collect queue family indices?</div>
+        <div class="q-options">
+          <div class="q-option" data-option="A" onclick="selectOption(this)"><span class="q-letter">A</span>std::set sorts indices in ascending order, which is required by vkCreateDevice</div>
+          <div class="q-option" data-option="B" onclick="selectOption(this)"><span class="q-letter">B</span>std::set provides faster lookup than std::vector when checking whether a family was already added</div>
+          <div class="q-option" data-option="C" onclick="selectOption(this)"><span class="q-letter">C</span>It automatically deduplicates — if both families share the same index, the set holds one entry, preventing two VkDeviceQueueCreateInfo structs for the same family which would be a spec violation</div>
+          <div class="q-option" data-option="D" onclick="selectOption(this)"><span class="q-letter">D</span>Vulkan requires queue family indices to be passed as a sorted set type rather than a plain array</div>
+        </div>
+        <button class="check-btn" onclick="checkAnswer(this.closest('.quiz-card'))" disabled>Check Answer</button>
+        <div class="q-feedback"><div class="fb-verdict"><span class="fb-icon"></span><span class="fb-text"></span></div><div class="fb-explanation"></div></div>
+      </div>
+
+      <div class="quiz-card" data-answer="D">
+        <div class="q-num">Q7</div>
+        <div class="q-type">sequence</div>
+        <div class="q-text">What is the correct cleanup order after this chapter?</div>
+        <div class="q-options">
+          <div class="q-option" data-option="A" onclick="selectOption(this)"><span class="q-letter">A</span>vkDestroySurfaceKHR → vkDestroyDevice → debug messenger → vkDestroyInstance → GLFW</div>
+          <div class="q-option" data-option="B" onclick="selectOption(this)"><span class="q-letter">B</span>vkDestroyDevice → vkDestroyInstance → vkDestroySurfaceKHR → debug messenger → GLFW</div>
+          <div class="q-option" data-option="C" onclick="selectOption(this)"><span class="q-letter">C</span>vkDestroyDevice → vkDestroySurfaceKHR → debug messenger → vkDestroyInstance → GLFW</div>
+          <div class="q-option" data-option="D" onclick="selectOption(this)"><span class="q-letter">D</span>vkDestroyDevice → debug messenger → vkDestroySurfaceKHR → vkDestroyInstance → GLFW</div>
+        </div>
+        <button class="check-btn" onclick="checkAnswer(this.closest('.quiz-card'))" disabled>Check Answer</button>
+        <div class="q-feedback"><div class="fb-verdict"><span class="fb-icon"></span><span class="fb-text"></span></div><div class="fb-explanation"></div></div>
+      </div>
+
+      <div class="quiz-card" data-answer="A">
+        <div class="q-num">Q8</div>
+        <div class="q-type">gotcha</div>
+        <div class="q-text">What explicit cleanup is needed for <code>presentQueue</code> in <code>cleanup()</code>?</div>
+        <div class="q-options">
+          <div class="q-option" data-option="A" onclick="selectOption(this)"><span class="q-letter">A</span>None — VkQueue handles are implicitly destroyed when vkDestroyDevice is called; there is no vkDestroyQueue function</div>
+          <div class="q-option" data-option="B" onclick="selectOption(this)"><span class="q-letter">B</span>Call vkDestroyQueue(device, presentQueue, nullptr) before vkDestroyDevice</div>
+          <div class="q-option" data-option="C" onclick="selectOption(this)"><span class="q-letter">C</span>Call vkQueueWaitIdle(presentQueue) to drain it, then it is freed automatically</div>
+          <div class="q-option" data-option="D" onclick="selectOption(this)"><span class="q-letter">D</span>Only if presentQueue differs from graphicsQueue — shared queues are freed once by vkDestroyDevice</div>
+        </div>
+        <button class="check-btn" onclick="checkAnswer(this.closest('.quiz-card'))" disabled>Check Answer</button>
+        <div class="q-feedback"><div class="fb-verdict"><span class="fb-icon"></span><span class="fb-text"></span></div><div class="fb-explanation"></div></div>
+      </div>
+
+    </div>
+
+    <div class="score-summary" id="score-summary">
+      <div class="score-summary-num" id="summary-num"></div>
+      <div class="score-summary-msg" id="summary-msg"></div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  const TOTAL = 8;
+  let answeredCount = 0;
+  let correctCount = 0;
+
+  const explanations = {
+    1: {
+      correct: 'B',
+      text: 'VkSurfaceKHR is an abstract handle representing the OS window as a Vulkan render target. It is exposed by the VK_KHR_surface instance extension, which is already included in the extension list returned by glfwGetRequiredInstanceExtensions — no manual addition is required. VK_KHR_swapchain is a separate device extension for the swap chain built on top of the surface.'
+    },
+    2: {
+      correct: 'C',
+      text: 'The tutorial\'s reasoning is straightforward: "It doesn\'t make any sense to use a library like GLFW and then proceed to use platform-specific code anyway." glfwCreateWindowSurface handles Win32, Cocoa, X11, and Wayland with a single call. vkCreateWin32SurfaceKHR is not deprecated — it\'s just platform-specific and unnecessary when GLFW is in the project.'
+    },
+    3: {
+      correct: 'A',
+      text: 'findQueueFamilies() is called during pickPhysicalDevice() to evaluate each GPU. Inside it, vkGetPhysicalDeviceSurfaceSupportKHR queries whether each queue family can present to the VkSurfaceKHR. That function requires a valid surface handle — if the surface hasn\'t been created yet, the query fails or produces incorrect results. The tutorial states explicitly: "The window surface needs to be created right after the instance creation, because it can actually influence the physical device selection."'
+    },
+    4: {
+      correct: 'D',
+      text: 'vkGetPhysicalDeviceSurfaceSupportKHR takes a physical device, a queue family index, and a surface, and returns a VkBool32 indicating whether that specific family on that device can present to that surface. Present support is not implied by VK_QUEUE_GRAPHICS_BIT — a graphics-capable family may not support presentation on some hardware/driver combinations.'
+    },
+    5: {
+      correct: 'B',
+      text: 'The Vulkan spec does not guarantee that any queue family supporting graphics also supports presentation. On most discrete desktop GPUs they happen to be the same family, but this is hardware and driver dependent. The tutorial explicitly states "it\'s actually possible that the queue families supporting drawing commands and the ones supporting presentation do not overlap" and codes for the general case.'
+    },
+    6: {
+      correct: 'C',
+      text: 'The Vulkan spec disallows creating two VkDeviceQueueCreateInfo structs for the same family index — it is undefined behaviour. When graphicsFamily and presentFamily hold the same value, inserting both into a std::set yields a single-element set. The loop then produces exactly one VkDeviceQueueCreateInfo. When they differ, the set has two elements and two structs are created. No if-else branching is needed — the deduplication is automatic.'
+    },
+    7: {
+      correct: 'D',
+      text: 'Correct order: vkDestroyDevice first (device and all its children), then the debug messenger (it depends on the instance), then vkDestroySurfaceKHR (the surface is an instance-level object, destroyed before the instance), then vkDestroyInstance, then GLFW teardown. The surface\'s first argument is the instance — a reminder that it belongs to the instance, not the device.'
+    },
+    8: {
+      correct: 'A',
+      text: 'VkQueue handles — both graphicsQueue and presentQueue — are implicitly destroyed when vkDestroyDevice is called. There is no vkDestroyQueue function in the Vulkan API. This applies regardless of whether both handles point to the same underlying queue or to different ones. The only explicit cleanup for this chapter is adding vkDestroySurfaceKHR to cleanup().'
+    }
+  };
+
+  function getCardIndex(card) {
+    return parseInt(card.querySelector('.q-num').textContent.replace('Q', ''));
+  }
+
+  function selectOption(optionEl) {
+    const card = optionEl.closest('.quiz-card');
+    if (card.dataset.answered) return;
+    card.querySelectorAll('.q-option').forEach(o => o.classList.remove('selected'));
+    optionEl.classList.add('selected');
+    card.querySelector('.check-btn').disabled = false;
+  }
+
+  function checkAnswer(card) {
+    if (card.dataset.answered) return;
+    card.dataset.answered = 'true';
+
+    const correct = card.dataset.answer;
+    const selected = card.querySelector('.q-option.selected');
+    const chosen = selected ? selected.dataset.option : null;
+    const idx = getCardIndex(card);
+    const info = explanations[idx];
+
+    const isCorrect = chosen === correct;
+    if (isCorrect) correctCount++;
+    answeredCount++;
+
+    card.querySelectorAll('.q-option').forEach(o => {
+      o.classList.add('locked');
+      if (o.dataset.option === correct) o.classList.add('correct');
+      else if (o.dataset.option === chosen && !isCorrect) o.classList.add('wrong');
+    });
+
+    const feedback = card.querySelector('.q-feedback');
+    const icon = feedback.querySelector('.fb-icon');
+    const verdictText = feedback.querySelector('.fb-text');
+    const explanation = feedback.querySelector('.fb-explanation');
+
+    if (isCorrect) {
+      feedback.classList.add('correct');
+      icon.textContent = '✓';
+      verdictText.textContent = 'Correct';
+    } else {
+      feedback.classList.add('wrong');
+      icon.textContent = '✗';
+      verdictText.textContent = `Incorrect — correct answer is ${correct}`;
+    }
+    explanation.textContent = info.text;
+
+    const btn = card.querySelector('.check-btn');
+    btn.textContent = isCorrect ? '✓ Correct' : '✗ Answered';
+    btn.disabled = true;
+
+    card.classList.add(isCorrect ? 'answered-correct' : 'answered-wrong');
+    updateScore();
+  }
+
+  function updateScore() {
+    const tally = document.getElementById('score-tally');
+    const correctSpan = document.getElementById('score-correct');
+    tally.childNodes[0].textContent = `${answeredCount} / ${TOTAL} answered · `;
+    correctSpan.textContent = correctCount;
+
+    if (answeredCount === TOTAL) {
+      const summary = document.getElementById('score-summary');
+      const pct = correctCount / TOTAL;
+      let msg;
+      if (pct >= 0.9) msg = 'Excellent — surface creation and queue family expansion are solid.';
+      else if (pct >= 0.7) msg = 'Good — review the questions you missed before the swap chain chapter.';
+      else msg = 'Review recommended — revisit surface timing, the std::set pattern, and cleanup ordering.';
+      document.getElementById('summary-num').textContent = `${correctCount} / ${TOTAL}`;
+      document.getElementById('summary-msg').textContent = msg;
+      summary.classList.add('visible');
+    }
+  }
+</script>
+</body>
+</html>

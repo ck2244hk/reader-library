@@ -58,5 +58,15 @@
     "questionCount": 12,
     "file": "sessions/vulkan-validation-layers-learning.html",
     "excerpt": "Adding VK_LAYER_KHRONOS_validation, wiring up the debug messenger with proxy functions, and using the pNext chain to catch errors inside vkCreateInstance itself."
+  },
+  {
+    "id": "vulkan-window-surface",
+    "title": "Vulkan Tutorial — Window Surface",
+    "url": "https://vulkan-tutorial.com/en/Drawing_a_triangle/Presentation/Window_surface",
+    "date": "2026-06-05",
+    "tags": ["graphics", "vulkan", "gpu", "cpp"],
+    "questionCount": 8,
+    "file": "sessions/vulkan-window-surface-learning.html",
+    "excerpt": "Creating a VkSurfaceKHR via glfwCreateWindowSurface, adding a present queue family to QueueFamilyIndices, and using std::set to deduplicate queue creation when graphics and present share the same family index."
   }
 ]
