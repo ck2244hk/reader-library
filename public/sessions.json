@@ -78,5 +78,15 @@
     "questionCount": 12,
     "file": "sessions/vulkan-swap-chain-learning.html",
     "excerpt": "Negotiating surface format, present mode, and swap extent; setting imageCount, sharing mode, compositeAlpha, and clipped; then retrieving VkImage handles with vkGetSwapchainImagesKHR."
+  },
+  {
+    "id": "vulkan-image-views",
+    "title": "Vulkan Tutorial — Image Views",
+    "url": "https://vulkan-tutorial.com/en/Drawing_a_triangle/Presentation/Image_views",
+    "date": "2026-06-07",
+    "tags": ["graphics", "vulkan", "gpu", "cpp"],
+    "questionCount": 6,
+    "file": "sessions/vulkan-image-views-learning.html",
+    "excerpt": "Wrapping each swap chain VkImage in a VkImageView — configuring viewType, format, component swizzle, and subresourceRange — and understanding why views require explicit cleanup while the images themselves do not."
   }
 ]

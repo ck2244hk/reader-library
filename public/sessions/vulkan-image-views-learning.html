@@ -1,0 +1,449 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Vulkan Tutorial — Image Views | Learning Session</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=IBM+Plex+Mono:wght@400;500&family=Syne:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #0d0f14; --bg-surface: #10131a; --bg-card: #12151d; --bg-row-alt: #0f1118;
+    --border: #1e2333; --gold: #c9a84c; --gold-dim: #7a6230; --gold-glow: rgba(201,168,76,0.1);
+    --blue: #7eb8d4; --green: #5db88a; --green-dim: rgba(93,184,138,0.15); --green-border: rgba(93,184,138,0.35);
+    --red: #d46a6a; --red-dim: rgba(212,106,106,0.15); --red-border: rgba(212,106,106,0.35);
+    --amber: #d4965a;
+    --text-1: #e8e4dc; --text-2: #8a8c99; --text-3: #4a4e62;
+    --tag-bg: #1a1e2c; --tag-border: #252a3a;
+  }
+  html { background: var(--bg); color: var(--text-1); font-family: 'Syne', sans-serif; -webkit-font-smoothing: antialiased; }
+  body { min-height: 100vh; padding-bottom: 80px; }
+  ::-webkit-scrollbar { width: 4px; }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+
+  .hdr { position: sticky; top: 0; z-index: 10; background: var(--bg-surface); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 12px 24px; gap: 16px; flex-wrap: wrap; }
+  .hdr-left { display: flex; align-items: center; gap: 10px; }
+  .hdr-gem { color: var(--gold); font-size: 14px; }
+  .hdr-title { font-family: 'DM Serif Display', serif; font-size: 16px; color: var(--text-1); }
+  .hdr-right { display: flex; align-items: center; gap: 12px; }
+  .score-tally { font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: var(--text-3); white-space: nowrap; }
+  .score-tally span { color: var(--gold); }
+  .hdr-url { font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: var(--text-3); background: var(--tag-bg); border: 1px solid var(--tag-border); border-radius: 5px; padding: 4px 10px; text-decoration: none; white-space: nowrap; transition: color 0.2s, border-color 0.2s; }
+  .hdr-url:hover { color: var(--gold); border-color: var(--gold-dim); }
+
+  .content { max-width: 800px; margin: 0 auto; padding: 40px 24px; display: flex; flex-direction: column; gap: 40px; }
+  .framing { font-family: 'DM Serif Display', serif; font-size: 16px; color: var(--gold); border-left: 2px solid var(--gold); padding-left: 14px; line-height: 1.55; font-style: italic; }
+  .section { display: flex; flex-direction: column; gap: 14px; }
+  .sec-label { font-family: 'IBM Plex Mono', monospace; font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--text-3); }
+
+  .term-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .term-table th { font-family: 'IBM Plex Mono', monospace; font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-3); text-align: left; padding: 8px 12px; background: var(--bg-surface); border-bottom: 1px solid var(--border); }
+  .term-table td { padding: 9px 12px; border-bottom: 1px solid var(--border); vertical-align: top; color: var(--text-2); line-height: 1.5; }
+  .term-table tr:nth-child(even) td { background: var(--bg-row-alt); }
+  .term-table td:first-child { font-family: 'IBM Plex Mono', monospace; font-size: 11.5px; color: var(--blue); white-space: nowrap; }
+
+  .code-block { background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px; padding: 16px 18px; font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: var(--text-2); line-height: 1.65; overflow-x: auto; white-space: pre; }
+  .code-label { font-family: 'IBM Plex Mono', monospace; font-size: 9px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--text-3); margin-bottom: 8px; }
+
+  .logic-flow { font-size: 14px; line-height: 1.8; color: var(--text-2); display: flex; flex-direction: column; gap: 14px; }
+
+  .steps-list { list-style: none; display: flex; flex-direction: column; gap: 10px; counter-reset: steps; }
+  .step-item { counter-increment: steps; background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px; padding: 14px 16px 14px 54px; position: relative; }
+  .step-item::before { content: counter(steps); position: absolute; left: 14px; top: 14px; font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: var(--gold); background: var(--gold-glow); border: 1px solid var(--gold-dim); border-radius: 4px; width: 26px; height: 26px; display: flex; align-items: center; justify-content: center; }
+  .step-name { font-size: 13.5px; font-weight: 500; color: var(--text-1); margin-bottom: 7px; line-height: 1.4; }
+  .step-why { font-size: 12.5px; color: var(--text-2); line-height: 1.55; margin-bottom: 4px; display: flex; gap: 6px; }
+  .step-why-label { font-family: 'IBM Plex Mono', monospace; font-size: 9px; color: var(--green); background: rgba(93,184,138,0.1); border: 1px solid rgba(93,184,138,0.2); border-radius: 3px; padding: 2px 5px; flex-shrink: 0; margin-top: 2px; letter-spacing: 0.06em; }
+  .step-warn { font-size: 12.5px; color: var(--text-2); line-height: 1.55; display: flex; gap: 6px; margin-top: 4px; }
+  .step-warn-label { font-family: 'IBM Plex Mono', monospace; font-size: 9px; color: var(--amber); background: rgba(212,150,90,0.1); border: 1px solid rgba(212,150,90,0.2); border-radius: 3px; padding: 2px 5px; flex-shrink: 0; margin-top: 2px; letter-spacing: 0.06em; }
+
+  .quiz-cards { display: flex; flex-direction: column; gap: 14px; }
+  .quiz-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px; padding: 18px 20px; transition: border-color 0.2s; }
+  .quiz-card.answered-correct { border-left: 3px solid var(--green); }
+  .quiz-card.answered-wrong { border-left: 3px solid var(--red); }
+  .q-num { font-family: 'IBM Plex Mono', monospace; font-size: 10px; color: var(--gold); margin-bottom: 3px; }
+  .q-type { font-family: 'IBM Plex Mono', monospace; font-size: 9px; color: var(--text-3); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 10px; }
+  .q-text { font-size: 13.5px; font-weight: 500; color: var(--text-1); line-height: 1.55; margin-bottom: 14px; }
+  .q-text code { font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: var(--blue); background: var(--tag-bg); padding: 1px 5px; border-radius: 3px; }
+  .q-options { display: flex; flex-direction: column; gap: 7px; margin-bottom: 14px; }
+  .q-option { display: flex; gap: 10px; align-items: flex-start; font-size: 13px; color: var(--text-2); line-height: 1.5; padding: 9px 12px; border: 1px solid var(--border); border-radius: 6px; cursor: pointer; transition: border-color 0.15s, background 0.15s; user-select: none; }
+  .q-option:hover { border-color: var(--gold-dim); background: var(--gold-glow); }
+  .q-option.selected { border-color: var(--gold); background: var(--gold-glow); }
+  .q-option.selected .q-letter { color: var(--gold); border-color: var(--gold-dim); background: rgba(201,168,76,0.15); }
+  .q-option.correct { border-color: var(--green); background: var(--green-dim); pointer-events: none; }
+  .q-option.correct .q-letter { color: var(--green); border-color: var(--green-border); background: rgba(93,184,138,0.15); }
+  .q-option.wrong { border-color: var(--red); background: var(--red-dim); pointer-events: none; }
+  .q-option.wrong .q-letter { color: var(--red); border-color: var(--red-border); background: rgba(212,106,106,0.15); }
+  .q-option.locked { pointer-events: none; }
+  .q-letter { font-family: 'IBM Plex Mono', monospace; font-size: 10px; background: var(--tag-bg); border: 1px solid var(--tag-border); border-radius: 3px; padding: 2px 6px; color: var(--text-3); flex-shrink: 0; margin-top: 1px; transition: color 0.15s, border-color 0.15s, background 0.15s; }
+  .check-btn { display: flex; align-items: center; gap: 8px; background: transparent; border: 1px solid var(--gold-dim); border-radius: 6px; padding: 9px 16px; font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: var(--gold); cursor: pointer; transition: all 0.2s; }
+  .check-btn:hover:not(:disabled) { background: var(--gold-glow); border-color: var(--gold); }
+  .check-btn:disabled { border-color: var(--border); color: var(--text-3); cursor: default; }
+  .q-feedback { display: none; margin-top: 12px; padding: 11px 14px; border-radius: 6px; font-size: 13px; line-height: 1.65; color: var(--text-2); }
+  .q-feedback.correct { display: block; background: var(--green-dim); border: 1px solid var(--green-border); }
+  .q-feedback.wrong { display: block; background: var(--red-dim); border: 1px solid var(--red-border); }
+  .q-feedback .fb-verdict { font-weight: 600; margin-bottom: 4px; display: flex; align-items: center; gap: 6px; }
+  .q-feedback.correct .fb-verdict { color: var(--green); }
+  .q-feedback.wrong .fb-verdict { color: var(--red); }
+  .score-summary { background: var(--bg-card); border: 1px solid var(--border); border-radius: 10px; padding: 28px 24px; text-align: center; display: none; flex-direction: column; gap: 10px; }
+  .score-summary.visible { display: flex; }
+  .score-summary-num { font-family: 'DM Serif Display', serif; font-size: 36px; color: var(--gold); }
+  .score-summary-msg { font-size: 14px; color: var(--text-2); }
+</style>
+</head>
+<body>
+
+<header class="hdr">
+  <div class="hdr-left">
+    <span class="hdr-gem">◆</span>
+    <span class="hdr-title">Vulkan Tutorial — Image Views</span>
+  </div>
+  <div class="hdr-right">
+    <span class="score-tally" id="score-tally">0 / 6 answered &middot; <span id="score-correct">0</span> correct</span>
+    <a class="hdr-url" href="https://vulkan-tutorial.com/en/Drawing_a_triangle/Presentation/Image_views" target="_blank" rel="noopener">vulkan-tutorial.com ↗</a>
+  </div>
+</header>
+
+<div class="content">
+
+  <p class="framing">A VkImage holds raw pixel data — a VkImageView wraps it with the interpretation metadata the render pipeline needs to know how to read it: dimensionality, format, channel mapping, and which mip/array slices are accessible.</p>
+
+  <!-- KEY TERMINOLOGY -->
+  <div class="section">
+    <div class="sec-label">Key Terminology</div>
+    <table class="term-table">
+      <thead>
+        <tr><th>Term</th><th>Definition</th><th>Why it matters here</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>VkImageView</td><td>A Vulkan object that wraps a VkImage and describes how to access it — which part of the image, in what format, and how channels map</td><td>Required to use any VkImage in the render pipeline; raw VkImage handles cannot be bound to shaders or used as render targets without a view</td></tr>
+        <tr><td>VkImage</td><td>A Vulkan object representing raw image data (pixel storage); swap chain images are VkImage handles owned by the swap chain</td><td>The underlying pixel buffer; the view provides the interpretation layer on top of it. Swap chain VkImages must not be explicitly destroyed — they are freed by vkDestroySwapchainKHR</td></tr>
+        <tr><td>VkImageViewCreateInfo</td><td>The creation struct for a VkImageView; specifies the source image, view type, format, channel swizzle, and subresource range</td><td>One instance is filled per swap chain image in the createImageViews() loop</td></tr>
+        <tr><td>viewType</td><td>Declares the dimensionality of the view — 1D, 2D, 3D, cube map, or array variants</td><td>Set to VK_IMAGE_VIEW_TYPE_2D for standard swap chain images; using the wrong type would cause the pipeline to mis-address texels</td></tr>
+        <tr><td>components</td><td>A VkComponentMapping struct with r/g/b/a fields that remaps color channels before the pipeline reads them (swizzle)</td><td>Set to VK_COMPONENT_SWIZZLE_IDENTITY for all four channels — each channel maps to itself. Could remap (e.g., all channels to red for monochrome) but identity is correct here</td></tr>
+        <tr><td>VK_COMPONENT_SWIZZLE_IDENTITY</td><td>Swizzle enum value meaning "use the channel as-is, no remapping" — R reads R, G reads G, B reads B, A reads A</td><td>The default for standard rendering; the struct members must be explicitly set even though identity is the intended no-op</td></tr>
+        <tr><td>subresourceRange</td><td>Defines which portion of the image is accessible through this view — which aspect (color vs depth), which mip level range, and which array layer range</td><td>Lets one image have multiple views over different subsets; for swap chain images all fields are set to their base/single values</td></tr>
+        <tr><td>aspectMask</td><td>Bitmask field in subresourceRange specifying the image aspect — VK_IMAGE_ASPECT_COLOR_BIT for color images, DEPTH_BIT for depth images</td><td>Swap chain images are color targets, so COLOR_BIT is used. Depth/stencil images would use DEPTH_BIT or STENCIL_BIT instead</td></tr>
+        <tr><td>baseMipLevel / levelCount</td><td>First mip level accessible through the view (base 0) and how many levels are included (count 1 = just the base level)</td><td>Swap chain images have no mipmaps — setting levelCount = 1 restricts the view to the single full-resolution level</td></tr>
+        <tr><td>baseArrayLayer / layerCount</td><td>First array layer accessible and the number of layers included; layerCount = 1 for non-stereoscopic images</td><td>Stereoscopic 3D applications create swap chains with 2+ layers and use separate image views per eye (each accessing a different layer)</td></tr>
+        <tr><td>swapChainImageViews</td><td>std::vector&lt;VkImageView&gt; class member parallel to swapChainImages; one view per swap chain image</td><td>Each view is explicitly created and must be explicitly destroyed in a cleanup loop with vkDestroyImageView — unlike the VkImages they wrap</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- KEY CODE -->
+  <div class="section">
+    <div class="sec-label">Key Code</div>
+
+    <div class="code-label">createImageViews() — one VkImageView per swap chain image</div>
+    <div class="code-block">void createImageViews() {
+    swapChainImageViews.resize(swapChainImages.size());
+
+    for (size_t i = 0; i &lt; swapChainImages.size(); i++) {
+        VkImageViewCreateInfo createInfo{};
+        createInfo.sType  = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+        createInfo.image  = swapChainImages[i];
+
+        createInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
+        createInfo.format   = swapChainImageFormat;  // must match swap chain format
+
+        // Identity swizzle — each channel maps to itself
+        createInfo.components.r = VK_COMPONENT_SWIZZLE_IDENTITY;
+        createInfo.components.g = VK_COMPONENT_SWIZZLE_IDENTITY;
+        createInfo.components.b = VK_COMPONENT_SWIZZLE_IDENTITY;
+        createInfo.components.a = VK_COMPONENT_SWIZZLE_IDENTITY;
+
+        // Color image, base mip level only, single non-stereoscopic layer
+        createInfo.subresourceRange.aspectMask     = VK_IMAGE_ASPECT_COLOR_BIT;
+        createInfo.subresourceRange.baseMipLevel   = 0;
+        createInfo.subresourceRange.levelCount     = 1;
+        createInfo.subresourceRange.baseArrayLayer = 0;
+        createInfo.subresourceRange.layerCount     = 1;
+
+        if (vkCreateImageView(device, &amp;createInfo, nullptr,
+                              &amp;swapChainImageViews[i]) != VK_SUCCESS)
+            throw std::runtime_error("failed to create image views!");
+    }
+}</div>
+
+    <div class="code-label" style="margin-top:16px;">Cleanup — explicit destruction loop</div>
+    <div class="code-block">// In cleanup(), before vkDestroySwapchainKHR:
+for (auto imageView : swapChainImageViews)
+    vkDestroyImageView(device, imageView, nullptr);</div>
+
+    <div class="code-label" style="margin-top:16px;">initVulkan() call order</div>
+    <div class="code-block">void initVulkan() {
+    createInstance();
+    setupDebugMessenger();
+    createSurface();
+    pickPhysicalDevice();
+    createLogicalDevice();
+    createSwapChain();
+    createImageViews();   // &lt;-- must come after createSwapChain()
+}</div>
+  </div>
+
+  <!-- LOGIC FLOW -->
+  <div class="section">
+    <div class="sec-label">Logic Flow</div>
+    <div class="logic-flow">
+      <p>The swap chain chapter retrieved VkImage handles from vkGetSwapchainImagesKHR. These handles represent the raw pixel buffers the swap chain manages. However, Vulkan's render pipeline cannot consume a VkImage directly — it needs a VkImageView layered on top of it. The view tells the pipeline everything about interpretation: the image's dimensionality (2D in this case), the pixel format, how channels are ordered, and which subset of mip levels and array layers is accessible. Without a view, the pipeline has no way to know what it's looking at.</p>
+      <p>createImageViews() iterates once per swap chain image, filling a VkImageViewCreateInfo for each. The viewType field declares 2D dimensionality. The format is copied from swapChainImageFormat saved during swap chain creation — the view must use the same format the image was stored in, or the pipeline will misread pixel data. The components field configures channel swizzling: all four channels are set to VK_COMPONENT_SWIZZLE_IDENTITY, meaning no remapping occurs (red bytes are read as red, green as green, and so on). Swizzling has real uses — mapping all channels to a single channel for monochrome display, or reordering channels for compatibility — but identity is correct for standard color rendering.</p>
+      <p>The subresourceRange defines which part of the image the view exposes. For swap chain images this is always the entire single-layer, single-mip-level color image: aspectMask = VK_IMAGE_ASPECT_COLOR_BIT (not depth or stencil), baseMipLevel = 0, levelCount = 1 (no mipmapping on swap chain images), baseArrayLayer = 0, and layerCount = 1. The layerCount = 1 detail is worth understanding: stereoscopic 3D applications create swap chains with two or more array layers and produce two image views per image — one per eye — each pointing to a different baseArrayLayer. This tutorial targets standard single-view rendering.</p>
+      <p>The ownership model differs between VkImage and VkImageView. The VkImage handles from the swap chain are owned by the swap chain itself — they are created and destroyed implicitly when the swap chain is created and destroyed. The VkImageView objects are explicitly created with vkCreateImageView and must be explicitly destroyed in cleanup with vkDestroyImageView, in a loop, before vkDestroySwapchainKHR is called. The tutorial notes that image views are sufficient for using images as textures in shaders, but rendering into them as framebuffer color attachments requires one more object: a framebuffer.</p>
+    </div>
+  </div>
+
+  <!-- STEP-BY-STEP -->
+  <div class="section">
+    <div class="sec-label">Step-by-Step — Creating Image Views</div>
+    <ol class="steps-list">
+
+      <li class="step-item">
+        <div class="step-name">Add <code>std::vector&lt;VkImageView&gt; swapChainImageViews</code> as a class member</div>
+        <div class="step-why"><span class="step-why-label">WHY</span>One view is needed per swap chain image; the vector is parallel to swapChainImages and sized to match it in createImageViews().</div>
+      </li>
+
+      <li class="step-item">
+        <div class="step-name">Implement <code>createImageViews()</code>: resize the vector, then loop over <code>swapChainImages</code></div>
+        <div class="step-why"><span class="step-why-label">WHY</span>Resizing first avoids repeated reallocation during the loop; the loop index is used to store each resulting VkImageView in the corresponding slot.</div>
+      </li>
+
+      <li class="step-item">
+        <div class="step-name">Fill <code>VkImageViewCreateInfo</code>: set <code>image</code>, <code>viewType = VK_IMAGE_VIEW_TYPE_2D</code>, <code>format = swapChainImageFormat</code>, and all four <code>components</code> fields to <code>VK_COMPONENT_SWIZZLE_IDENTITY</code></div>
+        <div class="step-why"><span class="step-why-label">WHY</span>viewType tells the pipeline the image is 2D. format must exactly match what was chosen in createSwapChain(). Identity swizzle means no channel remapping — standard for color rendering.</div>
+        <div class="step-warn"><span class="step-warn-label">WATCH OUT</span>The components fields must be explicitly set — do not assume zero-initialization equals IDENTITY. Zero (0) is VK_COMPONENT_SWIZZLE_IDENTITY in practice, but relying on it is fragile; explicit assignment is clearer.</div>
+      </li>
+
+      <li class="step-item">
+        <div class="step-name">Set <code>subresourceRange</code>: <code>aspectMask = VK_IMAGE_ASPECT_COLOR_BIT</code>, <code>baseMipLevel = 0</code>, <code>levelCount = 1</code>, <code>baseArrayLayer = 0</code>, <code>layerCount = 1</code></div>
+        <div class="step-why"><span class="step-why-label">WHY</span>These values expose exactly the full single-layer, single-mip-level color image that a standard swap chain image provides. Depth images would use DEPTH_BIT; stereoscopic images would use layerCount = 2.</div>
+      </li>
+
+      <li class="step-item">
+        <div class="step-name">Call <code>vkCreateImageView(device, &amp;createInfo, nullptr, &amp;swapChainImageViews[i])</code> and check the return value</div>
+        <div class="step-why"><span class="step-why-label">WHY</span>Unlike VkImage handles (implicitly created by the swap chain), VkImageView objects require explicit creation and a successful return check before use.</div>
+      </li>
+
+      <li class="step-item">
+        <div class="step-name">Call <code>createImageViews()</code> from <code>initVulkan()</code> immediately after <code>createSwapChain()</code></div>
+        <div class="step-why"><span class="step-why-label">WHY</span>The image views depend on swapChainImages and swapChainImageFormat, which are populated by createSwapChain() — they must exist before any view creation attempt.</div>
+      </li>
+
+      <li class="step-item">
+        <div class="step-name">In <code>cleanup()</code>, loop over <code>swapChainImageViews</code> and call <code>vkDestroyImageView(device, imageView, nullptr)</code> for each, before <code>vkDestroySwapchainKHR</code></div>
+        <div class="step-why"><span class="step-why-label">WHY</span>VkImageView objects are explicitly owned by the application and must be explicitly destroyed. Destroying them before the swap chain ensures the underlying VkImages they reference are still valid at destruction time.</div>
+      </li>
+
+    </ol>
+  </div>
+
+  <!-- QUIZ -->
+  <div class="section">
+    <div class="sec-label">Quiz — 6 Questions</div>
+    <div class="quiz-cards">
+
+      <div class="quiz-card" data-answer="C">
+        <div class="q-num">Q1</div>
+        <div class="q-type">terminology</div>
+        <div class="q-text">What is the relationship between <code>VkImage</code> and <code>VkImageView</code>, and why can't <code>VkImage</code> be used directly in the render pipeline?</div>
+        <div class="q-options">
+          <div class="q-option" data-option="A" onclick="selectOption(this)"><span class="q-letter">A</span>VkImage and VkImageView are interchangeable — VkImageView is just a convenience alias for the same underlying object</div>
+          <div class="q-option" data-option="B" onclick="selectOption(this)"><span class="q-letter">B</span>VkImage contains both pixels and metadata; VkImageView strips the metadata for use in compute shaders</div>
+          <div class="q-option" data-option="C" onclick="selectOption(this)"><span class="q-letter">C</span>VkImage is raw pixel storage; VkImageView wraps it with interpretation metadata (dimensionality, format, channel mapping, accessible subresource range) that the pipeline requires</div>
+          <div class="q-option" data-option="D" onclick="selectOption(this)"><span class="q-letter">D</span>VkImage is a CPU-side handle; VkImageView is the GPU-resident copy that the pipeline accesses</div>
+        </div>
+        <button class="check-btn" onclick="checkAnswer(this.closest('.quiz-card'))" disabled>Check Answer</button>
+        <div class="q-feedback"><div class="fb-verdict"><span class="fb-icon"></span><span class="fb-text"></span></div><div class="fb-explanation"></div></div>
+      </div>
+
+      <div class="quiz-card" data-answer="B">
+        <div class="q-num">Q2</div>
+        <div class="q-type">terminology</div>
+        <div class="q-text">What does the <code>components</code> field of <code>VkImageViewCreateInfo</code> control, and what does <code>VK_COMPONENT_SWIZZLE_IDENTITY</code> mean?</div>
+        <div class="q-options">
+          <div class="q-option" data-option="A" onclick="selectOption(this)"><span class="q-letter">A</span>It controls which memory heap the image is allocated from; IDENTITY means the default heap is used</div>
+          <div class="q-option" data-option="B" onclick="selectOption(this)"><span class="q-letter">B</span>It remaps color channels before the pipeline reads them (swizzle); IDENTITY means each channel maps to itself — R reads R, G reads G, B reads B, A reads A</div>
+          <div class="q-option" data-option="C" onclick="selectOption(this)"><span class="q-letter">C</span>It sets the pixel format for each channel individually; IDENTITY means the format from the VkImage is inherited unchanged</div>
+          <div class="q-option" data-option="D" onclick="selectOption(this)"><span class="q-letter">D</span>It controls the blend operation between the image and the framebuffer; IDENTITY means additive blending</div>
+        </div>
+        <button class="check-btn" onclick="checkAnswer(this.closest('.quiz-card'))" disabled>Check Answer</button>
+        <div class="q-feedback"><div class="fb-verdict"><span class="fb-icon"></span><span class="fb-text"></span></div><div class="fb-explanation"></div></div>
+      </div>
+
+      <div class="quiz-card" data-answer="A">
+        <div class="q-num">Q3</div>
+        <div class="q-type">application</div>
+        <div class="q-text">Why is <code>subresourceRange.layerCount</code> set to <code>1</code> for swap chain image views, and when would it be set to a higher value?</div>
+        <div class="q-options">
+          <div class="q-option" data-option="A" onclick="selectOption(this)"><span class="q-letter">A</span>Swap chain images are single-layer (non-stereoscopic); layerCount = 1 restricts the view to that one layer. Stereoscopic 3D applications use layerCount = 2 (or create separate views per eye with baseArrayLayer = 0 and 1)</div>
+          <div class="q-option" data-option="B" onclick="selectOption(this)"><span class="q-letter">B</span>layerCount must always be 1; higher values are used only for cube maps and are set via a separate field</div>
+          <div class="q-option" data-option="C" onclick="selectOption(this)"><span class="q-letter">C</span>layerCount = 1 is a performance optimization; setting it higher enables mipmapped rendering</div>
+          <div class="q-option" data-option="D" onclick="selectOption(this)"><span class="q-letter">D</span>layerCount corresponds to the number of color channels; BGRA images always use layerCount = 4</div>
+        </div>
+        <button class="check-btn" onclick="checkAnswer(this.closest('.quiz-card'))" disabled>Check Answer</button>
+        <div class="q-feedback"><div class="fb-verdict"><span class="fb-icon"></span><span class="fb-text"></span></div><div class="fb-explanation"></div></div>
+      </div>
+
+      <div class="quiz-card" data-answer="D">
+        <div class="q-num">Q4</div>
+        <div class="q-type">conceptual</div>
+        <div class="q-text">How does cleanup differ between <code>swapChainImages</code> (the <code>VkImage</code> handles) and <code>swapChainImageViews</code>?</div>
+        <div class="q-options">
+          <div class="q-option" data-option="A" onclick="selectOption(this)"><span class="q-letter">A</span>Both must be explicitly destroyed — vkDestroyImage for images and vkDestroyImageView for views, in that order</div>
+          <div class="q-option" data-option="B" onclick="selectOption(this)"><span class="q-letter">B</span>Only the images require explicit destruction; image views are freed automatically when the device is destroyed</div>
+          <div class="q-option" data-option="C" onclick="selectOption(this)"><span class="q-letter">C</span>Only the image views require explicit destruction; images are reference-counted and freed when no views reference them</div>
+          <div class="q-option" data-option="D" onclick="selectOption(this)"><span class="q-letter">D</span>VkImage handles are owned by the swap chain and freed implicitly by vkDestroySwapchainKHR; VkImageView objects are explicitly created by the application and must be explicitly destroyed with vkDestroyImageView</div>
+        </div>
+        <button class="check-btn" onclick="checkAnswer(this.closest('.quiz-card'))" disabled>Check Answer</button>
+        <div class="q-feedback"><div class="fb-verdict"><span class="fb-icon"></span><span class="fb-text"></span></div><div class="fb-explanation"></div></div>
+      </div>
+
+      <div class="quiz-card" data-answer="C">
+        <div class="q-num">Q5</div>
+        <div class="q-type">gotcha</div>
+        <div class="q-text"><code>subresourceRange.aspectMask</code> is set to <code>VK_IMAGE_ASPECT_COLOR_BIT</code> for swap chain image views. What would it be set to for a depth buffer image view?</div>
+        <div class="q-options">
+          <div class="q-option" data-option="A" onclick="selectOption(this)"><span class="q-letter">A</span>VK_IMAGE_ASPECT_COLOR_BIT — aspectMask is always COLOR_BIT regardless of image content</div>
+          <div class="q-option" data-option="B" onclick="selectOption(this)"><span class="q-letter">B</span>VK_IMAGE_ASPECT_NONE — depth images have no aspect and are accessed directly</div>
+          <div class="q-option" data-option="C" onclick="selectOption(this)"><span class="q-letter">C</span>VK_IMAGE_ASPECT_DEPTH_BIT — the aspect declares what the image stores; depth images use DEPTH_BIT so the pipeline knows to interpret the data as depth values</div>
+          <div class="q-option" data-option="D" onclick="selectOption(this)"><span class="q-letter">D</span>VK_IMAGE_ASPECT_COLOR_BIT | VK_IMAGE_ASPECT_DEPTH_BIT — all image views must include COLOR_BIT as a base flag</div>
+        </div>
+        <button class="check-btn" onclick="checkAnswer(this.closest('.quiz-card'))" disabled>Check Answer</button>
+        <div class="q-feedback"><div class="fb-verdict"><span class="fb-icon"></span><span class="fb-text"></span></div><div class="fb-explanation"></div></div>
+      </div>
+
+      <div class="quiz-card" data-answer="B">
+        <div class="q-num">Q6</div>
+        <div class="q-type">sequence</div>
+        <div class="q-text">The tutorial states that an image view is "sufficient to start using an image as a texture, but it's not quite ready to be used as a render target." What additional object bridges this gap?</div>
+        <div class="q-options">
+          <div class="q-option" data-option="A" onclick="selectOption(this)"><span class="q-letter">A</span>A VkRenderPass — the render pass describes the color and depth attachments, which implicitly creates the render target binding</div>
+          <div class="q-option" data-option="B" onclick="selectOption(this)"><span class="q-letter">B</span>A VkFramebuffer — it wraps the image view(s) and binds them as render target attachments for a specific render pass</div>
+          <div class="q-option" data-option="C" onclick="selectOption(this)"><span class="q-letter">C</span>A VkSampler — samplers configure how image views are read by fragment shaders during rendering</div>
+          <div class="q-option" data-option="D" onclick="selectOption(this)"><span class="q-letter">D</span>A VkDescriptorSet — the descriptor set must be updated to include the image view before it can be written to</div>
+        </div>
+        <button class="check-btn" onclick="checkAnswer(this.closest('.quiz-card'))" disabled>Check Answer</button>
+        <div class="q-feedback"><div class="fb-verdict"><span class="fb-icon"></span><span class="fb-text"></span></div><div class="fb-explanation"></div></div>
+      </div>
+
+    </div>
+
+    <div class="score-summary" id="score-summary">
+      <div class="score-summary-num" id="summary-num"></div>
+      <div class="score-summary-msg" id="summary-msg"></div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  const TOTAL = 6;
+  let answeredCount = 0;
+  let correctCount = 0;
+
+  const explanations = {
+    1: {
+      correct: 'C',
+      text: 'The tutorial states: "To use any VkImage, including those in the swap chain, in the render pipeline we have to create a VkImageView object. An image view is literally a view into an image. It describes how to access the image and which part of the image to access." VkImage is the raw pixel data allocation; VkImageView provides the interpretation context the pipeline binds against.'
+    },
+    2: {
+      correct: 'B',
+      text: 'The components field contains a VkComponentMapping struct with r, g, b, and a members. Each can be set to remap channels — for example, setting all to VK_COMPONENT_SWIZZLE_R would make the shader read the red channel value for all four channels (useful for monochrome images stored in a single channel). VK_COMPONENT_SWIZZLE_IDENTITY means the channel reads from its natural position: red from red, green from green, blue from blue, alpha from alpha.'
+    },
+    3: {
+      correct: 'A',
+      text: 'Standard (mono) swap chains have one layer per image, so layerCount = 1 restricts the view to that single layer. Stereoscopic 3D uses swap chains with multiple layers — one per eye. In that case, two image views are created per image: one with baseArrayLayer = 0 (left eye) and one with baseArrayLayer = 1 (right eye), each with layerCount = 1. Alternatively a single view with layerCount = 2 could cover both, depending on the rendering approach.'
+    },
+    4: {
+      correct: 'D',
+      text: 'The swap chain owns its VkImage handles — they are allocated internally when vkCreateSwapchainKHR is called and freed when vkDestroySwapchainKHR is called. The application must NOT call vkDestroyImage on them. VkImageView objects, however, are explicitly created by the application with vkCreateImageView and must be explicitly destroyed with vkDestroyImageView in cleanup, before vkDestroySwapchainKHR is called.'
+    },
+    5: {
+      correct: 'C',
+      text: 'aspectMask tells the pipeline what kind of data the image holds. VK_IMAGE_ASPECT_COLOR_BIT means "interpret this as color data" — appropriate for swap chain images and color render targets. A depth buffer image stores depth values, so its view uses VK_IMAGE_ASPECT_DEPTH_BIT. If the image has a combined depth-stencil format (like VK_FORMAT_D24_UNORM_S8_UINT), the view can use VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT.'
+    },
+    6: {
+      correct: 'B',
+      text: 'The tutorial says explicitly: "An image view is sufficient to start using an image as a texture, but it\'s not quite ready to be used as a render target just yet. That requires one more step of indirection, known as a framebuffer." A VkFramebuffer object binds specific VkImageView handles to the color/depth/stencil attachment slots defined by a VkRenderPass, completing the connection between the swap chain image and the rendering pipeline.'
+    }
+  };
+
+  function getCardIndex(card) {
+    return parseInt(card.querySelector('.q-num').textContent.replace('Q', ''));
+  }
+
+  function selectOption(optionEl) {
+    const card = optionEl.closest('.quiz-card');
+    if (card.dataset.answered) return;
+    card.querySelectorAll('.q-option').forEach(o => o.classList.remove('selected'));
+    optionEl.classList.add('selected');
+    card.querySelector('.check-btn').disabled = false;
+  }
+
+  function checkAnswer(card) {
+    if (card.dataset.answered) return;
+    card.dataset.answered = 'true';
+
+    const correct = card.dataset.answer;
+    const selected = card.querySelector('.q-option.selected');
+    const chosen = selected ? selected.dataset.option : null;
+    const idx = getCardIndex(card);
+    const info = explanations[idx];
+
+    const isCorrect = chosen === correct;
+    if (isCorrect) correctCount++;
+    answeredCount++;
+
+    card.querySelectorAll('.q-option').forEach(o => {
+      o.classList.add('locked');
+      if (o.dataset.option === correct) o.classList.add('correct');
+      else if (o.dataset.option === chosen && !isCorrect) o.classList.add('wrong');
+    });
+
+    const feedback = card.querySelector('.q-feedback');
+    const icon = feedback.querySelector('.fb-icon');
+    const verdictText = feedback.querySelector('.fb-text');
+    const explanation = feedback.querySelector('.fb-explanation');
+
+    if (isCorrect) {
+      feedback.classList.add('correct');
+      icon.textContent = '✓';
+      verdictText.textContent = 'Correct';
+    } else {
+      feedback.classList.add('wrong');
+      icon.textContent = '✗';
+      verdictText.textContent = `Incorrect — correct answer is ${correct}`;
+    }
+    explanation.textContent = info.text;
+
+    const btn = card.querySelector('.check-btn');
+    btn.textContent = isCorrect ? '✓ Correct' : '✗ Answered';
+    btn.disabled = true;
+
+    card.classList.add(isCorrect ? 'answered-correct' : 'answered-wrong');
+    updateScore();
+  }
+
+  function updateScore() {
+    const tally = document.getElementById('score-tally');
+    const correctSpan = document.getElementById('score-correct');
+    tally.childNodes[0].textContent = `${answeredCount} / ${TOTAL} answered · `;
+    correctSpan.textContent = correctCount;
+
+    if (answeredCount === TOTAL) {
+      const summary = document.getElementById('score-summary');
+      const pct = correctCount / TOTAL;
+      let msg;
+      if (pct >= 0.9) msg = 'Excellent — image view concepts and ownership rules are solid.';
+      else if (pct >= 0.7) msg = 'Good — review the questions you missed before tackling framebuffers.';
+      else msg = 'Review recommended — focus on VkImage vs VkImageView ownership, aspectMask, and the framebuffer requirement.';
+      document.getElementById('summary-num').textContent = `${correctCount} / ${TOTAL}`;
+      document.getElementById('summary-msg').textContent = msg;
+      summary.classList.add('visible');
+    }
+  }
+</script>
+</body>
+</html>
