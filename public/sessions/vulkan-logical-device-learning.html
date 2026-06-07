@@ -1,0 +1,486 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Vulkan Tutorial — Logical Device &amp; Queues | Learning Session</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=IBM+Plex+Mono:wght@400;500&family=Syne:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #0d0f14; --bg-surface: #10131a; --bg-card: #12151d; --bg-row-alt: #0f1118;
+    --border: #1e2333; --gold: #c9a84c; --gold-dim: #7a6230; --gold-glow: rgba(201,168,76,0.1);
+    --blue: #7eb8d4; --green: #5db88a; --green-dim: rgba(93,184,138,0.15); --green-border: rgba(93,184,138,0.35);
+    --red: #d46a6a; --red-dim: rgba(212,106,106,0.15); --red-border: rgba(212,106,106,0.35);
+    --amber: #d4965a;
+    --text-1: #e8e4dc; --text-2: #8a8c99; --text-3: #4a4e62;
+    --tag-bg: #1a1e2c; --tag-border: #252a3a;
+  }
+  html { background: var(--bg); color: var(--text-1); font-family: 'Syne', sans-serif; -webkit-font-smoothing: antialiased; }
+  body { min-height: 100vh; padding-bottom: 80px; }
+  ::-webkit-scrollbar { width: 4px; }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+
+  .hdr { position: sticky; top: 0; z-index: 10; background: var(--bg-surface); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 12px 24px; gap: 16px; flex-wrap: wrap; }
+  .hdr-left { display: flex; align-items: center; gap: 10px; }
+  .hdr-gem { color: var(--gold); font-size: 14px; }
+  .hdr-title { font-family: 'DM Serif Display', serif; font-size: 16px; color: var(--text-1); }
+  .hdr-right { display: flex; align-items: center; gap: 12px; }
+  .score-tally { font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: var(--text-3); white-space: nowrap; }
+  .score-tally span { color: var(--gold); }
+  .hdr-url { font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: var(--text-3); background: var(--tag-bg); border: 1px solid var(--tag-border); border-radius: 5px; padding: 4px 10px; text-decoration: none; white-space: nowrap; transition: color 0.2s, border-color 0.2s; }
+  .hdr-url:hover { color: var(--gold); border-color: var(--gold-dim); }
+
+  .content { max-width: 800px; margin: 0 auto; padding: 40px 24px; display: flex; flex-direction: column; gap: 40px; }
+  .framing { font-family: 'DM Serif Display', serif; font-size: 16px; color: var(--gold); border-left: 2px solid var(--gold); padding-left: 14px; line-height: 1.55; font-style: italic; }
+  .section { display: flex; flex-direction: column; gap: 14px; }
+  .sec-label { font-family: 'IBM Plex Mono', monospace; font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--text-3); }
+
+  .term-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .term-table th { font-family: 'IBM Plex Mono', monospace; font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-3); text-align: left; padding: 8px 12px; background: var(--bg-surface); border-bottom: 1px solid var(--border); }
+  .term-table td { padding: 9px 12px; border-bottom: 1px solid var(--border); vertical-align: top; color: var(--text-2); line-height: 1.5; }
+  .term-table tr:nth-child(even) td { background: var(--bg-row-alt); }
+  .term-table td:first-child { font-family: 'IBM Plex Mono', monospace; font-size: 11.5px; color: var(--blue); white-space: nowrap; }
+
+  .code-block { background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px; padding: 16px 18px; font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: var(--text-2); line-height: 1.65; overflow-x: auto; white-space: pre; }
+  .code-label { font-family: 'IBM Plex Mono', monospace; font-size: 9px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--text-3); margin-bottom: 8px; }
+
+  .logic-flow { font-size: 14px; line-height: 1.8; color: var(--text-2); display: flex; flex-direction: column; gap: 14px; }
+
+  .steps-list { list-style: none; display: flex; flex-direction: column; gap: 10px; counter-reset: steps; }
+  .step-item { counter-increment: steps; background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px; padding: 14px 16px 14px 54px; position: relative; }
+  .step-item::before { content: counter(steps); position: absolute; left: 14px; top: 14px; font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: var(--gold); background: var(--gold-glow); border: 1px solid var(--gold-dim); border-radius: 4px; width: 26px; height: 26px; display: flex; align-items: center; justify-content: center; }
+  .step-name { font-size: 13.5px; font-weight: 500; color: var(--text-1); margin-bottom: 7px; line-height: 1.4; }
+  .step-why { font-size: 12.5px; color: var(--text-2); line-height: 1.55; margin-bottom: 4px; display: flex; gap: 6px; }
+  .step-why-label { font-family: 'IBM Plex Mono', monospace; font-size: 9px; color: var(--green); background: rgba(93,184,138,0.1); border: 1px solid rgba(93,184,138,0.2); border-radius: 3px; padding: 2px 5px; flex-shrink: 0; margin-top: 2px; letter-spacing: 0.06em; }
+  .step-warn { font-size: 12.5px; color: var(--text-2); line-height: 1.55; display: flex; gap: 6px; margin-top: 4px; }
+  .step-warn-label { font-family: 'IBM Plex Mono', monospace; font-size: 9px; color: var(--amber); background: rgba(212,150,90,0.1); border: 1px solid rgba(212,150,90,0.2); border-radius: 3px; padding: 2px 5px; flex-shrink: 0; margin-top: 2px; letter-spacing: 0.06em; }
+
+  .quiz-cards { display: flex; flex-direction: column; gap: 14px; }
+  .quiz-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px; padding: 18px 20px; transition: border-color 0.2s; }
+  .quiz-card.answered-correct { border-left: 3px solid var(--green); }
+  .quiz-card.answered-wrong { border-left: 3px solid var(--red); }
+  .q-num { font-family: 'IBM Plex Mono', monospace; font-size: 10px; color: var(--gold); margin-bottom: 3px; }
+  .q-type { font-family: 'IBM Plex Mono', monospace; font-size: 9px; color: var(--text-3); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 10px; }
+  .q-text { font-size: 13.5px; font-weight: 500; color: var(--text-1); line-height: 1.55; margin-bottom: 14px; }
+  .q-text code { font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: var(--blue); background: var(--tag-bg); padding: 1px 5px; border-radius: 3px; }
+  .q-options { display: flex; flex-direction: column; gap: 7px; margin-bottom: 14px; }
+  .q-option { display: flex; gap: 10px; align-items: flex-start; font-size: 13px; color: var(--text-2); line-height: 1.5; padding: 9px 12px; border: 1px solid var(--border); border-radius: 6px; cursor: pointer; transition: border-color 0.15s, background 0.15s; user-select: none; }
+  .q-option:hover { border-color: var(--gold-dim); background: var(--gold-glow); }
+  .q-option.selected { border-color: var(--gold); background: var(--gold-glow); }
+  .q-option.selected .q-letter { color: var(--gold); border-color: var(--gold-dim); background: rgba(201,168,76,0.15); }
+  .q-option.correct { border-color: var(--green); background: var(--green-dim); pointer-events: none; }
+  .q-option.correct .q-letter { color: var(--green); border-color: var(--green-border); background: rgba(93,184,138,0.15); }
+  .q-option.wrong { border-color: var(--red); background: var(--red-dim); pointer-events: none; }
+  .q-option.wrong .q-letter { color: var(--red); border-color: var(--red-border); background: rgba(212,106,106,0.15); }
+  .q-option.locked { pointer-events: none; }
+  .q-letter { font-family: 'IBM Plex Mono', monospace; font-size: 10px; background: var(--tag-bg); border: 1px solid var(--tag-border); border-radius: 3px; padding: 2px 6px; color: var(--text-3); flex-shrink: 0; margin-top: 1px; transition: color 0.15s, border-color 0.15s, background 0.15s; }
+  .check-btn { display: flex; align-items: center; gap: 8px; background: transparent; border: 1px solid var(--gold-dim); border-radius: 6px; padding: 9px 16px; font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: var(--gold); cursor: pointer; transition: all 0.2s; }
+  .check-btn:hover:not(:disabled) { background: var(--gold-glow); border-color: var(--gold); }
+  .check-btn:disabled { border-color: var(--border); color: var(--text-3); cursor: default; }
+  .q-feedback { display: none; margin-top: 12px; padding: 11px 14px; border-radius: 6px; font-size: 13px; line-height: 1.65; color: var(--text-2); }
+  .q-feedback.correct { display: block; background: var(--green-dim); border: 1px solid var(--green-border); }
+  .q-feedback.wrong { display: block; background: var(--red-dim); border: 1px solid var(--red-border); }
+  .q-feedback .fb-verdict { font-weight: 600; margin-bottom: 4px; display: flex; align-items: center; gap: 6px; }
+  .q-feedback.correct .fb-verdict { color: var(--green); }
+  .q-feedback.wrong .fb-verdict { color: var(--red); }
+  .score-summary { background: var(--bg-card); border: 1px solid var(--border); border-radius: 10px; padding: 28px 24px; text-align: center; display: none; flex-direction: column; gap: 10px; }
+  .score-summary.visible { display: flex; }
+  .score-summary-num { font-family: 'DM Serif Display', serif; font-size: 36px; color: var(--gold); }
+  .score-summary-msg { font-size: 14px; color: var(--text-2); }
+</style>
+</head>
+<body>
+
+<header class="hdr">
+  <div class="hdr-left">
+    <span class="hdr-gem">◆</span>
+    <span class="hdr-title">Vulkan Tutorial — Logical Device &amp; Queues</span>
+  </div>
+  <div class="hdr-right">
+    <span class="score-tally" id="score-tally">0 / 7 answered &middot; <span id="score-correct">0</span> correct</span>
+    <a class="hdr-url" href="https://vulkan-tutorial.com/en/Drawing_a_triangle/Setup/Logical_device_and_queues" target="_blank" rel="noopener">vulkan-tutorial.com ↗</a>
+  </div>
+</header>
+
+<div class="content">
+
+  <p class="framing">The logical device is the first Vulkan object that creates real GPU-side state — it translates queue family indices and feature requirements into a working interface, and its queues are the only channel through which commands reach the GPU.</p>
+
+  <!-- KEY TERMINOLOGY -->
+  <div class="section">
+    <div class="sec-label">Key Terminology</div>
+    <table class="term-table">
+      <thead>
+        <tr><th>Term</th><th>Definition</th><th>Why it matters here</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>VkDevice</td><td>Handle for a logical device — the app's software interface to a selected physical device, specifying which queues and features to use</td><td>All subsequent Vulkan work (pipelines, swap chains, buffers) requires a VkDevice; must be destroyed before VkInstance in cleanup</td></tr>
+        <tr><td>VkDeviceQueueCreateInfo</td><td>Struct specifying how many queues from a particular queue family to create on the logical device</td><td>One struct per required queue family; references the family index found by findQueueFamilies in the previous chapter</td></tr>
+        <tr><td>queueFamilyIndex</td><td>Field on VkDeviceQueueCreateInfo — the integer index of the queue family, retrieved via indices.graphicsFamily.value()</td><td>Connects the physical device's discovered queue family to the logical device queue being created</td></tr>
+        <tr><td>Queue priority</td><td>A float in [0.0, 1.0] passed via pQueuePriorities that influences scheduling between queues within the same device</td><td>Required even when creating only one queue — pQueuePriorities must not be null</td></tr>
+        <tr><td>VkPhysicalDeviceFeatures (device)</td><td>Zero-initialised here to request no optional features; individual fields are set to VK_TRUE in later chapters when specific features are needed</td><td>Different role from the previous chapter — there it was queried to check support; here it declares what to enable on the logical device</td></tr>
+        <tr><td>VkDeviceCreateInfo</td><td>Top-level struct aggregating queue create infos, device features, device-level extensions, and legacy validation layer names</td><td>The single struct passed to vkCreateDevice — every logical device property is declared here</td></tr>
+        <tr><td>Device extensions</td><td>Extensions enabled per logical device (e.g. VK_KHR_swapchain), distinct from instance extensions enabled at instance creation</td><td>enabledExtensionCount = 0 for now; swap chain support requires adding VK_KHR_swapchain in the presentation chapter</td></tr>
+        <tr><td>vkCreateDevice</td><td>Creates the logical device from a physical device handle and VkDeviceCreateInfo; same three-arg output pattern as vkCreateInstance</td><td>The first Vulkan call that allocates real driver-side GPU resources — VkDevice is used for all subsequent object creation</td></tr>
+        <tr><td>vkDestroyDevice</td><td>Destroys the logical device and implicitly all queues and resources tied to it</td><td>Must be the first call in cleanup() — placed before vkDestroyInstance because the device depends on the instance</td></tr>
+        <tr><td>VkQueue</td><td>Handle for a specific queue on the logical device, the only channel through which command buffers are submitted to the GPU</td><td>Implicitly destroyed when the device is destroyed — there is no vkDestroyQueue; storing the handle is what matters</td></tr>
+        <tr><td>vkGetDeviceQueue</td><td>Retrieves a handle to a queue that was already created as part of vkCreateDevice; does not create a new queue</td><td>Takes the device, family index, and queue index within that family (0 for the first/only queue in this chapter)</td></tr>
+        <tr><td>Validation layers (device)</td><td>enabledLayerCount / ppEnabledLayerNames on VkDeviceCreateInfo, mirroring the instance-level settings</td><td>Modern Vulkan ignores these (layers are instance-level only), but they are set for compatibility with older implementations</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- KEY CODE -->
+  <div class="section">
+    <div class="sec-label">Key Code</div>
+
+    <div class="code-label">Complete createLogicalDevice()</div>
+    <div class="code-block">VkDevice device;        // class member
+VkQueue graphicsQueue;  // class member — implicitly destroyed with device
+
+void createLogicalDevice() {
+    QueueFamilyIndices indices = findQueueFamilies(physicalDevice);
+
+    VkDeviceQueueCreateInfo queueCreateInfo{};
+    queueCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
+    queueCreateInfo.queueFamilyIndex = indices.graphicsFamily.value();
+    queueCreateInfo.queueCount = 1;
+
+    float queuePriority = 1.0f;
+    queueCreateInfo.pQueuePriorities = &amp;queuePriority;
+
+    VkPhysicalDeviceFeatures deviceFeatures{};  // no special features yet
+
+    VkDeviceCreateInfo createInfo{};
+    createInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
+    createInfo.pQueueCreateInfos    = &amp;queueCreateInfo;
+    createInfo.queueCreateInfoCount = 1;
+    createInfo.pEnabledFeatures     = &amp;deviceFeatures;
+    createInfo.enabledExtensionCount = 0;
+
+    if (enableValidationLayers) {
+        createInfo.enabledLayerCount =
+            static_cast&lt;uint32_t&gt;(validationLayers.size());
+        createInfo.ppEnabledLayerNames = validationLayers.data();
+    } else {
+        createInfo.enabledLayerCount = 0;
+    }
+
+    if (vkCreateDevice(physicalDevice, &amp;createInfo, nullptr, &amp;device)
+            != VK_SUCCESS) {
+        throw std::runtime_error("failed to create logical device!");
+    }
+
+    vkGetDeviceQueue(device, indices.graphicsFamily.value(), 0, &amp;graphicsQueue);
+}</div>
+
+    <div class="code-label" style="margin-top:16px;">Updated initVulkan() and cleanup()</div>
+    <div class="code-block">void initVulkan() {
+    createInstance();
+    setupDebugMessenger();
+    pickPhysicalDevice();
+    createLogicalDevice();   // &lt;-- new
+}
+
+void cleanup() {
+    vkDestroyDevice(device, nullptr);          // first — before instance
+    if (enableValidationLayers)
+        DestroyDebugUtilsMessengerEXT(instance, debugMessenger, nullptr);
+    vkDestroyInstance(instance, nullptr);
+    glfwDestroyWindow(window);
+    glfwTerminate();
+}</div>
+  </div>
+
+  <!-- LOGIC FLOW -->
+  <div class="section">
+    <div class="sec-label">Logic Flow</div>
+    <div class="logic-flow">
+      <p>Physical device selection was a pure query phase — no GPU-side state was created. Creating the logical device is where that changes. vkCreateDevice allocates the driver's internal representation of this application's connection to the GPU, including the queues. From this point, VkDevice is the handle passed to almost every subsequent Vulkan function.</p>
+      <p>VkDeviceQueueCreateInfo expresses "give me N queues from queue family index M." The tutorial requests one queue from the graphics family found in the previous chapter. Queue priority is a mandatory field even with a single queue — it governs relative scheduling when multiple queues compete for GPU time. The priority float must stay alive until vkCreateDevice returns, which is why it's a local variable in the same scope.</p>
+      <p>VkPhysicalDeviceFeatures plays a different role here than in the suitability-check chapter. In the previous chapter it was filled by vkGetPhysicalDeviceFeatures to query what the GPU supports. Here it's zero-initialised to declare what the logical device should enable — all false means no optional features are requested. Later chapters flip specific fields to VK_TRUE when features like anisotropic filtering become needed.</p>
+      <p>Device-level extensions are separate from instance-level extensions. Instance extensions (like VK_EXT_debug_utils and the GLFW surface extensions) were set on VkInstanceCreateInfo. Device extensions (like VK_KHR_swapchain for presentation) go on VkDeviceCreateInfo. None are needed yet, so enabledExtensionCount = 0. The validation layer fields on VkDeviceCreateInfo are a compatibility holdover — modern Vulkan is single-layer-namespace and implementations ignore them, but older drivers expected them to be populated.</p>
+      <p>After vkCreateDevice, vkGetDeviceQueue retrieves a handle to the graphics queue. This call doesn't create anything — the queue already exists as a consequence of device creation. The third parameter is the queue index within the family (0 for the first, and the only queue requested). The resulting VkQueue handle is implicitly destroyed with the device, so no explicit cleanup call is needed for it. VkDevice itself, however, must be explicitly destroyed in cleanup() and must be the very first Vulkan call there — before the debug messenger and before vkDestroyInstance — because all objects created from the device depend on it.</p>
+    </div>
+  </div>
+
+  <!-- STEP-BY-STEP -->
+  <div class="section">
+    <div class="sec-label">Step-by-Step — Creating the Logical Device</div>
+    <ol class="steps-list">
+
+      <li class="step-item">
+        <div class="step-name">Add <code>VkDevice device</code> and <code>VkQueue graphicsQueue</code> as private class members</div>
+        <div class="step-why"><span class="step-why-label">WHY</span>Both must persist for the application's lifetime. VkQueue is implicitly tied to the device — no separate cleanup call is needed for it.</div>
+      </li>
+
+      <li class="step-item">
+        <div class="step-name">Call <code>createLogicalDevice()</code> from <code>initVulkan()</code> after <code>pickPhysicalDevice()</code></div>
+        <div class="step-why"><span class="step-why-label">WHY</span>Logical device creation depends on a valid VkPhysicalDevice handle; pickPhysicalDevice() must run first to populate it.</div>
+      </li>
+
+      <li class="step-item">
+        <div class="step-name">Fill <code>VkDeviceQueueCreateInfo</code> with the graphics family index, queueCount = 1, and priority = 1.0f</div>
+        <div class="step-why"><span class="step-why-label">WHY</span>Specifies exactly which queues to create. One graphics queue is sufficient — command buffers from many threads can be recorded in parallel and submitted together through it.</div>
+        <div class="step-warn"><span class="step-warn-label">WATCH OUT</span>pQueuePriorities cannot be null even with a single queue. Keep the float variable in scope until after vkCreateDevice returns.</div>
+      </li>
+
+      <li class="step-item">
+        <div class="step-name">Zero-initialise <code>VkPhysicalDeviceFeatures deviceFeatures{}</code></div>
+        <div class="step-why"><span class="step-why-label">WHY</span>Value-initialisation sets all feature flags to VK_FALSE. No optional features are needed yet; future chapters set specific fields to VK_TRUE as features are introduced.</div>
+      </li>
+
+      <li class="step-item">
+        <div class="step-name">Fill <code>VkDeviceCreateInfo</code>, linking queue infos, features, and validation layers</div>
+        <div class="step-why"><span class="step-why-label">WHY</span>Aggregates all device creation parameters. Setting enabledExtensionCount = 0 is correct for now — VK_KHR_swapchain is added in the presentation chapter.</div>
+        <div class="step-warn"><span class="step-warn-label">WATCH OUT</span>Set the validation layer fields on VkDeviceCreateInfo for compatibility with older implementations, even though modern Vulkan ignores them.</div>
+      </li>
+
+      <li class="step-item">
+        <div class="step-name">Call <code>vkCreateDevice(physicalDevice, &amp;createInfo, nullptr, &amp;device)</code> and check for VK_SUCCESS</div>
+        <div class="step-why"><span class="step-why-label">WHY</span>The first call that allocates real GPU-side driver resources. From here, device is valid and all subsequent Vulkan object creation passes it as the first argument.</div>
+      </li>
+
+      <li class="step-item">
+        <div class="step-name">Call <code>vkGetDeviceQueue(device, graphicsFamily, 0, &amp;graphicsQueue)</code></div>
+        <div class="step-why"><span class="step-why-label">WHY</span>Retrieves the handle to the queue that was created as part of vkCreateDevice. The 0 is the queue index within the family — the only queue in a single-queue setup.</div>
+      </li>
+
+      <li class="step-item">
+        <div class="step-name">Add <code>vkDestroyDevice(device, nullptr)</code> as the first call in <code>cleanup()</code></div>
+        <div class="step-why"><span class="step-why-label">WHY</span>The device must be destroyed before the instance. Placing it first in cleanup ensures all device-dependent resources (added in future chapters) are destroyed before the device itself.</div>
+        <div class="step-warn"><span class="step-warn-label">WATCH OUT</span>Do not add a vkDestroyQueue call — queues are implicitly destroyed with the device and there is no such function in the API.</div>
+      </li>
+
+    </ol>
+  </div>
+
+  <!-- QUIZ -->
+  <div class="section">
+    <div class="sec-label">Quiz — 7 Questions</div>
+    <div class="quiz-cards">
+
+      <div class="quiz-card" data-answer="C">
+        <div class="q-num">Q1</div>
+        <div class="q-type">terminology</div>
+        <div class="q-text">What is the key conceptual difference between <code>VkPhysicalDevice</code> and <code>VkDevice</code>?</div>
+        <div class="q-options">
+          <div class="q-option" data-option="A" onclick="selectOption(this)"><span class="q-letter">A</span>VkPhysicalDevice represents a GPU in a multi-GPU setup; VkDevice represents the single GPU selected for rendering</div>
+          <div class="q-option" data-option="B" onclick="selectOption(this)"><span class="q-letter">B</span>VkPhysicalDevice is used for compute operations; VkDevice is used for graphics operations</div>
+          <div class="q-option" data-option="C" onclick="selectOption(this)"><span class="q-letter">C</span>VkPhysicalDevice is an enumerated handle to the actual GPU hardware (no creation); VkDevice is an application-created software interface that specifies which queues and features to use</div>
+          <div class="q-option" data-option="D" onclick="selectOption(this)"><span class="q-letter">D</span>VkPhysicalDevice is created first by the OS; VkDevice is the Vulkan-layer wrapper around the same object</div>
+        </div>
+        <button class="check-btn" onclick="checkAnswer(this.closest('.quiz-card'))" disabled>Check Answer</button>
+        <div class="q-feedback"><div class="fb-verdict"><span class="fb-icon"></span><span class="fb-text"></span></div><div class="fb-explanation"></div></div>
+      </div>
+
+      <div class="quiz-card" data-answer="A">
+        <div class="q-num">Q2</div>
+        <div class="q-type">application</div>
+        <div class="q-text">What does <code>VkDeviceQueueCreateInfo</code> specify, and how many structs are needed in this chapter?</div>
+        <div class="q-options">
+          <div class="q-option" data-option="A" onclick="selectOption(this)"><span class="q-letter">A</span>Which queue family (by index) to create queues from and how many; one struct because only the graphics family is needed here</div>
+          <div class="q-option" data-option="B" onclick="selectOption(this)"><span class="q-letter">B</span>The priority range for all queues on the device; one struct shared across all families</div>
+          <div class="q-option" data-option="C" onclick="selectOption(this)"><span class="q-letter">C</span>Which device extensions to enable per queue; one struct per extension</div>
+          <div class="q-option" data-option="D" onclick="selectOption(this)"><span class="q-letter">D</span>The command types a queue can accept; one struct per VK_QUEUE_*_BIT flag</div>
+        </div>
+        <button class="check-btn" onclick="checkAnswer(this.closest('.quiz-card'))" disabled>Check Answer</button>
+        <div class="q-feedback"><div class="fb-verdict"><span class="fb-icon"></span><span class="fb-text"></span></div><div class="fb-explanation"></div></div>
+      </div>
+
+      <div class="quiz-card" data-answer="D">
+        <div class="q-num">Q3</div>
+        <div class="q-type">gotcha</div>
+        <div class="q-text">Do you need to explicitly destroy <code>VkQueue</code> handles in <code>cleanup()</code>?</div>
+        <div class="q-options">
+          <div class="q-option" data-option="A" onclick="selectOption(this)"><span class="q-letter">A</span>Yes — call vkDestroyQueue before vkDestroyDevice to avoid use-after-free</div>
+          <div class="q-option" data-option="B" onclick="selectOption(this)"><span class="q-letter">B</span>Yes — but only for queues retrieved after the device was created, not the initial graphics queue</div>
+          <div class="q-option" data-option="C" onclick="selectOption(this)"><span class="q-letter">C</span>Only on Windows builds — Linux drivers clean up queues with the process</div>
+          <div class="q-option" data-option="D" onclick="selectOption(this)"><span class="q-letter">D</span>No — VkQueue handles are implicitly destroyed when vkDestroyDevice is called; there is no vkDestroyQueue function</div>
+        </div>
+        <button class="check-btn" onclick="checkAnswer(this.closest('.quiz-card'))" disabled>Check Answer</button>
+        <div class="q-feedback"><div class="fb-verdict"><span class="fb-icon"></span><span class="fb-text"></span></div><div class="fb-explanation"></div></div>
+      </div>
+
+      <div class="quiz-card" data-answer="B">
+        <div class="q-num">Q4</div>
+        <div class="q-type">sequence</div>
+        <div class="q-text">In <code>cleanup()</code>, what is the correct position for <code>vkDestroyDevice</code>?</div>
+        <div class="q-options">
+          <div class="q-option" data-option="A" onclick="selectOption(this)"><span class="q-letter">A</span>After vkDestroyInstance — the instance must be torn down before the device it created</div>
+          <div class="q-option" data-option="B" onclick="selectOption(this)"><span class="q-letter">B</span>First, before the debug messenger and vkDestroyInstance — the device and all its children must be cleaned up before the instance</div>
+          <div class="q-option" data-option="C" onclick="selectOption(this)"><span class="q-letter">C</span>After glfwDestroyWindow — GLFW surface handles must be released before Vulkan device teardown</div>
+          <div class="q-option" data-option="D" onclick="selectOption(this)"><span class="q-letter">D</span>After the debug messenger but before vkDestroyInstance</div>
+        </div>
+        <button class="check-btn" onclick="checkAnswer(this.closest('.quiz-card'))" disabled>Check Answer</button>
+        <div class="q-feedback"><div class="fb-verdict"><span class="fb-icon"></span><span class="fb-text"></span></div><div class="fb-explanation"></div></div>
+      </div>
+
+      <div class="quiz-card" data-answer="C">
+        <div class="q-num">Q5</div>
+        <div class="q-type">conceptual</div>
+        <div class="q-text">What does <code>vkGetDeviceQueue</code> actually do — does it create a new queue?</div>
+        <div class="q-options">
+          <div class="q-option" data-option="A" onclick="selectOption(this)"><span class="q-letter">A</span>Yes — it creates a queue on demand from the device's queue pool and returns a handle</div>
+          <div class="q-option" data-option="B" onclick="selectOption(this)"><span class="q-letter">B</span>Yes — but only if the queue family index matches one listed in VkDeviceQueueCreateInfo</div>
+          <div class="q-option" data-option="C" onclick="selectOption(this)"><span class="q-letter">C</span>No — the queue was already created as part of vkCreateDevice; this call only retrieves a handle to it</div>
+          <div class="q-option" data-option="D" onclick="selectOption(this)"><span class="q-letter">D</span>No — it returns a pre-existing OS-level queue handle that existed before any Vulkan calls</div>
+        </div>
+        <button class="check-btn" onclick="checkAnswer(this.closest('.quiz-card'))" disabled>Check Answer</button>
+        <div class="q-feedback"><div class="fb-verdict"><span class="fb-icon"></span><span class="fb-text"></span></div><div class="fb-explanation"></div></div>
+      </div>
+
+      <div class="quiz-card" data-answer="A">
+        <div class="q-num">Q6</div>
+        <div class="q-type">gotcha</div>
+        <div class="q-text">Why is queue priority required on <code>VkDeviceQueueCreateInfo</code> even when creating only one queue?</div>
+        <div class="q-options">
+          <div class="q-option" data-option="A" onclick="selectOption(this)"><span class="q-letter">A</span>pQueuePriorities is a required pointer field — it cannot be null regardless of queue count; the driver uses it for scheduling even with a single queue</div>
+          <div class="q-option" data-option="B" onclick="selectOption(this)"><span class="q-letter">B</span>Priority determines the queue's memory budget; omitting it causes the driver to allocate zero memory for the queue</div>
+          <div class="q-option" data-option="C" onclick="selectOption(this)"><span class="q-letter">C</span>It's only required when queueCount &gt; 1; with a single queue pQueuePriorities can be nullptr</div>
+          <div class="q-option" data-option="D" onclick="selectOption(this)"><span class="q-letter">D</span>Priority is used by the validation layers to enforce queue ordering — it's only checked in debug builds</div>
+        </div>
+        <button class="check-btn" onclick="checkAnswer(this.closest('.quiz-card'))" disabled>Check Answer</button>
+        <div class="q-feedback"><div class="fb-verdict"><span class="fb-icon"></span><span class="fb-text"></span></div><div class="fb-explanation"></div></div>
+      </div>
+
+      <div class="quiz-card" data-answer="D">
+        <div class="q-num">Q7</div>
+        <div class="q-type">conceptual</div>
+        <div class="q-text">Why are validation layer names set on <code>VkDeviceCreateInfo</code> when modern Vulkan implementations don't distinguish device from instance layers?</div>
+        <div class="q-options">
+          <div class="q-option" data-option="A" onclick="selectOption(this)"><span class="q-letter">A</span>Device-level layers provide finer-grained control than instance layers and are still used by the LunarG SDK</div>
+          <div class="q-option" data-option="B" onclick="selectOption(this)"><span class="q-letter">B</span>They enable device-specific validation rules that instance layers cannot access</div>
+          <div class="q-option" data-option="C" onclick="selectOption(this)"><span class="q-letter">C</span>They are required by vkCreateDevice to match the layer count on VkInstanceCreateInfo or the call fails</div>
+          <div class="q-option" data-option="D" onclick="selectOption(this)"><span class="q-letter">D</span>Backward compatibility — older Vulkan implementations did distinguish device from instance layers and would reject a device with a mismatched layer list</div>
+        </div>
+        <button class="check-btn" onclick="checkAnswer(this.closest('.quiz-card'))" disabled>Check Answer</button>
+        <div class="q-feedback"><div class="fb-verdict"><span class="fb-icon"></span><span class="fb-text"></span></div><div class="fb-explanation"></div></div>
+      </div>
+
+    </div>
+
+    <div class="score-summary" id="score-summary">
+      <div class="score-summary-num" id="summary-num"></div>
+      <div class="score-summary-msg" id="summary-msg"></div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  const TOTAL = 7;
+  let answeredCount = 0;
+  let correctCount = 0;
+
+  const explanations = {
+    1: {
+      correct: 'C',
+      text: 'VkPhysicalDevice is a handle enumerated from the instance that represents actual GPU hardware — it is not created or destroyed by the application. VkDevice is a logical device the application creates (via vkCreateDevice) that declares what queues and features it wants from that GPU. You can create multiple VkDevices from the same VkPhysicalDevice with different configurations.'
+    },
+    2: {
+      correct: 'A',
+      text: 'VkDeviceQueueCreateInfo specifies which queue family (by its integer index) to request queues from, and how many queues. This chapter only needs the graphics queue, so one struct is sufficient — one struct per queue family. Future chapters add a presentation queue, requiring a second VkDeviceQueueCreateInfo if it belongs to a different family.'
+    },
+    3: {
+      correct: 'D',
+      text: 'VkQueue handles are owned by the logical device and are automatically destroyed when vkDestroyDevice is called. There is no vkDestroyQueue function in the Vulkan API. Attempting to add one would be a compile error. The only cleanup needed for queues is the single vkDestroyDevice call.'
+    },
+    4: {
+      correct: 'B',
+      text: 'vkDestroyDevice must be the very first Vulkan call in cleanup(). All Vulkan objects created from the device (pipelines, buffers, swap chains, etc.) must be destroyed before the device. The device itself must be destroyed before the debug messenger and before vkDestroyInstance. The full order from this chapter is: vkDestroyDevice → DestroyDebugUtilsMessengerEXT → vkDestroyInstance → glfwDestroyWindow → glfwTerminate.'
+    },
+    5: {
+      correct: 'C',
+      text: 'vkGetDeviceQueue does not create anything. Queues are created as a side-effect of vkCreateDevice — the number and families of queues requested in the VkDeviceQueueCreateInfo array determine what gets created. vkGetDeviceQueue is a pure handle retrieval call: give me the handle to queue index 0 in queue family N. The queue already exists; you\'re just getting a reference to it.'
+    },
+    6: {
+      correct: 'A',
+      text: 'pQueuePriorities is a required non-null pointer in the Vulkan spec regardless of queueCount. The Vulkan validation layers will flag a null pointer as an error. The priority value (0.0–1.0) influences GPU scheduling between queues — even with one queue the driver expects the pointer to be valid. The local float variable must remain in scope until vkCreateDevice returns.'
+    },
+    7: {
+      correct: 'D',
+      text: 'Early Vulkan implementations (before the layer system was unified) distinguished instance-level layers from device-level layers and required both to be populated consistently. Modern implementations (and the spec since Vulkan 1.1) ignore the device layer fields entirely — layers are now purely instance-level. The tutorial sets them anyway for compatibility with those older drivers that would reject or warn on a mismatch.'
+    }
+  };
+
+  function getCardIndex(card) {
+    return parseInt(card.querySelector('.q-num').textContent.replace('Q', ''));
+  }
+
+  function selectOption(optionEl) {
+    const card = optionEl.closest('.quiz-card');
+    if (card.dataset.answered) return;
+    card.querySelectorAll('.q-option').forEach(o => o.classList.remove('selected'));
+    optionEl.classList.add('selected');
+    card.querySelector('.check-btn').disabled = false;
+  }
+
+  function checkAnswer(card) {
+    if (card.dataset.answered) return;
+    card.dataset.answered = 'true';
+
+    const correct = card.dataset.answer;
+    const selected = card.querySelector('.q-option.selected');
+    const chosen = selected ? selected.dataset.option : null;
+    const idx = getCardIndex(card);
+    const info = explanations[idx];
+
+    const isCorrect = chosen === correct;
+    if (isCorrect) correctCount++;
+    answeredCount++;
+
+    card.querySelectorAll('.q-option').forEach(o => {
+      o.classList.add('locked');
+      if (o.dataset.option === correct) o.classList.add('correct');
+      else if (o.dataset.option === chosen && !isCorrect) o.classList.add('wrong');
+    });
+
+    const feedback = card.querySelector('.q-feedback');
+    const icon = feedback.querySelector('.fb-icon');
+    const verdictText = feedback.querySelector('.fb-text');
+    const explanation = feedback.querySelector('.fb-explanation');
+
+    if (isCorrect) {
+      feedback.classList.add('correct');
+      icon.textContent = '✓';
+      verdictText.textContent = 'Correct';
+    } else {
+      feedback.classList.add('wrong');
+      icon.textContent = '✗';
+      verdictText.textContent = `Incorrect — correct answer is ${correct}`;
+    }
+    explanation.textContent = info.text;
+
+    const btn = card.querySelector('.check-btn');
+    btn.textContent = isCorrect ? '✓ Correct' : '✗ Answered';
+    btn.disabled = true;
+
+    card.classList.add(isCorrect ? 'answered-correct' : 'answered-wrong');
+    updateScore();
+  }
+
+  function updateScore() {
+    const tally = document.getElementById('score-tally');
+    const correctSpan = document.getElementById('score-correct');
+    tally.childNodes[0].textContent = `${answeredCount} / ${TOTAL} answered · `;
+    correctSpan.textContent = correctCount;
+
+    if (answeredCount === TOTAL) {
+      const summary = document.getElementById('score-summary');
+      const pct = correctCount / TOTAL;
+      let msg;
+      if (pct >= 0.9) msg = 'Excellent — logical device and queue concepts are solid.';
+      else if (pct >= 0.7) msg = 'Good — review the questions you missed before the presentation chapter.';
+      else msg = 'Review recommended — revisit the device/queue lifecycle and cleanup ordering.';
+      document.getElementById('summary-num').textContent = `${correctCount} / ${TOTAL}`;
+      document.getElementById('summary-msg').textContent = msg;
+      summary.classList.add('visible');
+    }
+  }
+</script>
+</body>
+</html>

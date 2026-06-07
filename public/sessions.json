@@ -30,6 +30,16 @@
     "excerpt": "Creating a VkInstance — the root Vulkan object — by filling VkApplicationInfo and VkInstanceCreateInfo, querying GLFW extensions, and handling the macOS portability edge case."
   },
   {
+    "id": "vulkan-logical-device",
+    "title": "Vulkan Tutorial — Logical Device & Queues",
+    "url": "https://vulkan-tutorial.com/en/Drawing_a_triangle/Setup/Logical_device_and_queues",
+    "date": "2026-06-06",
+    "tags": ["graphics", "vulkan", "gpu", "cpp"],
+    "questionCount": 7,
+    "file": "sessions/vulkan-logical-device-learning.html",
+    "excerpt": "Creating a VkDevice from the selected physical device, requesting a graphics queue, and understanding why vkDestroyDevice must be the first cleanup call."
+  },
+  {
     "id": "vulkan-physical-devices",
     "title": "Vulkan Tutorial — Physical Devices & Queue Families",
     "url": "https://vulkan-tutorial.com/en/Drawing_a_triangle/Setup/Physical_devices_and_queue_families",
