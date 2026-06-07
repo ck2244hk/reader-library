@@ -68,5 +68,15 @@
     "questionCount": 8,
     "file": "sessions/vulkan-window-surface-learning.html",
     "excerpt": "Creating a VkSurfaceKHR via glfwCreateWindowSurface, adding a present queue family to QueueFamilyIndices, and using std::set to deduplicate queue creation when graphics and present share the same family index."
+  },
+  {
+    "id": "vulkan-swap-chain",
+    "title": "Vulkan Tutorial — Swap Chain",
+    "url": "https://vulkan-tutorial.com/en/Drawing_a_triangle/Presentation/Swap_chain",
+    "date": "2026-06-07",
+    "tags": ["graphics", "vulkan", "gpu", "cpp"],
+    "questionCount": 12,
+    "file": "sessions/vulkan-swap-chain-learning.html",
+    "excerpt": "Negotiating surface format, present mode, and swap extent; setting imageCount, sharing mode, compositeAlpha, and clipped; then retrieving VkImage handles with vkGetSwapchainImagesKHR."
   }
 ]

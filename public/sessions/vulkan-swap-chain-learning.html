@@ -1,0 +1,664 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Vulkan Tutorial — Swap Chain | Learning Session</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=IBM+Plex+Mono:wght@400;500&family=Syne:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #0d0f14; --bg-surface: #10131a; --bg-card: #12151d; --bg-row-alt: #0f1118;
+    --border: #1e2333; --gold: #c9a84c; --gold-dim: #7a6230; --gold-glow: rgba(201,168,76,0.1);
+    --blue: #7eb8d4; --green: #5db88a; --green-dim: rgba(93,184,138,0.15); --green-border: rgba(93,184,138,0.35);
+    --red: #d46a6a; --red-dim: rgba(212,106,106,0.15); --red-border: rgba(212,106,106,0.35);
+    --amber: #d4965a;
+    --text-1: #e8e4dc; --text-2: #8a8c99; --text-3: #4a4e62;
+    --tag-bg: #1a1e2c; --tag-border: #252a3a;
+  }
+  html { background: var(--bg); color: var(--text-1); font-family: 'Syne', sans-serif; -webkit-font-smoothing: antialiased; }
+  body { min-height: 100vh; padding-bottom: 80px; }
+  ::-webkit-scrollbar { width: 4px; }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+
+  .hdr { position: sticky; top: 0; z-index: 10; background: var(--bg-surface); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 12px 24px; gap: 16px; flex-wrap: wrap; }
+  .hdr-left { display: flex; align-items: center; gap: 10px; }
+  .hdr-gem { color: var(--gold); font-size: 14px; }
+  .hdr-title { font-family: 'DM Serif Display', serif; font-size: 16px; color: var(--text-1); }
+  .hdr-right { display: flex; align-items: center; gap: 12px; }
+  .score-tally { font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: var(--text-3); white-space: nowrap; }
+  .score-tally span { color: var(--gold); }
+  .hdr-url { font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: var(--text-3); background: var(--tag-bg); border: 1px solid var(--tag-border); border-radius: 5px; padding: 4px 10px; text-decoration: none; white-space: nowrap; transition: color 0.2s, border-color 0.2s; }
+  .hdr-url:hover { color: var(--gold); border-color: var(--gold-dim); }
+
+  .content { max-width: 800px; margin: 0 auto; padding: 40px 24px; display: flex; flex-direction: column; gap: 40px; }
+  .framing { font-family: 'DM Serif Display', serif; font-size: 16px; color: var(--gold); border-left: 2px solid var(--gold); padding-left: 14px; line-height: 1.55; font-style: italic; }
+  .section { display: flex; flex-direction: column; gap: 14px; }
+  .sec-label { font-family: 'IBM Plex Mono', monospace; font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--text-3); }
+
+  .term-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .term-table th { font-family: 'IBM Plex Mono', monospace; font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-3); text-align: left; padding: 8px 12px; background: var(--bg-surface); border-bottom: 1px solid var(--border); }
+  .term-table td { padding: 9px 12px; border-bottom: 1px solid var(--border); vertical-align: top; color: var(--text-2); line-height: 1.5; }
+  .term-table tr:nth-child(even) td { background: var(--bg-row-alt); }
+  .term-table td:first-child { font-family: 'IBM Plex Mono', monospace; font-size: 11.5px; color: var(--blue); white-space: nowrap; }
+
+  .code-block { background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px; padding: 16px 18px; font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: var(--text-2); line-height: 1.65; overflow-x: auto; white-space: pre; }
+  .code-label { font-family: 'IBM Plex Mono', monospace; font-size: 9px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--text-3); margin-bottom: 8px; }
+
+  .logic-flow { font-size: 14px; line-height: 1.8; color: var(--text-2); display: flex; flex-direction: column; gap: 14px; }
+
+  .steps-list { list-style: none; display: flex; flex-direction: column; gap: 10px; counter-reset: steps; }
+  .step-item { counter-increment: steps; background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px; padding: 14px 16px 14px 54px; position: relative; }
+  .step-item::before { content: counter(steps); position: absolute; left: 14px; top: 14px; font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: var(--gold); background: var(--gold-glow); border: 1px solid var(--gold-dim); border-radius: 4px; width: 26px; height: 26px; display: flex; align-items: center; justify-content: center; }
+  .step-name { font-size: 13.5px; font-weight: 500; color: var(--text-1); margin-bottom: 7px; line-height: 1.4; }
+  .step-why { font-size: 12.5px; color: var(--text-2); line-height: 1.55; margin-bottom: 4px; display: flex; gap: 6px; }
+  .step-why-label { font-family: 'IBM Plex Mono', monospace; font-size: 9px; color: var(--green); background: rgba(93,184,138,0.1); border: 1px solid rgba(93,184,138,0.2); border-radius: 3px; padding: 2px 5px; flex-shrink: 0; margin-top: 2px; letter-spacing: 0.06em; }
+  .step-warn { font-size: 12.5px; color: var(--text-2); line-height: 1.55; display: flex; gap: 6px; margin-top: 4px; }
+  .step-warn-label { font-family: 'IBM Plex Mono', monospace; font-size: 9px; color: var(--amber); background: rgba(212,150,90,0.1); border: 1px solid rgba(212,150,90,0.2); border-radius: 3px; padding: 2px 5px; flex-shrink: 0; margin-top: 2px; letter-spacing: 0.06em; }
+
+  .quiz-cards { display: flex; flex-direction: column; gap: 14px; }
+  .quiz-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px; padding: 18px 20px; transition: border-color 0.2s; }
+  .quiz-card.answered-correct { border-left: 3px solid var(--green); }
+  .quiz-card.answered-wrong { border-left: 3px solid var(--red); }
+  .q-num { font-family: 'IBM Plex Mono', monospace; font-size: 10px; color: var(--gold); margin-bottom: 3px; }
+  .q-type { font-family: 'IBM Plex Mono', monospace; font-size: 9px; color: var(--text-3); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 10px; }
+  .q-text { font-size: 13.5px; font-weight: 500; color: var(--text-1); line-height: 1.55; margin-bottom: 14px; }
+  .q-text code { font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: var(--blue); background: var(--tag-bg); padding: 1px 5px; border-radius: 3px; }
+  .q-options { display: flex; flex-direction: column; gap: 7px; margin-bottom: 14px; }
+  .q-option { display: flex; gap: 10px; align-items: flex-start; font-size: 13px; color: var(--text-2); line-height: 1.5; padding: 9px 12px; border: 1px solid var(--border); border-radius: 6px; cursor: pointer; transition: border-color 0.15s, background 0.15s; user-select: none; }
+  .q-option:hover { border-color: var(--gold-dim); background: var(--gold-glow); }
+  .q-option.selected { border-color: var(--gold); background: var(--gold-glow); }
+  .q-option.selected .q-letter { color: var(--gold); border-color: var(--gold-dim); background: rgba(201,168,76,0.15); }
+  .q-option.correct { border-color: var(--green); background: var(--green-dim); pointer-events: none; }
+  .q-option.correct .q-letter { color: var(--green); border-color: var(--green-border); background: rgba(93,184,138,0.15); }
+  .q-option.wrong { border-color: var(--red); background: var(--red-dim); pointer-events: none; }
+  .q-option.wrong .q-letter { color: var(--red); border-color: var(--red-border); background: rgba(212,106,106,0.15); }
+  .q-option.locked { pointer-events: none; }
+  .q-letter { font-family: 'IBM Plex Mono', monospace; font-size: 10px; background: var(--tag-bg); border: 1px solid var(--tag-border); border-radius: 3px; padding: 2px 6px; color: var(--text-3); flex-shrink: 0; margin-top: 1px; transition: color 0.15s, border-color 0.15s, background 0.15s; }
+  .check-btn { display: flex; align-items: center; gap: 8px; background: transparent; border: 1px solid var(--gold-dim); border-radius: 6px; padding: 9px 16px; font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: var(--gold); cursor: pointer; transition: all 0.2s; }
+  .check-btn:hover:not(:disabled) { background: var(--gold-glow); border-color: var(--gold); }
+  .check-btn:disabled { border-color: var(--border); color: var(--text-3); cursor: default; }
+  .q-feedback { display: none; margin-top: 12px; padding: 11px 14px; border-radius: 6px; font-size: 13px; line-height: 1.65; color: var(--text-2); }
+  .q-feedback.correct { display: block; background: var(--green-dim); border: 1px solid var(--green-border); }
+  .q-feedback.wrong { display: block; background: var(--red-dim); border: 1px solid var(--red-border); }
+  .q-feedback .fb-verdict { font-weight: 600; margin-bottom: 4px; display: flex; align-items: center; gap: 6px; }
+  .q-feedback.correct .fb-verdict { color: var(--green); }
+  .q-feedback.wrong .fb-verdict { color: var(--red); }
+  .score-summary { background: var(--bg-card); border: 1px solid var(--border); border-radius: 10px; padding: 28px 24px; text-align: center; display: none; flex-direction: column; gap: 10px; }
+  .score-summary.visible { display: flex; }
+  .score-summary-num { font-family: 'DM Serif Display', serif; font-size: 36px; color: var(--gold); }
+  .score-summary-msg { font-size: 14px; color: var(--text-2); }
+</style>
+</head>
+<body>
+
+<header class="hdr">
+  <div class="hdr-left">
+    <span class="hdr-gem">◆</span>
+    <span class="hdr-title">Vulkan Tutorial — Swap Chain</span>
+  </div>
+  <div class="hdr-right">
+    <span class="score-tally" id="score-tally">0 / 12 answered &middot; <span id="score-correct">0</span> correct</span>
+    <a class="hdr-url" href="https://vulkan-tutorial.com/en/Drawing_a_triangle/Presentation/Swap_chain" target="_blank" rel="noopener">vulkan-tutorial.com ↗</a>
+  </div>
+</header>
+
+<div class="content">
+
+  <p class="framing">Vulkan has no default framebuffer — the swap chain is the explicit infrastructure for owning, queuing, and presenting rendered images to the screen, requiring careful negotiation of format, timing, resolution, and queue ownership before a single pixel can be displayed.</p>
+
+  <!-- KEY TERMINOLOGY -->
+  <div class="section">
+    <div class="sec-label">Key Terminology</div>
+    <table class="term-table">
+      <thead>
+        <tr><th>Term</th><th>Definition</th><th>Why it matters here</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>VkSwapchainKHR</td><td>Handle object representing the swap chain — a queue of images waiting to be presented to the screen</td><td>The central object of this chapter; everything else (format, mode, extent) feeds into its creation info struct</td></tr>
+        <tr><td>VK_KHR_swapchain</td><td>A device extension (not instance) that must be explicitly enumerated and enabled to use swap chains</td><td>The device extension check must happen during physical device selection; without it, vkCreateSwapchainKHR doesn't exist</td></tr>
+        <tr><td>SwapChainSupportDetails</td><td>Helper struct holding VkSurfaceCapabilitiesKHR, vector&lt;VkSurfaceFormatKHR&gt;, and vector&lt;VkPresentModeKHR&gt;</td><td>Aggregates the three separate queries (capabilities, formats, present modes) needed to populate VkSwapchainCreateInfoKHR</td></tr>
+        <tr><td>VkSurfaceFormatKHR</td><td>Struct pairing a VkFormat (pixel layout, e.g. B8G8R8A8) with a VkColorSpaceKHR (color encoding, e.g. sRGB nonlinear)</td><td>The chosen format determines how pixels are stored and interpreted; sRGB is preferred for perceptual accuracy and consistency with image textures</td></tr>
+        <tr><td>VK_FORMAT_B8G8R8A8_SRGB</td><td>8 bits per channel in BGRA order with sRGB gamma encoding — the tutorial's preferred surface format</td><td>Chosen via chooseSwapSurfaceFormat(); fallback is the first format in the available list</td></tr>
+        <tr><td>VK_COLOR_SPACE_SRGB_NONLINEAR_KHR</td><td>Indicates the swap chain images use the sRGB color space</td><td>Paired with VK_FORMAT_B8G8R8A8_SRGB; the two must be chosen together as they define the complete color representation</td></tr>
+        <tr><td>VK_PRESENT_MODE_FIFO_KHR</td><td>Queue-based mode: rendered frames are enqueued; the display dequeues one per vertical blank. Guaranteed to be available on all Vulkan implementations</td><td>The safe fallback; behaves like traditional vertical sync. Also the best choice for mobile to avoid excessive power draw</td></tr>
+        <tr><td>VK_PRESENT_MODE_MAILBOX_KHR</td><td>"Triple buffering" mode: when the queue is full, waiting frames are overwritten with the latest rendered frame instead of blocking the application</td><td>The tutorial's preferred mode for desktop — lowest latency without tearing, but not guaranteed to be available</td></tr>
+        <tr><td>VK_PRESENT_MODE_IMMEDIATE_KHR</td><td>Rendered images are submitted to the screen immediately without waiting for vertical blank; may cause screen tearing</td><td>Mentioned for completeness; not used in the tutorial due to tearing</td></tr>
+        <tr><td>Swap extent</td><td>The resolution of swap chain images in pixels — not screen coordinates</td><td>On high-DPI displays, screen coordinates and pixel counts diverge; must use glfwGetFramebufferSize() + std::clamp against capabilities bounds, not the window size directly</td></tr>
+        <tr><td>minImageCount</td><td>VkSurfaceCapabilitiesKHR field indicating the minimum number of swap chain images the implementation requires</td><td>The tutorial requests minImageCount + 1 to avoid stalling on driver-internal buffer operations; capped at maxImageCount when non-zero</td></tr>
+        <tr><td>VK_SHARING_MODE_EXCLUSIVE</td><td>An image is owned by exactly one queue family at a time; ownership must be explicitly transferred before another family uses it</td><td>Preferred when graphics and present families are the same index — best performance, no transfer overhead</td></tr>
+        <tr><td>VK_SHARING_MODE_CONCURRENT</td><td>An image can be used across multiple queue families simultaneously without explicit ownership transfers</td><td>Used when graphics and present families differ — avoids manual transfer logic at the cost of some performance</td></tr>
+        <tr><td>preTransform</td><td>VkSwapchainCreateInfoKHR field specifying any rotation or flip applied to images before presentation</td><td>Set to currentTransform from capabilities to indicate no additional transform; prevents the OS from applying unwanted rotation</td></tr>
+        <tr><td>compositeAlpha</td><td>Controls whether the swap chain image's alpha channel is used when compositing with other windows in the OS</td><td>Almost always VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR — the window appears fully opaque, alpha in the rendered image is irrelevant to the window system</td></tr>
+        <tr><td>clipped</td><td>VK_TRUE means pixels obscured by other windows do not need to be written; VK_FALSE requires all pixels to be stored even if invisible</td><td>Set to VK_TRUE for performance; only set VK_FALSE if you need to read back the obscured pixel values — rare in practice</td></tr>
+        <tr><td>oldSwapchain</td><td>Reference to the previous swap chain when recreating (e.g. on window resize)</td><td>VK_NULL_HANDLE for initial creation; used in later chapters when the swap chain must be rebuilt without dropping in-flight frames</td></tr>
+        <tr><td>vkGetSwapchainImagesKHR</td><td>Two-call pattern: first call returns the count, second call fills a vector of VkImage handles</td><td>The VkImage handles are used in subsequent chapters to create image views and framebuffers for rendering</td></tr>
+        <tr><td>imageArrayLayers</td><td>Number of layers per image — always 1 for standard rendering; greater than 1 is for stereoscopic 3D</td><td>Hardcoded to 1 in this tutorial; setting it otherwise without stereoscopic support enabled would be invalid</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- KEY CODE -->
+  <div class="section">
+    <div class="sec-label">Key Code</div>
+
+    <div class="code-label">Support query structures and helper functions</div>
+    <div class="code-block">struct SwapChainSupportDetails {
+    VkSurfaceCapabilitiesKHR capabilities;
+    std::vector&lt;VkSurfaceFormatKHR&gt; formats;
+    std::vector&lt;VkPresentModeKHR&gt; presentModes;
+};
+
+SwapChainSupportDetails querySwapChainSupport(VkPhysicalDevice device) {
+    SwapChainSupportDetails details;
+    vkGetPhysicalDeviceSurfaceCapabilitiesKHR(device, surface, &amp;details.capabilities);
+
+    uint32_t formatCount;
+    vkGetPhysicalDeviceSurfaceFormatsKHR(device, surface, &amp;formatCount, nullptr);
+    if (formatCount != 0) {
+        details.formats.resize(formatCount);
+        vkGetPhysicalDeviceSurfaceFormatsKHR(device, surface, &amp;formatCount,
+                                             details.formats.data());
+    }
+
+    uint32_t presentModeCount;
+    vkGetPhysicalDeviceSurfacePresentModesKHR(device, surface, &amp;presentModeCount, nullptr);
+    if (presentModeCount != 0) {
+        details.presentModes.resize(presentModeCount);
+        vkGetPhysicalDeviceSurfacePresentModesKHR(device, surface, &amp;presentModeCount,
+                                                  details.presentModes.data());
+    }
+    return details;
+}</div>
+
+    <div class="code-label" style="margin-top:16px;">Surface format and present mode selection</div>
+    <div class="code-block">VkSurfaceFormatKHR chooseSwapSurfaceFormat(
+        const std::vector&lt;VkSurfaceFormatKHR&gt;&amp; availableFormats) {
+    for (const auto&amp; f : availableFormats) {
+        if (f.format == VK_FORMAT_B8G8R8A8_SRGB
+         &amp;&amp; f.colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR)
+            return f;
+    }
+    return availableFormats[0];  // fallback: first available
+}
+
+VkPresentModeKHR chooseSwapPresentMode(
+        const std::vector&lt;VkPresentModeKHR&gt;&amp; availableModes) {
+    for (const auto&amp; m : availableModes)
+        if (m == VK_PRESENT_MODE_MAILBOX_KHR) return m;
+    return VK_PRESENT_MODE_FIFO_KHR;  // guaranteed available
+}
+
+VkExtent2D chooseSwapExtent(const VkSurfaceCapabilitiesKHR&amp; capabilities) {
+    if (capabilities.currentExtent.width != std::numeric_limits&lt;uint32_t&gt;::max())
+        return capabilities.currentExtent;
+
+    // High-DPI: query pixel size, not screen-coordinate size
+    int width, height;
+    glfwGetFramebufferSize(window, &amp;width, &amp;height);
+    VkExtent2D actual = {
+        static_cast&lt;uint32_t&gt;(width),
+        static_cast&lt;uint32_t&gt;(height)
+    };
+    actual.width  = std::clamp(actual.width,
+        capabilities.minImageExtent.width,  capabilities.maxImageExtent.width);
+    actual.height = std::clamp(actual.height,
+        capabilities.minImageExtent.height, capabilities.maxImageExtent.height);
+    return actual;
+}</div>
+
+    <div class="code-label" style="margin-top:16px;">createSwapChain() — VkSwapchainCreateInfoKHR setup</div>
+    <div class="code-block">void createSwapChain() {
+    SwapChainSupportDetails swapChainSupport = querySwapChainSupport(physicalDevice);
+
+    VkSurfaceFormatKHR surfaceFormat = chooseSwapSurfaceFormat(swapChainSupport.formats);
+    VkPresentModeKHR presentMode     = chooseSwapPresentMode(swapChainSupport.presentModes);
+    VkExtent2D extent                = chooseSwapExtent(swapChainSupport.capabilities);
+
+    uint32_t imageCount = swapChainSupport.capabilities.minImageCount + 1;
+    if (swapChainSupport.capabilities.maxImageCount > 0
+     &amp;&amp; imageCount > swapChainSupport.capabilities.maxImageCount)
+        imageCount = swapChainSupport.capabilities.maxImageCount;
+
+    VkSwapchainCreateInfoKHR createInfo{};
+    createInfo.sType   = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
+    createInfo.surface = surface;
+    createInfo.minImageCount    = imageCount;
+    createInfo.imageFormat      = surfaceFormat.format;
+    createInfo.imageColorSpace  = surfaceFormat.colorSpace;
+    createInfo.imageExtent      = extent;
+    createInfo.imageArrayLayers = 1;
+    createInfo.imageUsage       = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+
+    QueueFamilyIndices indices = findQueueFamilies(physicalDevice);
+    uint32_t queueFamilyIndices[] = {indices.graphicsFamily.value(),
+                                     indices.presentFamily.value()};
+    if (indices.graphicsFamily != indices.presentFamily) {
+        createInfo.imageSharingMode      = VK_SHARING_MODE_CONCURRENT;
+        createInfo.queueFamilyIndexCount = 2;
+        createInfo.pQueueFamilyIndices   = queueFamilyIndices;
+    } else {
+        createInfo.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
+    }
+
+    createInfo.preTransform   = swapChainSupport.capabilities.currentTransform;
+    createInfo.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
+    createInfo.presentMode    = presentMode;
+    createInfo.clipped        = VK_TRUE;
+    createInfo.oldSwapchain   = VK_NULL_HANDLE;
+
+    if (vkCreateSwapchainKHR(device, &amp;createInfo, nullptr, &amp;swapChain) != VK_SUCCESS)
+        throw std::runtime_error("failed to create swap chain!");
+
+    // Retrieve image handles (implementation may create more than minImageCount)
+    vkGetSwapchainImagesKHR(device, swapChain, &amp;imageCount, nullptr);
+    swapChainImages.resize(imageCount);
+    vkGetSwapchainImagesKHR(device, swapChain, &amp;imageCount, swapChainImages.data());
+
+    swapChainImageFormat = surfaceFormat.format;
+    swapChainExtent      = extent;
+}</div>
+  </div>
+
+  <!-- LOGIC FLOW -->
+  <div class="section">
+    <div class="sec-label">Logic Flow</div>
+    <div class="logic-flow">
+      <p>OpenGL and Direct3D 11 provided a default framebuffer — an implicit surface the driver managed on your behalf. Vulkan removes this entirely. The application is responsible for creating, managing, and destroying the infrastructure for displaying rendered images. That infrastructure is the swap chain: a ring of images the renderer writes into while the OS displays the previous one, then swaps them. The VK_KHR_swapchain device extension provides this capability, and it must be explicitly enumerated, verified, and enabled during device creation.</p>
+      <p>Before the swap chain can be created, three categories of information must be queried from the physical device and surface: surface capabilities (image count limits, current size, supported transforms), surface formats (pixel layout and color encoding pairs), and present modes (the timing strategy for handing images to the display). The querySwapChainSupport helper bundles all three into a SwapChainSupportDetails struct. The physical device is also rejected as unsuitable unless it provides at least one format and one present mode — a swap chain that exists but has no usable configuration is worthless.</p>
+      <p>With the support details in hand, three chooser functions select the best available option from each category. Surface format selection prefers VK_FORMAT_B8G8R8A8_SRGB with VK_COLOR_SPACE_SRGB_NONLINEAR_KHR — 8-bit BGRA with sRGB gamma, which gives perceptually accurate colors consistent with how image textures are encoded. Present mode selection prefers VK_PRESENT_MODE_MAILBOX_KHR — the "triple buffering" mode where the latest rendered frame replaces waiting frames in the queue, giving the lowest latency without tearing. If MAILBOX isn't available, FIFO (guaranteed on all implementations) is the safe fallback. Swap extent, the image resolution in pixels, requires care on high-DPI displays: when currentExtent has its sentinel value (0xFFFFFFFF), GLFW's glfwGetFramebufferSize must be called to get real pixel dimensions, which are then clamped to the supported min/max range.</p>
+      <p>Image count is set to minImageCount + 1. The minimum count means the driver may have all images occupied internally when a new frame is requested, causing the application to stall. One extra image reduces that likelihood. The count is then capped at maxImageCount if that field is non-zero — zero has a special meaning of "no maximum," so the cap guard must check for it explicitly.</p>
+      <p>The image sharing mode is the only field that branches on the queue family configuration from the previous chapter. When the graphics and present families share the same index — common on most hardware — EXCLUSIVE mode is correct: one family owns the image and no transfers are needed. When they differ, CONCURRENT mode allows both families to use the image without explicit ownership hand-offs. The tutorial chooses CONCURRENT here for simplicity, noting that EXCLUSIVE with ownership transfers would technically offer better performance.</p>
+      <p>After vkCreateSwapchainKHR, the VkImage handles are retrieved with vkGetSwapchainImagesKHR using the two-call pattern. The implementation is allowed to create more images than minImageCount, so the actual count must be re-queried. These VkImage handles are stored for the next chapters, where image views and framebuffers are built from them. The swap chain is destroyed in cleanup with vkDestroySwapchainKHR before vkDestroyDevice.</p>
+    </div>
+  </div>
+
+  <!-- STEP-BY-STEP -->
+  <div class="section">
+    <div class="sec-label">Step-by-Step — Creating the Swap Chain</div>
+    <ol class="steps-list">
+
+      <li class="step-item">
+        <div class="step-name">Add <code>VK_KHR_SWAPCHAIN_EXTENSION_NAME</code> to the required device extensions list and verify support in <code>checkDeviceExtensionSupport()</code></div>
+        <div class="step-why"><span class="step-why-label">WHY</span>Swap chain support is a device extension, not an instance extension. The physical device must be rejected in isDeviceSuitable() if this extension is absent.</div>
+      </li>
+
+      <li class="step-item">
+        <div class="step-name">Define <code>SwapChainSupportDetails</code> struct with <code>capabilities</code>, <code>formats</code>, and <code>presentModes</code> fields</div>
+        <div class="step-why"><span class="step-why-label">WHY</span>All three categories of support information are needed to fill VkSwapchainCreateInfoKHR. Bundling them in a struct lets querySwapChainSupport return everything in one call.</div>
+      </li>
+
+      <li class="step-item">
+        <div class="step-name">Implement <code>querySwapChainSupport()</code> using <code>vkGetPhysicalDeviceSurfaceCapabilitiesKHR</code>, <code>vkGetPhysicalDeviceSurfaceFormatsKHR</code>, and <code>vkGetPhysicalDeviceSurfacePresentModesKHR</code></div>
+        <div class="step-why"><span class="step-why-label">WHY</span>Each query uses the two-call pattern (nullptr first to get count, then fill vector). Formats and present modes can return zero entries — check before resizing the vector.</div>
+        <div class="step-warn"><span class="step-warn-label">WATCH OUT</span>isDeviceSuitable() must call this and verify that both formats and presentModes are non-empty — a device that supports the extension but returns no usable formats is still inadequate.</div>
+      </li>
+
+      <li class="step-item">
+        <div class="step-name">Implement <code>chooseSwapSurfaceFormat()</code>: prefer <code>VK_FORMAT_B8G8R8A8_SRGB</code> + <code>VK_COLOR_SPACE_SRGB_NONLINEAR_KHR</code>, fallback to <code>availableFormats[0]</code></div>
+        <div class="step-why"><span class="step-why-label">WHY</span>sRGB gamma encoding gives perceptually accurate colors and consistency with image textures, which are also typically sRGB. The fallback ensures the app always gets a valid format.</div>
+      </li>
+
+      <li class="step-item">
+        <div class="step-name">Implement <code>chooseSwapPresentMode()</code>: prefer <code>VK_PRESENT_MODE_MAILBOX_KHR</code>, fallback to <code>VK_PRESENT_MODE_FIFO_KHR</code></div>
+        <div class="step-why"><span class="step-why-label">WHY</span>MAILBOX gives the lowest latency without tearing on desktop. FIFO is the only mode guaranteed to exist on all implementations, making it the mandatory fallback.</div>
+      </li>
+
+      <li class="step-item">
+        <div class="step-name">Implement <code>chooseSwapExtent()</code>: return <code>currentExtent</code> when its width is not <code>UINT32_MAX</code>; otherwise call <code>glfwGetFramebufferSize()</code> and clamp to <code>[minImageExtent, maxImageExtent]</code></div>
+        <div class="step-why"><span class="step-why-label">WHY</span>When currentExtent.width == 0xFFFFFFFF, the surface is telling the application to choose the extent. Screen-coordinate window dimensions may not match pixel dimensions on high-DPI displays, so framebuffer size must be used.</div>
+        <div class="step-warn"><span class="step-warn-label">WATCH OUT</span>Never pass the GLFW window width/height directly as the extent — use glfwGetFramebufferSize, which returns pixels, not screen coordinates.</div>
+      </li>
+
+      <li class="step-item">
+        <div class="step-name">Set <code>imageCount</code> to <code>minImageCount + 1</code>, then cap it: <code>if (maxImageCount > 0 &amp;&amp; imageCount > maxImageCount) imageCount = maxImageCount</code></div>
+        <div class="step-why"><span class="step-why-label">WHY</span>One extra image reduces driver stalls. The cap guard must check maxImageCount != 0 first, because 0 means unlimited — naively capping to 0 would set imageCount to 0, which is invalid.</div>
+      </li>
+
+      <li class="step-item">
+        <div class="step-name">Fill <code>VkSwapchainCreateInfoKHR</code> with the chosen format, color space, extent, image count, <code>imageArrayLayers = 1</code>, and <code>imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT</code></div>
+        <div class="step-why"><span class="step-why-label">WHY</span>imageArrayLayers is 1 for all non-stereoscopic rendering. COLOR_ATTACHMENT_BIT allows the images to be used as render targets; later chapters that do post-processing would also add TRANSFER_DST_BIT.</div>
+      </li>
+
+      <li class="step-item">
+        <div class="step-name">Set <code>imageSharingMode</code>: <code>EXCLUSIVE</code> when <code>graphicsFamily == presentFamily</code>; <code>CONCURRENT</code> with <code>queueFamilyIndexCount = 2</code> and <code>pQueueFamilyIndices</code> pointing to both indices when they differ</div>
+        <div class="step-why"><span class="step-why-label">WHY</span>EXCLUSIVE requires explicit ownership transfer commands to share an image across families — faster but more complex. CONCURRENT avoids the transfer commands at a small performance cost; chosen here for simplicity.</div>
+      </li>
+
+      <li class="step-item">
+        <div class="step-name">Set <code>preTransform = capabilities.currentTransform</code>, <code>compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR</code>, <code>clipped = VK_TRUE</code>, <code>oldSwapchain = VK_NULL_HANDLE</code></div>
+        <div class="step-why"><span class="step-why-label">WHY</span>currentTransform means no additional rotation/flip. OPAQUE ignores image alpha for OS compositing. clipped = TRUE gives a performance win for obscured pixels. oldSwapchain is only non-null during recreation.</div>
+      </li>
+
+      <li class="step-item">
+        <div class="step-name">Call <code>vkCreateSwapchainKHR(device, &amp;createInfo, nullptr, &amp;swapChain)</code>, then retrieve image handles with the two-call pattern of <code>vkGetSwapchainImagesKHR</code></div>
+        <div class="step-why"><span class="step-why-label">WHY</span>The implementation may allocate more images than minImageCount — the actual count must be re-queried after creation. The VkImage handles are stored for use in image view and framebuffer creation in subsequent chapters.</div>
+        <div class="step-warn"><span class="step-warn-label">WATCH OUT</span>Store swapChainImageFormat and swapChainExtent as class members — they are referenced throughout all subsequent rendering setup code.</div>
+      </li>
+
+      <li class="step-item">
+        <div class="step-name">Add <code>vkDestroySwapchainKHR(device, swapChain, nullptr)</code> to <code>cleanup()</code> before <code>vkDestroyDevice</code></div>
+        <div class="step-why"><span class="step-why-label">WHY</span>The swap chain is a device-level object — it must be destroyed before the device. The VkImage handles retrieved from the swap chain are owned by the swap chain itself and are implicitly freed with it; do not call vkDestroyImage on them.</div>
+      </li>
+
+    </ol>
+  </div>
+
+  <!-- QUIZ -->
+  <div class="section">
+    <div class="sec-label">Quiz — 12 Questions</div>
+    <div class="quiz-cards">
+
+      <div class="quiz-card" data-answer="B">
+        <div class="q-num">Q1</div>
+        <div class="q-type">terminology</div>
+        <div class="q-text"><code>VK_KHR_swapchain</code> — is this an instance extension or a device extension, and where must it be verified?</div>
+        <div class="q-options">
+          <div class="q-option" data-option="A" onclick="selectOption(this)"><span class="q-letter">A</span>Instance extension — verified when creating the VkInstance alongside validation layer extensions</div>
+          <div class="q-option" data-option="B" onclick="selectOption(this)"><span class="q-letter">B</span>Device extension — verified during physical device selection in isDeviceSuitable() via vkEnumerateDeviceExtensionProperties</div>
+          <div class="q-option" data-option="C" onclick="selectOption(this)"><span class="q-letter">C</span>Device extension — verified after logical device creation by checking vkGetDeviceProcAddr</div>
+          <div class="q-option" data-option="D" onclick="selectOption(this)"><span class="q-letter">D</span>Instance extension — returned automatically by glfwGetRequiredInstanceExtensions alongside VK_KHR_surface</div>
+        </div>
+        <button class="check-btn" onclick="checkAnswer(this.closest('.quiz-card'))" disabled>Check Answer</button>
+        <div class="q-feedback"><div class="fb-verdict"><span class="fb-icon"></span><span class="fb-text"></span></div><div class="fb-explanation"></div></div>
+      </div>
+
+      <div class="quiz-card" data-answer="C">
+        <div class="q-num">Q2</div>
+        <div class="q-type">conceptual</div>
+        <div class="q-text">What is the fundamental reason Vulkan requires explicit swap chain creation that APIs like OpenGL do not?</div>
+        <div class="q-options">
+          <div class="q-option" data-option="A" onclick="selectOption(this)"><span class="q-letter">A</span>Vulkan targets embedded and mobile platforms that do not have a display subsystem, so the swap chain is optional</div>
+          <div class="q-option" data-option="B" onclick="selectOption(this)"><span class="q-letter">B</span>Vulkan requires the swap chain to be created before the physical device is selected, so it cannot be implicit</div>
+          <div class="q-option" data-option="C" onclick="selectOption(this)"><span class="q-letter">C</span>Vulkan has no concept of a default framebuffer — the application must explicitly own and manage the infrastructure for presenting rendered images to the screen</div>
+          <div class="q-option" data-option="D" onclick="selectOption(this)"><span class="q-letter">D</span>Vulkan drivers cannot determine the window dimensions automatically on high-DPI displays, so manual swap chain creation is required</div>
+        </div>
+        <button class="check-btn" onclick="checkAnswer(this.closest('.quiz-card'))" disabled>Check Answer</button>
+        <div class="q-feedback"><div class="fb-verdict"><span class="fb-icon"></span><span class="fb-text"></span></div><div class="fb-explanation"></div></div>
+      </div>
+
+      <div class="quiz-card" data-answer="A">
+        <div class="q-num">Q3</div>
+        <div class="q-type">terminology</div>
+        <div class="q-text">What three categories of swap chain support information does <code>querySwapChainSupport()</code> collect, and from which Vulkan queries?</div>
+        <div class="q-options">
+          <div class="q-option" data-option="A" onclick="selectOption(this)"><span class="q-letter">A</span>Surface capabilities (vkGetPhysicalDeviceSurfaceCapabilitiesKHR), surface formats (vkGetPhysicalDeviceSurfaceFormatsKHR), and present modes (vkGetPhysicalDeviceSurfacePresentModesKHR)</div>
+          <div class="q-option" data-option="B" onclick="selectOption(this)"><span class="q-letter">B</span>Device properties (vkGetPhysicalDeviceProperties), surface formats (vkGetPhysicalDeviceSurfaceFormatsKHR), and memory heaps (vkGetPhysicalDeviceMemoryProperties)</div>
+          <div class="q-option" data-option="C" onclick="selectOption(this)"><span class="q-letter">C</span>Queue families (vkGetPhysicalDeviceQueueFamilyProperties), surface capabilities, and device features</div>
+          <div class="q-option" data-option="D" onclick="selectOption(this)"><span class="q-letter">D</span>Instance extensions, device extensions (vkEnumerateDeviceExtensionProperties), and surface formats</div>
+        </div>
+        <button class="check-btn" onclick="checkAnswer(this.closest('.quiz-card'))" disabled>Check Answer</button>
+        <div class="q-feedback"><div class="fb-verdict"><span class="fb-icon"></span><span class="fb-text"></span></div><div class="fb-explanation"></div></div>
+      </div>
+
+      <div class="quiz-card" data-answer="D">
+        <div class="q-num">Q4</div>
+        <div class="q-type">conceptual</div>
+        <div class="q-text">Why does the tutorial prefer <code>VK_FORMAT_B8G8R8A8_SRGB</code> with <code>VK_COLOR_SPACE_SRGB_NONLINEAR_KHR</code> as the surface format?</div>
+        <div class="q-options">
+          <div class="q-option" data-option="A" onclick="selectOption(this)"><span class="q-letter">A</span>It is the only format guaranteed to be available on all Vulkan-capable hardware</div>
+          <div class="q-option" data-option="B" onclick="selectOption(this)"><span class="q-letter">B</span>It requires the least GPU memory bandwidth per pixel compared to other formats</div>
+          <div class="q-option" data-option="C" onclick="selectOption(this)"><span class="q-letter">C</span>The BGRA byte order is required when the presentation engine is on a different CPU architecture</div>
+          <div class="q-option" data-option="D" onclick="selectOption(this)"><span class="q-letter">D</span>sRGB results in more accurate perceived colors and is the standard encoding used for image textures, ensuring consistency between textures and the framebuffer</div>
+        </div>
+        <button class="check-btn" onclick="checkAnswer(this.closest('.quiz-card'))" disabled>Check Answer</button>
+        <div class="q-feedback"><div class="fb-verdict"><span class="fb-icon"></span><span class="fb-text"></span></div><div class="fb-explanation"></div></div>
+      </div>
+
+      <div class="quiz-card" data-answer="C">
+        <div class="q-num">Q5</div>
+        <div class="q-type">terminology</div>
+        <div class="q-text">What is <code>VK_PRESENT_MODE_MAILBOX_KHR</code>, and why is it preferred over <code>VK_PRESENT_MODE_IMMEDIATE_KHR</code> for desktop rendering?</div>
+        <div class="q-options">
+          <div class="q-option" data-option="A" onclick="selectOption(this)"><span class="q-letter">A</span>MAILBOX queues frames and waits for vertical blank like FIFO, but with a larger queue depth — preferred because it reduces CPU idle time</div>
+          <div class="q-option" data-option="B" onclick="selectOption(this)"><span class="q-letter">B</span>MAILBOX submits frames immediately to the screen without any queue — preferred because it has the lowest latency of all modes</div>
+          <div class="q-option" data-option="C" onclick="selectOption(this)"><span class="q-letter">C</span>MAILBOX replaces queued frames with the latest rendered frame at vsync — low latency without screen tearing, unlike IMMEDIATE which transfers immediately and can tear</div>
+          <div class="q-option" data-option="D" onclick="selectOption(this)"><span class="q-letter">D</span>MAILBOX is identical to FIFO but guaranteed available on all implementations, making it the safe default</div>
+        </div>
+        <button class="check-btn" onclick="checkAnswer(this.closest('.quiz-card'))" disabled>Check Answer</button>
+        <div class="q-feedback"><div class="fb-verdict"><span class="fb-icon"></span><span class="fb-text"></span></div><div class="fb-explanation"></div></div>
+      </div>
+
+      <div class="quiz-card" data-answer="B">
+        <div class="q-num">Q6</div>
+        <div class="q-type">gotcha</div>
+        <div class="q-text">When <code>currentExtent.width</code> equals <code>UINT32_MAX</code> (0xFFFFFFFF), how must the swap extent be determined, and why can't the GLFW window size be used directly?</div>
+        <div class="q-options">
+          <div class="q-option" data-option="A" onclick="selectOption(this)"><span class="q-letter">A</span>Use the window's screen-coordinate size from glfwGetWindowSize() — the sentinel value means the surface has no preferred size and any value is acceptable</div>
+          <div class="q-option" data-option="B" onclick="selectOption(this)"><span class="q-letter">B</span>Call glfwGetFramebufferSize() to get pixel dimensions, then clamp to [minImageExtent, maxImageExtent] — screen coordinates from GLFW differ from pixel counts on high-DPI displays</div>
+          <div class="q-option" data-option="C" onclick="selectOption(this)"><span class="q-letter">C</span>Use maxImageExtent directly — the sentinel means the surface supports the maximum possible size</div>
+          <div class="q-option" data-option="D" onclick="selectOption(this)"><span class="q-letter">D</span>The value UINT32_MAX means the physical device has no size constraints; pass 0 to let the driver choose automatically</div>
+        </div>
+        <button class="check-btn" onclick="checkAnswer(this.closest('.quiz-card'))" disabled>Check Answer</button>
+        <div class="q-feedback"><div class="fb-verdict"><span class="fb-icon"></span><span class="fb-text"></span></div><div class="fb-explanation"></div></div>
+      </div>
+
+      <div class="quiz-card" data-answer="D">
+        <div class="q-num">Q7</div>
+        <div class="q-type">gotcha</div>
+        <div class="q-text">The cap guard for <code>imageCount</code> is written as <code>if (maxImageCount > 0 &amp;&amp; imageCount > maxImageCount)</code>. Why is the <code>maxImageCount > 0</code> check necessary?</div>
+        <div class="q-options">
+          <div class="q-option" data-option="A" onclick="selectOption(this)"><span class="q-letter">A</span>vkGetPhysicalDeviceSurfaceCapabilitiesKHR can return an uninitialized maxImageCount field that defaults to 0; the guard prevents reading garbage data</div>
+          <div class="q-option" data-option="B" onclick="selectOption(this)"><span class="q-letter">B</span>A maxImageCount of 0 means the minimum of 1 image is supported; capping to it without the guard would set imageCount to 1</div>
+          <div class="q-option" data-option="C" onclick="selectOption(this)"><span class="q-letter">C</span>The VkSwapchainCreateInfoKHR struct requires minImageCount to be non-zero; the guard prevents accidentally passing 0</div>
+          <div class="q-option" data-option="D" onclick="selectOption(this)"><span class="q-letter">D</span>A maxImageCount of 0 means there is no maximum — unlimited images are supported; without the guard, imageCount would be wrongly capped to 0, which is invalid</div>
+        </div>
+        <button class="check-btn" onclick="checkAnswer(this.closest('.quiz-card'))" disabled>Check Answer</button>
+        <div class="q-feedback"><div class="fb-verdict"><span class="fb-icon"></span><span class="fb-text"></span></div><div class="fb-explanation"></div></div>
+      </div>
+
+      <div class="quiz-card" data-answer="A">
+        <div class="q-num">Q8</div>
+        <div class="q-type">application</div>
+        <div class="q-text">When should <code>VK_SHARING_MODE_CONCURRENT</code> be set on <code>imageSharingMode</code>, and what additional fields must be set alongside it?</div>
+        <div class="q-options">
+          <div class="q-option" data-option="A" onclick="selectOption(this)"><span class="q-letter">A</span>When graphics and present queue families have different indices — must also set queueFamilyIndexCount = 2 and pQueueFamilyIndices pointing to both indices</div>
+          <div class="q-option" data-option="B" onclick="selectOption(this)"><span class="q-letter">B</span>Always — CONCURRENT is always more correct; EXCLUSIVE is only for single-queue-family devices</div>
+          <div class="q-option" data-option="C" onclick="selectOption(this)"><span class="q-letter">C</span>When the swap chain will be recreated (oldSwapchain is non-null) to avoid ownership transfer during recreation</div>
+          <div class="q-option" data-option="D" onclick="selectOption(this)"><span class="q-letter">D</span>When graphics and present families share the same index — EXCLUSIVE requires separate families</div>
+        </div>
+        <button class="check-btn" onclick="checkAnswer(this.closest('.quiz-card'))" disabled>Check Answer</button>
+        <div class="q-feedback"><div class="fb-verdict"><span class="fb-icon"></span><span class="fb-text"></span></div><div class="fb-explanation"></div></div>
+      </div>
+
+      <div class="quiz-card" data-answer="C">
+        <div class="q-num">Q9</div>
+        <div class="q-type">terminology</div>
+        <div class="q-text">What does setting <code>compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR</code> mean?</div>
+        <div class="q-options">
+          <div class="q-option" data-option="A" onclick="selectOption(this)"><span class="q-letter">A</span>All pixels in the swap chain images have their alpha channel forced to 1.0 before rendering begins</div>
+          <div class="q-option" data-option="B" onclick="selectOption(this)"><span class="q-letter">B</span>The alpha channel of rendered pixels is preserved and blended with the desktop background at presentation time</div>
+          <div class="q-option" data-option="C" onclick="selectOption(this)"><span class="q-letter">C</span>The swap chain image's alpha channel is ignored by the OS window compositor — the application window appears fully opaque regardless of image alpha values</div>
+          <div class="q-option" data-option="D" onclick="selectOption(this)"><span class="q-letter">D</span>The alpha channel is used for depth testing in the swap chain before images are presented</div>
+        </div>
+        <button class="check-btn" onclick="checkAnswer(this.closest('.quiz-card'))" disabled>Check Answer</button>
+        <div class="q-feedback"><div class="fb-verdict"><span class="fb-icon"></span><span class="fb-text"></span></div><div class="fb-explanation"></div></div>
+      </div>
+
+      <div class="quiz-card" data-answer="B">
+        <div class="q-num">Q10</div>
+        <div class="q-type">conceptual</div>
+        <div class="q-text">Why is <code>clipped = VK_TRUE</code> recommended, and in what scenario would <code>VK_FALSE</code> be required?</div>
+        <div class="q-options">
+          <div class="q-option" data-option="A" onclick="selectOption(this)"><span class="q-letter">B</span>VK_TRUE avoids rendering to pixels outside the window boundary; VK_FALSE is needed when the swap chain is larger than the window</div>
+          <div class="q-option" data-option="B" onclick="selectOption(this)"><span class="q-letter">B</span>VK_TRUE skips writing pixels obscured by other windows, improving performance; VK_FALSE is needed only if the application must read back those obscured pixel values — practically never</div>
+          <div class="q-option" data-option="C" onclick="selectOption(this)"><span class="q-letter">C</span>VK_TRUE enables early-z culling in the swap chain; VK_FALSE is required for transparent windows</div>
+          <div class="q-option" data-option="D" onclick="selectOption(this)"><span class="q-letter">D</span>VK_TRUE restricts rendering to the visible portion of the image extent; VK_FALSE is used when the window is minimized</div>
+        </div>
+        <button class="check-btn" onclick="checkAnswer(this.closest('.quiz-card'))" disabled>Check Answer</button>
+        <div class="q-feedback"><div class="fb-verdict"><span class="fb-icon"></span><span class="fb-text"></span></div><div class="fb-explanation"></div></div>
+      </div>
+
+      <div class="quiz-card" data-answer="D">
+        <div class="q-num">Q11</div>
+        <div class="q-type">sequence</div>
+        <div class="q-text">Which is the correct order of operations inside <code>createSwapChain()</code>?</div>
+        <div class="q-options">
+          <div class="q-option" data-option="A" onclick="selectOption(this)"><span class="q-letter">A</span>vkCreateSwapchainKHR → query support details → choose format/mode/extent → vkGetSwapchainImagesKHR</div>
+          <div class="q-option" data-option="B" onclick="selectOption(this)"><span class="q-letter">B</span>Choose format/mode/extent → query support details → fill VkSwapchainCreateInfoKHR → vkCreateSwapchainKHR → vkGetSwapchainImagesKHR</div>
+          <div class="q-option" data-option="C" onclick="selectOption(this)"><span class="q-letter">C</span>Query support details → vkCreateSwapchainKHR → choose format/mode/extent → fill VkSwapchainCreateInfoKHR → vkGetSwapchainImagesKHR</div>
+          <div class="q-option" data-option="D" onclick="selectOption(this)"><span class="q-letter">D</span>Query support details → choose format/mode/extent → fill VkSwapchainCreateInfoKHR → vkCreateSwapchainKHR → vkGetSwapchainImagesKHR</div>
+        </div>
+        <button class="check-btn" onclick="checkAnswer(this.closest('.quiz-card'))" disabled>Check Answer</button>
+        <div class="q-feedback"><div class="fb-verdict"><span class="fb-icon"></span><span class="fb-text"></span></div><div class="fb-explanation"></div></div>
+      </div>
+
+      <div class="quiz-card" data-answer="A">
+        <div class="q-num">Q12</div>
+        <div class="q-type">gotcha</div>
+        <div class="q-text">After <code>vkCreateSwapchainKHR</code>, why must <code>vkGetSwapchainImagesKHR</code> re-query the image count rather than reusing the <code>imageCount</code> value passed in <code>VkSwapchainCreateInfoKHR</code>?</div>
+        <div class="q-options">
+          <div class="q-option" data-option="A" onclick="selectOption(this)"><span class="q-letter">A</span>The implementation is allowed to create more images than minImageCount — the actual count may differ from what was requested, so it must be re-queried to correctly size the image vector</div>
+          <div class="q-option" data-option="B" onclick="selectOption(this)"><span class="q-letter">B</span>vkCreateSwapchainKHR resets imageCount to 0 on success; any non-zero value after the call indicates an error</div>
+          <div class="q-option" data-option="C" onclick="selectOption(this)"><span class="q-letter">C</span>The image count can only be known after the swap chain is created because it depends on GPU scheduling decisions made at creation time</div>
+          <div class="q-option" data-option="D" onclick="selectOption(this)"><span class="q-letter">D</span>VkImage handles are created separately from the swap chain; re-querying is required to trigger their allocation in the driver</div>
+        </div>
+        <button class="check-btn" onclick="checkAnswer(this.closest('.quiz-card'))" disabled>Check Answer</button>
+        <div class="q-feedback"><div class="fb-verdict"><span class="fb-icon"></span><span class="fb-text"></span></div><div class="fb-explanation"></div></div>
+      </div>
+
+    </div>
+
+    <div class="score-summary" id="score-summary">
+      <div class="score-summary-num" id="summary-num"></div>
+      <div class="score-summary-msg" id="summary-msg"></div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  const TOTAL = 12;
+  let answeredCount = 0;
+  let correctCount = 0;
+
+  const explanations = {
+    1: {
+      correct: 'B',
+      text: 'VK_KHR_swapchain is a device extension, not an instance extension. It is checked during physical device selection by calling vkEnumerateDeviceExtensionProperties for each candidate device. If missing, that device is rejected in isDeviceSuitable(). Contrast with VK_KHR_surface, which is an instance extension returned by glfwGetRequiredInstanceExtensions.'
+    },
+    2: {
+      correct: 'C',
+      text: 'The tutorial states: "Vulkan does not have the concept of a \'default framebuffer\', hence it requires an infrastructure that will own the buffers we will render to before we visualize them on the screen." Every other API hides this behind a default context; Vulkan externalizes it completely as VkSwapchainKHR.'
+    },
+    3: {
+      correct: 'A',
+      text: 'querySwapChainSupport() makes three separate API calls: vkGetPhysicalDeviceSurfaceCapabilitiesKHR for VkSurfaceCapabilitiesKHR (min/max image counts, current extent, supported transforms), vkGetPhysicalDeviceSurfaceFormatsKHR for available VkSurfaceFormatKHR pairs, and vkGetPhysicalDeviceSurfacePresentModesKHR for available VkPresentModeKHR values. All three use the two-call pattern.'
+    },
+    4: {
+      correct: 'D',
+      text: 'The tutorial says sRGB "results in more accurate perceived colors" and is "the standard color space for images, like the textures we\'ll use later on." Choosing a different color space would cause a mismatch between the framebuffer encoding and texture encoding. VK_FORMAT_B8G8R8A8_SRGB is widely supported but not guaranteed on all hardware — the code falls back to availableFormats[0] if it isn\'t found.'
+    },
+    5: {
+      correct: 'C',
+      text: 'MAILBOX: when the presentation queue is full and a new frame is submitted, the frame currently waiting in the queue is replaced by the new one. At the next vsync, the latest frame (not a stale one) is shown. This gives low latency without screen tearing. IMMEDIATE transfers frames to the screen without waiting for vertical blank, which can cause tearing where two frames are visible simultaneously on the display.'
+    },
+    6: {
+      correct: 'B',
+      text: 'When currentExtent.width == UINT32_MAX (std::numeric_limits<uint32_t>::max()), the surface is signaling that the window manager allows the swap chain to choose its own extent. The correct pixel size is obtained from glfwGetFramebufferSize(), NOT glfwGetWindowSize(). On macOS Retina and Windows high-DPI displays, screen coordinates may be 2x or more smaller than the actual pixel count. The result is then clamped to [minImageExtent, maxImageExtent] to stay within hardware limits.'
+    },
+    7: {
+      correct: 'D',
+      text: 'In VkSurfaceCapabilitiesKHR, maxImageCount == 0 means the implementation supports any number of images — there is no upper bound. Without the > 0 guard, if maxImageCount is 0 and imageCount is, say, 3, the condition `3 > 0` would be true and imageCount would be capped to 0, which is an invalid value for VkSwapchainCreateInfoKHR.minImageCount. The guard correctly treats 0 as "unlimited."'
+    },
+    8: {
+      correct: 'A',
+      text: 'CONCURRENT is used when graphicsFamily != presentFamily. Two additional fields must be set: queueFamilyIndexCount = 2 (the number of families) and pQueueFamilyIndices pointing to a uint32_t array containing both family indices. CONCURRENT allows images to be accessed from both families without explicit ownership transfer commands, which simplifies the rendering code at a modest performance cost.'
+    },
+    9: {
+      correct: 'C',
+      text: 'compositeAlpha controls how the swap chain image\'s alpha channel interacts with the OS window compositing system (e.g., the Windows desktop compositor or X11 composite manager). VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR tells the compositor to ignore the image alpha entirely — the window is treated as opaque. Other modes like VK_COMPOSITE_ALPHA_PRE_MULTIPLIED_BIT_KHR would blend the window with what\'s behind it based on alpha values.'
+    },
+    10: {
+      correct: 'B',
+      text: 'clipped = VK_TRUE tells Vulkan that pixels obscured by other windows (or off-screen) do not need to be stored. This is a performance optimization — the driver can skip writing those pixels entirely. VK_FALSE would be required only if the application needed to read those pixel values back later (e.g., for a screenshot that captures the occluded region). The tutorial notes this "almost never" happens in practice.'
+    },
+    11: {
+      correct: 'D',
+      text: 'The correct order is: (1) querySwapChainSupport to get capabilities/formats/modes, (2) run the three chooser functions (chooseSwapSurfaceFormat, chooseSwapPresentMode, chooseSwapExtent), (3) compute imageCount, (4) populate VkSwapchainCreateInfoKHR with all chosen values, (5) call vkCreateSwapchainKHR, (6) call vkGetSwapchainImagesKHR twice to retrieve image handles. Each step depends on the previous.'
+    },
+    12: {
+      correct: 'A',
+      text: 'The Vulkan spec allows the implementation to create more swap chain images than the requested minimum. After vkCreateSwapchainKHR, the actual image count may be larger than what was passed in minImageCount. If the code resizes swapChainImages to the pre-creation imageCount value, it may allocate too few slots and the second vkGetSwapchainImagesKHR call will not fill all available handles. Re-querying ensures the vector is sized correctly for the actual allocation.'
+    }
+  };
+
+  function getCardIndex(card) {
+    return parseInt(card.querySelector('.q-num').textContent.replace('Q', ''));
+  }
+
+  function selectOption(optionEl) {
+    const card = optionEl.closest('.quiz-card');
+    if (card.dataset.answered) return;
+    card.querySelectorAll('.q-option').forEach(o => o.classList.remove('selected'));
+    optionEl.classList.add('selected');
+    card.querySelector('.check-btn').disabled = false;
+  }
+
+  function checkAnswer(card) {
+    if (card.dataset.answered) return;
+    card.dataset.answered = 'true';
+
+    const correct = card.dataset.answer;
+    const selected = card.querySelector('.q-option.selected');
+    const chosen = selected ? selected.dataset.option : null;
+    const idx = getCardIndex(card);
+    const info = explanations[idx];
+
+    const isCorrect = chosen === correct;
+    if (isCorrect) correctCount++;
+    answeredCount++;
+
+    card.querySelectorAll('.q-option').forEach(o => {
+      o.classList.add('locked');
+      if (o.dataset.option === correct) o.classList.add('correct');
+      else if (o.dataset.option === chosen && !isCorrect) o.classList.add('wrong');
+    });
+
+    const feedback = card.querySelector('.q-feedback');
+    const icon = feedback.querySelector('.fb-icon');
+    const verdictText = feedback.querySelector('.fb-text');
+    const explanation = feedback.querySelector('.fb-explanation');
+
+    if (isCorrect) {
+      feedback.classList.add('correct');
+      icon.textContent = '✓';
+      verdictText.textContent = 'Correct';
+    } else {
+      feedback.classList.add('wrong');
+      icon.textContent = '✗';
+      verdictText.textContent = `Incorrect — correct answer is ${correct}`;
+    }
+    explanation.textContent = info.text;
+
+    const btn = card.querySelector('.check-btn');
+    btn.textContent = isCorrect ? '✓ Correct' : '✗ Answered';
+    btn.disabled = true;
+
+    card.classList.add(isCorrect ? 'answered-correct' : 'answered-wrong');
+    updateScore();
+  }
+
+  function updateScore() {
+    const tally = document.getElementById('score-tally');
+    const correctSpan = document.getElementById('score-correct');
+    tally.childNodes[0].textContent = `${answeredCount} / ${TOTAL} answered · `;
+    correctSpan.textContent = correctCount;
+
+    if (answeredCount === TOTAL) {
+      const summary = document.getElementById('score-summary');
+      const pct = correctCount / TOTAL;
+      let msg;
+      if (pct >= 0.9) msg = 'Excellent — swap chain configuration and all its gotchas are solid.';
+      else if (pct >= 0.7) msg = 'Good — revisit the questions you missed before image views.';
+      else msg = 'Review recommended — focus on the maxImageCount = 0 gotcha, sharing modes, and the high-DPI extent calculation.';
+      document.getElementById('summary-num').textContent = `${correctCount} / ${TOTAL}`;
+      document.getElementById('summary-msg').textContent = msg;
+      summary.classList.add('visible');
+    }
+  }
+</script>
+</body>
+</html>
