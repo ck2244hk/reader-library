@@ -100,6 +100,16 @@
     "excerpt": "The seven pipeline stages in order, which are fixed-function vs programmable, why the geometry shader is avoided in practice, why Vulkan pipelines are immutable, and when the fragment shader can be disabled."
   },
   {
+    "id": "vulkan-fixed-functions",
+    "title": "Vulkan Tutorial — Fixed Functions",
+    "url": "https://vulkan-tutorial.com/en/Drawing_a_triangle/Graphics_pipeline_basics/Fixed_functions",
+    "date": "2026-06-07",
+    "tags": ["graphics", "vulkan", "gpu", "cpp"],
+    "questionCount": 10,
+    "file": "sessions/vulkan-fixed-functions-learning.html",
+    "excerpt": "Every fixed-function pipeline struct: dynamic state, vertex input, input assembly, viewport/scissor, rasterizer gotchas (GPU feature requirements), MSAA efficiency, color blend vs logic op exclusivity, alpha blending formula, and why VkPipelineLayout is mandatory even when empty."
+  },
+  {
     "id": "vulkan-shader-modules",
     "title": "Vulkan Tutorial — Shader Modules",
     "url": "https://vulkan-tutorial.com/Drawing_a_triangle/Graphics_pipeline_basics/Shader_modules",

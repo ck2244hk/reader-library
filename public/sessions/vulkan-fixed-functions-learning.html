@@ -1,0 +1,564 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Vulkan Tutorial — Fixed Functions | Learning Session</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=IBM+Plex+Mono:wght@400;500&family=Syne:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #0d0f14; --bg-surface: #10131a; --bg-card: #12151d; --bg-row-alt: #0f1118;
+    --border: #1e2333; --gold: #c9a84c; --gold-dim: #7a6230; --gold-glow: rgba(201,168,76,0.1);
+    --blue: #7eb8d4; --green: #5db88a; --green-dim: rgba(93,184,138,0.15); --green-border: rgba(93,184,138,0.35);
+    --red: #d46a6a; --red-dim: rgba(212,106,106,0.15); --red-border: rgba(212,106,106,0.35);
+    --amber: #d4965a;
+    --text-1: #e8e4dc; --text-2: #8a8c99; --text-3: #4a4e62;
+    --tag-bg: #1a1e2c; --tag-border: #252a3a;
+  }
+  html { background: var(--bg); color: var(--text-1); font-family: 'Syne', sans-serif; -webkit-font-smoothing: antialiased; }
+  body { min-height: 100vh; padding-bottom: 80px; }
+  ::-webkit-scrollbar { width: 4px; }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+
+  .hdr { position: sticky; top: 0; z-index: 10; background: var(--bg-surface); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 12px 24px; gap: 16px; flex-wrap: wrap; }
+  .hdr-left { display: flex; align-items: center; gap: 10px; }
+  .hdr-gem { color: var(--gold); font-size: 14px; }
+  .hdr-title { font-family: 'DM Serif Display', serif; font-size: 16px; color: var(--text-1); }
+  .hdr-right { display: flex; align-items: center; gap: 12px; }
+  .score-tally { font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: var(--text-3); white-space: nowrap; }
+  .score-tally span { color: var(--gold); }
+  .hdr-url { font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: var(--text-3); background: var(--tag-bg); border: 1px solid var(--tag-border); border-radius: 5px; padding: 4px 10px; text-decoration: none; white-space: nowrap; transition: color 0.2s, border-color 0.2s; }
+  .hdr-url:hover { color: var(--gold); border-color: var(--gold-dim); }
+
+  .content { max-width: 800px; margin: 0 auto; padding: 40px 24px; display: flex; flex-direction: column; gap: 40px; }
+  .framing { font-family: 'DM Serif Display', serif; font-size: 16px; color: var(--gold); border-left: 2px solid var(--gold); padding-left: 14px; line-height: 1.55; font-style: italic; }
+  .section { display: flex; flex-direction: column; gap: 14px; }
+  .sec-label { font-family: 'IBM Plex Mono', monospace; font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--text-3); }
+
+  .term-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .term-table th { font-family: 'IBM Plex Mono', monospace; font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-3); text-align: left; padding: 8px 12px; background: var(--bg-surface); border-bottom: 1px solid var(--border); }
+  .term-table td { padding: 9px 12px; border-bottom: 1px solid var(--border); vertical-align: top; color: var(--text-2); line-height: 1.5; }
+  .term-table tr:nth-child(even) td { background: var(--bg-row-alt); }
+  .term-table td:first-child { font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: var(--blue); white-space: nowrap; }
+
+  .code-block { background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px; padding: 16px 18px; font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: var(--text-2); line-height: 1.65; overflow-x: auto; white-space: pre; }
+  .code-label { font-family: 'IBM Plex Mono', monospace; font-size: 9px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--text-3); margin-bottom: 8px; }
+
+  .logic-flow { font-size: 14px; line-height: 1.8; color: var(--text-2); display: flex; flex-direction: column; gap: 14px; }
+
+  .struct-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  @media (max-width: 580px) { .struct-grid { grid-template-columns: 1fr; } }
+  .struct-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 7px; padding: 12px 14px; }
+  .struct-name { font-family: 'IBM Plex Mono', monospace; font-size: 10.5px; color: var(--blue); margin-bottom: 6px; }
+  .struct-desc { font-size: 12.5px; color: var(--text-2); line-height: 1.5; }
+  .struct-fields { margin-top: 8px; display: flex; flex-direction: column; gap: 4px; }
+  .struct-field { font-family: 'IBM Plex Mono', monospace; font-size: 10px; color: var(--text-3); padding: 3px 7px; background: var(--tag-bg); border-radius: 3px; line-height: 1.4; }
+  .struct-field em { color: var(--amber); font-style: normal; }
+
+  .quiz-cards { display: flex; flex-direction: column; gap: 14px; }
+  .quiz-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px; padding: 18px 20px; }
+  .quiz-card.answered-correct { border-left: 3px solid var(--green); }
+  .quiz-card.answered-wrong { border-left: 3px solid var(--red); }
+  .q-num { font-family: 'IBM Plex Mono', monospace; font-size: 10px; color: var(--gold); margin-bottom: 3px; }
+  .q-type { font-family: 'IBM Plex Mono', monospace; font-size: 9px; color: var(--text-3); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 10px; }
+  .q-text { font-size: 13.5px; font-weight: 500; color: var(--text-1); line-height: 1.55; margin-bottom: 14px; }
+  .q-text code { font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: var(--blue); background: var(--tag-bg); padding: 1px 5px; border-radius: 3px; }
+  .q-options { display: flex; flex-direction: column; gap: 7px; margin-bottom: 14px; }
+  .q-option { display: flex; gap: 10px; align-items: flex-start; font-size: 13px; color: var(--text-2); line-height: 1.5; padding: 9px 12px; border: 1px solid var(--border); border-radius: 6px; cursor: pointer; transition: border-color 0.15s, background 0.15s; user-select: none; }
+  .q-option:hover { border-color: var(--gold-dim); background: var(--gold-glow); }
+  .q-option.selected { border-color: var(--gold); background: var(--gold-glow); }
+  .q-option.selected .q-letter { color: var(--gold); border-color: var(--gold-dim); background: rgba(201,168,76,0.15); }
+  .q-option.correct { border-color: var(--green); background: var(--green-dim); pointer-events: none; }
+  .q-option.correct .q-letter { color: var(--green); border-color: var(--green-border); background: rgba(93,184,138,0.15); }
+  .q-option.wrong { border-color: var(--red); background: var(--red-dim); pointer-events: none; }
+  .q-option.wrong .q-letter { color: var(--red); border-color: var(--red-border); background: rgba(212,106,106,0.15); }
+  .q-option.locked { pointer-events: none; }
+  .q-letter { font-family: 'IBM Plex Mono', monospace; font-size: 10px; background: var(--tag-bg); border: 1px solid var(--tag-border); border-radius: 3px; padding: 2px 6px; color: var(--text-3); flex-shrink: 0; margin-top: 1px; transition: color 0.15s, border-color 0.15s, background 0.15s; }
+  .check-btn { background: transparent; border: 1px solid var(--gold-dim); border-radius: 6px; padding: 9px 16px; font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: var(--gold); cursor: pointer; transition: all 0.2s; }
+  .check-btn:hover:not(:disabled) { background: var(--gold-glow); border-color: var(--gold); }
+  .check-btn:disabled { border-color: var(--border); color: var(--text-3); cursor: default; }
+  .q-feedback { display: none; margin-top: 12px; padding: 11px 14px; border-radius: 6px; font-size: 13px; line-height: 1.65; color: var(--text-2); }
+  .q-feedback.correct { display: block; background: var(--green-dim); border: 1px solid var(--green-border); }
+  .q-feedback.wrong { display: block; background: var(--red-dim); border: 1px solid var(--red-border); }
+  .q-feedback .fb-verdict { font-weight: 600; margin-bottom: 4px; display: flex; align-items: center; gap: 6px; }
+  .q-feedback.correct .fb-verdict { color: var(--green); }
+  .q-feedback.wrong .fb-verdict { color: var(--red); }
+  .score-summary { background: var(--bg-card); border: 1px solid var(--border); border-radius: 10px; padding: 28px 24px; text-align: center; display: none; flex-direction: column; gap: 10px; }
+  .score-summary.visible { display: flex; }
+  .score-summary-num { font-family: 'DM Serif Display', serif; font-size: 36px; color: var(--gold); }
+  .score-summary-msg { font-size: 14px; color: var(--text-2); }
+</style>
+</head>
+<body>
+
+<header class="hdr">
+  <div class="hdr-left">
+    <span class="hdr-gem">◆</span>
+    <span class="hdr-title">Vulkan Tutorial — Fixed Functions</span>
+  </div>
+  <div class="hdr-right">
+    <span class="score-tally" id="score-tally">0 / 10 answered &middot; <span id="score-correct">0</span> correct</span>
+    <a class="hdr-url" href="https://vulkan-tutorial.com/en/Drawing_a_triangle/Graphics_pipeline_basics/Fixed_functions" target="_blank" rel="noopener">vulkan-tutorial.com ↗</a>
+  </div>
+</header>
+
+<div class="content">
+
+  <p class="framing">Every fixed-function stage that older APIs configured silently by default must now be declared explicitly in Vulkan — baked into an immutable pipeline state object — except for a small set of states you opt into making dynamic so they can be changed at draw time without recreating the pipeline.</p>
+
+  <!-- STRUCT OVERVIEW -->
+  <div class="section">
+    <div class="sec-label">Pipeline State Structs at a Glance</div>
+    <div class="struct-grid">
+      <div class="struct-card">
+        <div class="struct-name">VkPipelineVertexInputStateCreateInfo</div>
+        <div class="struct-desc">Describes vertex buffer layout — bindings (stride, per-vertex vs per-instance) and attribute descriptions. Empty when vertex data is hardcoded in the shader.</div>
+      </div>
+      <div class="struct-card">
+        <div class="struct-name">VkPipelineInputAssemblyStateCreateInfo</div>
+        <div class="struct-desc">Specifies how vertices are assembled into primitives.</div>
+        <div class="struct-fields">
+          <div class="struct-field">topology — <em>TRIANGLE_LIST</em> / STRIP / POINT_LIST…</div>
+          <div class="struct-field">primitiveRestartEnable — special index breaks strips</div>
+        </div>
+      </div>
+      <div class="struct-card">
+        <div class="struct-name">VkPipelineViewportStateCreateInfo</div>
+        <div class="struct-desc">Declares viewport and scissor counts; values set at draw time when dynamic.</div>
+        <div class="struct-fields">
+          <div class="struct-field">viewportCount / scissorCount — must always be set</div>
+          <div class="struct-field">pViewports / pScissors — nullptr when dynamic</div>
+        </div>
+      </div>
+      <div class="struct-card">
+        <div class="struct-name">VkPipelineRasterizationStateCreateInfo</div>
+        <div class="struct-desc">Configures the rasterizer — the geometry-to-fragment conversion stage.</div>
+        <div class="struct-fields">
+          <div class="struct-field">depthClampEnable — <em>clamp</em> vs discard beyond near/far</div>
+          <div class="struct-field">rasterizerDiscardEnable — kills all output</div>
+          <div class="struct-field">polygonMode — FILL / LINE / POINT</div>
+          <div class="struct-field">lineWidth — >1.0f needs wideLines feature</div>
+          <div class="struct-field">cullMode + frontFace — face culling</div>
+          <div class="struct-field">depthBiasEnable — shadow map depth offset</div>
+        </div>
+      </div>
+      <div class="struct-card">
+        <div class="struct-name">VkPipelineMultisampleStateCreateInfo</div>
+        <div class="struct-desc">MSAA configuration. rasterizationSamples = VK_SAMPLE_COUNT_1_BIT disables multisampling. Enabling it requires a GPU feature.</div>
+      </div>
+      <div class="struct-card">
+        <div class="struct-name">VkPipelineColorBlendAttachmentState</div>
+        <div class="struct-desc">Per-framebuffer blend settings.</div>
+        <div class="struct-fields">
+          <div class="struct-field">blendEnable — gate for color mixing</div>
+          <div class="struct-field">srcColor/dstColorBlendFactor + colorBlendOp</div>
+          <div class="struct-field">srcAlpha/dstAlphaBlendFactor + alphaBlendOp</div>
+          <div class="struct-field">colorWriteMask — R/G/B/A channel gates</div>
+        </div>
+      </div>
+      <div class="struct-card">
+        <div class="struct-name">VkPipelineColorBlendStateCreateInfo</div>
+        <div class="struct-desc">Global blend settings referencing the per-attachment struct.</div>
+        <div class="struct-fields">
+          <div class="struct-field">logicOpEnable — bitwise blend (disables mixing)</div>
+          <div class="struct-field">attachmentCount + pAttachments</div>
+          <div class="struct-field">blendConstants[4]</div>
+        </div>
+      </div>
+      <div class="struct-card">
+        <div class="struct-name">VkPipelineLayout</div>
+        <div class="struct-desc">Declares descriptor set layouts and push constant ranges accessible to shaders. Required even when empty; stored as a class member; destroyed in cleanup().</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- KEY TERMINOLOGY -->
+  <div class="section">
+    <div class="sec-label">Key Terminology</div>
+    <table class="term-table">
+      <thead>
+        <tr><th>Term / Field</th><th>Definition</th><th>Gotcha or key detail</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>Dynamic state</td><td>A set of pipeline states that can be changed at draw time without recreating the pipeline, specified via VkPipelineDynamicStateCreateInfo</td><td>Viewport and scissor are the most common dynamic states; their counts must still be declared at pipeline creation time even when the values are dynamic</td></tr>
+        <tr><td>Viewport</td><td>Transforms NDC (−1 to +1) coordinates to framebuffer pixel coordinates; defined by x, y, width, height, minDepth, maxDepth</td><td>minDepth/maxDepth must be in [0.0, 1.0]; can be inverted (height negative) for flipping Y-axis conventions</td></tr>
+        <tr><td>Scissor rectangle</td><td>A pixel-space mask: fragments outside the rectangle are discarded; does not transform coordinates</td><td>Distinct from viewport — viewport transforms, scissor masks. Typically covers the full framebuffer for basic rendering</td></tr>
+        <tr><td>primitiveRestartEnable</td><td>When VK_TRUE, a special index value (0xFFFF for uint16, 0xFFFFFFFF for uint32) breaks a _STRIP topology sequence</td><td>Only meaningful with LINE_STRIP, TRIANGLE_STRIP, and related strip topologies; has no effect with LIST topologies</td></tr>
+        <tr><td>rasterizerDiscardEnable</td><td>When VK_TRUE, geometry never reaches the rasterizer — no fragments are produced, no framebuffer output occurs</td><td>Effectively disables all rendering; useful when only the vertex/geometry stage output is needed (e.g., transform feedback) but never for normal draw calls</td></tr>
+        <tr><td>depthClampEnable</td><td>When VK_TRUE, fragments beyond the near/far depth planes are clamped to the plane rather than discarded</td><td>Requires enabling the depthClamp GPU feature explicitly; useful for shadow volume and shadow map rendering where geometry needs to extend through clip planes</td></tr>
+        <tr><td>polygonMode</td><td>Controls how polygons are rasterized: FILL (solid), LINE (wireframe edges only), POINT (vertex points only)</td><td>Any mode other than FILL requires enabling the fillModeNonSolid GPU feature</td></tr>
+        <tr><td>depthBiasEnable</td><td>When VK_TRUE, adds a configurable offset to each fragment's depth value before depth testing</td><td>Used in shadow mapping to eliminate "shadow acne" — the depth aliasing artefact where a surface incorrectly shadows itself</td></tr>
+        <tr><td>Multisampling (MSAA)</td><td>Anti-aliasing technique that takes multiple depth/coverage samples per pixel without necessarily running the fragment shader multiple times</td><td>More efficient than supersampling (render at 4× then downscale) because the fragment shader only runs once per pixel when a single polygon covers it; enabling requires a GPU feature</td></tr>
+        <tr><td>blendEnable</td><td>VK_FALSE: new fragment color overwrites old value directly. VK_TRUE: applies the blend formula mixing new and old values</td><td>When logicOpEnable is VK_TRUE in the global struct, it overrides blendEnable — bitwise logic replaces color mixing</td></tr>
+        <tr><td>Alpha blending formula</td><td>finalColor.rgb = srcAlpha × newColor + (1 − srcAlpha) × oldColor — standard transparency blending</td><td>Requires srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA and dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA</td></tr>
+        <tr><td>colorWriteMask</td><td>Bitmask controlling which color channels (R/G/B/A) are written to the framebuffer attachment</td><td>Even with blendEnable = VK_FALSE, channels not in colorWriteMask are not written — it is a final gate after blending</td></tr>
+        <tr><td>logicOpEnable</td><td>When VK_TRUE, bitwise logic operations (AND, OR, XOR, COPY…) replace color mixing for all attachments</td><td>Mutually exclusive with blendEnable — enabling logic ops silently disables blending on all attachments as if blendEnable were VK_FALSE everywhere</td></tr>
+        <tr><td>VkPipelineLayout</td><td>Describes the interface between the pipeline and shader resources: descriptor set layouts and push constant ranges</td><td>Must be created even when empty (no uniforms, no push constants); stored as a class member since it is referenced by multiple pipeline operations; destroyed with vkDestroyPipelineLayout in cleanup()</td></tr>
+        <tr><td>Push constants</td><td>A small block of data (typically ≤128 bytes) passed directly to shaders at draw time without a descriptor set or buffer</td><td>Declared via VkPushConstantRange in VkPipelineLayoutCreateInfo; pPushConstantRanges = nullptr when unused, as in this chapter</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- KEY CODE -->
+  <div class="section">
+    <div class="sec-label">Key Code</div>
+
+    <div class="code-label">Dynamic state — declare viewport + scissor as runtime-configurable</div>
+    <div class="code-block">std::vector&lt;VkDynamicState&gt; dynamicStates = {
+    VK_DYNAMIC_STATE_VIEWPORT,
+    VK_DYNAMIC_STATE_SCISSOR
+};
+VkPipelineDynamicStateCreateInfo dynamicState{};
+dynamicState.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
+dynamicState.dynamicStateCount = static_cast&lt;uint32_t&gt;(dynamicStates.size());
+dynamicState.pDynamicStates = dynamicStates.data();
+
+// Viewport state — counts baked in, actual values set at draw time
+VkPipelineViewportStateCreateInfo viewportState{};
+viewportState.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
+viewportState.viewportCount = 1;   // count still required even when dynamic
+viewportState.scissorCount  = 1;</div>
+
+    <div class="code-label" style="margin-top:16px;">Rasterization state</div>
+    <div class="code-block">VkPipelineRasterizationStateCreateInfo rasterizer{};
+rasterizer.sType                   = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
+rasterizer.depthClampEnable        = VK_FALSE;  // discard beyond near/far (clamp needs GPU feature)
+rasterizer.rasterizerDiscardEnable = VK_FALSE;  // VK_TRUE = kill all output
+rasterizer.polygonMode             = VK_POLYGON_MODE_FILL;  // LINE/POINT need GPU feature
+rasterizer.lineWidth               = 1.0f;      // >1.0f needs wideLines feature
+rasterizer.cullMode                = VK_CULL_MODE_BACK_BIT;
+rasterizer.frontFace               = VK_FRONT_FACE_CLOCKWISE;
+rasterizer.depthBiasEnable         = VK_FALSE;  // shadow map depth offset</div>
+
+    <div class="code-label" style="margin-top:16px;">Color blend attachment — alpha blending config</div>
+    <div class="code-block">// Tutorial default: blending OFF (overwrite)
+VkPipelineColorBlendAttachmentState colorBlendAttachment{};
+colorBlendAttachment.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT
+                                    | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
+colorBlendAttachment.blendEnable    = VK_FALSE;
+
+// Alpha blending (for reference):
+// colorBlendAttachment.blendEnable         = VK_TRUE;
+// colorBlendAttachment.srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
+// colorBlendAttachment.dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
+// colorBlendAttachment.colorBlendOp        = VK_BLEND_OP_ADD;
+// → finalColor.rgb = srcAlpha * newColor + (1 - srcAlpha) * oldColor
+
+VkPipelineColorBlendStateCreateInfo colorBlending{};
+colorBlending.sType           = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
+colorBlending.logicOpEnable   = VK_FALSE;   // VK_TRUE overrides blendEnable on ALL attachments
+colorBlending.logicOp         = VK_LOGIC_OP_COPY;
+colorBlending.attachmentCount = 1;
+colorBlending.pAttachments    = &amp;colorBlendAttachment;</div>
+
+    <div class="code-label" style="margin-top:16px;">Pipeline layout — required even when empty</div>
+    <div class="code-block">VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
+pipelineLayoutInfo.sType                  = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
+pipelineLayoutInfo.setLayoutCount         = 0;       // no descriptor sets
+pipelineLayoutInfo.pSetLayouts            = nullptr;
+pipelineLayoutInfo.pushConstantRangeCount = 0;       // no push constants
+pipelineLayoutInfo.pPushConstantRanges    = nullptr;
+
+if (vkCreatePipelineLayout(device, &amp;pipelineLayoutInfo, nullptr, &amp;pipelineLayout)
+        != VK_SUCCESS)
+    throw std::runtime_error("failed to create pipeline layout!");
+
+// In cleanup() — before vkDestroyDevice:
+// vkDestroyPipelineLayout(device, pipelineLayout, nullptr);</div>
+  </div>
+
+  <!-- LOGIC FLOW -->
+  <div class="section">
+    <div class="sec-label">Logic Flow</div>
+    <div class="logic-flow">
+      <p>The fixed-functions chapter is essentially a declaration form for every aspect of the pipeline that doesn't involve writing shader code. Vulkan requires all of this to be specified upfront — unlike OpenGL where you could call glBlendFunc or glPolygonMode at any time. The upside is that the driver sees the complete state at pipeline creation and can compile an optimally-tuned GPU program. The downside is verbosity: each configuration category needs its own create-info struct.</p>
+      <p>Dynamic state is the escape hatch. A small set of states can be declared as "dynamic," meaning their values are not baked into the pipeline — they are provided via command buffer commands at draw time. Viewport and scissor are the most common because they change whenever a window is resized or when rendering to different regions of the framebuffer. Making them dynamic means one pipeline can serve many window sizes. Crucially, even dynamic states still require their counts to be declared at pipeline creation; only the actual values (the VkViewport and VkRect2D structs) are deferred.</p>
+      <p>The rasterization state has several fields worth understanding precisely. rasterizerDiscardEnable = VK_TRUE is a nuclear option — it kills all rasterization output, effectively turning the pipeline into a vertex-only processor. depthClampEnable = VK_TRUE changes what happens to geometry that extends beyond the near or far depth planes: instead of being clipped away, those fragments are pushed to the plane boundary. This requires the depthClamp device feature and is primarily used in shadow rendering techniques. polygonMode controls whether triangles are drawn solid (FILL), as wireframe edges (LINE), or as points (POINT) — the non-FILL modes require the fillModeNonSolid feature. Similarly, lineWidth above 1.0f requires wideLines.</p>
+      <p>Color blending has two levels. The per-attachment VkPipelineColorBlendAttachmentState controls whether blending is active (blendEnable) and, if so, how the new fragment color combines with the existing framebuffer value via a formula of blend factors and operations. The tutorial disables blending for the triangle (overwrite mode). Alpha blending — the standard transparency formula — sets srcColorBlendFactor to SRC_ALPHA and dstColorBlendFactor to ONE_MINUS_SRC_ALPHA, yielding: result = newAlpha × newColor + (1 − newAlpha) × oldColor. The global VkPipelineColorBlendStateCreateInfo references one or more per-attachment structs and adds an alternative: logicOpEnable = VK_TRUE switches to bitwise operations (AND, OR, XOR) instead of mixing — but this silently disables blendEnable on every attachment.</p>
+      <p>VkPipelineLayout is required even for a pipeline that uses no descriptor sets and no push constants. It specifies the complete interface between the pipeline and shader-accessible resources, and Vulkan needs this information even if it is empty. The layout is stored as a class member because it is referenced both during pipeline creation and potentially during draw calls. It must be explicitly destroyed with vkDestroyPipelineLayout in cleanup(), before the device is destroyed.</p>
+    </div>
+  </div>
+
+  <!-- QUIZ -->
+  <div class="section">
+    <div class="sec-label">Quiz — 10 Questions</div>
+    <div class="quiz-cards">
+
+      <div class="quiz-card" data-answer="C">
+        <div class="q-num">Q1</div>
+        <div class="q-type">conceptual</div>
+        <div class="q-text">Why are viewport and scissor typically declared as dynamic state rather than baked into the pipeline?</div>
+        <div class="q-options">
+          <div class="q-option" data-option="A" onclick="selectOption(this)"><span class="q-letter">A</span>Viewport and scissor values cannot be known at pipeline creation time because they depend on GPU driver internals</div>
+          <div class="q-option" data-option="B" onclick="selectOption(this)"><span class="q-letter">B</span>Dynamic viewport/scissor avoids the need to declare viewportCount and scissorCount in VkPipelineViewportStateCreateInfo</div>
+          <div class="q-option" data-option="C" onclick="selectOption(this)"><span class="q-letter">C</span>They change frequently (e.g., window resize) and static baking would force a full pipeline recreation for each change; dynamic state allows values to be set per draw call at no pipeline cost</div>
+          <div class="q-option" data-option="D" onclick="selectOption(this)"><span class="q-letter">D</span>Dynamic viewport/scissor is required by the spec when the swap chain was created with VK_SHARING_MODE_CONCURRENT</div>
+        </div>
+        <button class="check-btn" onclick="checkAnswer(this.closest('.quiz-card'))" disabled>Check Answer</button>
+        <div class="q-feedback"><div class="fb-verdict"><span class="fb-icon"></span><span class="fb-text"></span></div><div class="fb-explanation"></div></div>
+      </div>
+
+      <div class="quiz-card" data-answer="A">
+        <div class="q-num">Q2</div>
+        <div class="q-type">gotcha</div>
+        <div class="q-text">When viewport and scissor are declared as dynamic state, what must <em>still</em> be set in <code>VkPipelineViewportStateCreateInfo</code> at pipeline creation time?</div>
+        <div class="q-options">
+          <div class="q-option" data-option="A" onclick="selectOption(this)"><span class="q-letter">A</span>viewportCount and scissorCount — the number of viewports and scissors is baked into the pipeline even when their values are dynamic</div>
+          <div class="q-option" data-option="B" onclick="selectOption(this)"><span class="q-letter">B</span>Nothing — VkPipelineViewportStateCreateInfo can be entirely omitted when both states are dynamic</div>
+          <div class="q-option" data-option="C" onclick="selectOption(this)"><span class="q-letter">C</span>The pViewports and pScissors pointers must point to default values that are overridden at draw time</div>
+          <div class="q-option" data-option="D" onclick="selectOption(this)"><span class="q-letter">D</span>minDepth and maxDepth in the VkViewport struct — only width, height, x, and y become dynamic</div>
+        </div>
+        <button class="check-btn" onclick="checkAnswer(this.closest('.quiz-card'))" disabled>Check Answer</button>
+        <div class="q-feedback"><div class="fb-verdict"><span class="fb-icon"></span><span class="fb-text"></span></div><div class="fb-explanation"></div></div>
+      </div>
+
+      <div class="quiz-card" data-answer="B">
+        <div class="q-num">Q3</div>
+        <div class="q-type">terminology</div>
+        <div class="q-text">What is the difference between a <em>viewport</em> and a <em>scissor rectangle</em>?</div>
+        <div class="q-options">
+          <div class="q-option" data-option="A" onclick="selectOption(this)"><span class="q-letter">A</span>Viewport clips geometry before rasterization; scissor clips fragments after the fragment shader runs</div>
+          <div class="q-option" data-option="B" onclick="selectOption(this)"><span class="q-letter">B</span>Viewport transforms NDC coordinates to framebuffer pixel coordinates; scissor is a pixel-space mask that discards fragments outside the rectangle without any coordinate transformation</div>
+          <div class="q-option" data-option="C" onclick="selectOption(this)"><span class="q-letter">C</span>Viewport controls depth range; scissor controls the XY rendering area — they are otherwise equivalent</div>
+          <div class="q-option" data-option="D" onclick="selectOption(this)"><span class="q-letter">D</span>Viewport is set per-draw-call; scissor is set per-render-pass and cannot change within a render pass</div>
+        </div>
+        <button class="check-btn" onclick="checkAnswer(this.closest('.quiz-card'))" disabled>Check Answer</button>
+        <div class="q-feedback"><div class="fb-verdict"><span class="fb-icon"></span><span class="fb-text"></span></div><div class="fb-explanation"></div></div>
+      </div>
+
+      <div class="quiz-card" data-answer="D">
+        <div class="q-num">Q4</div>
+        <div class="q-type">application</div>
+        <div class="q-text">What does setting <code>rasterizerDiscardEnable = VK_TRUE</code> do, and when would you ever want that?</div>
+        <div class="q-options">
+          <div class="q-option" data-option="A" onclick="selectOption(this)"><span class="q-letter">A</span>It enables early-z rejection — fragments that fail depth testing are discarded before running the fragment shader</div>
+          <div class="q-option" data-option="B" onclick="selectOption(this)"><span class="q-letter">B</span>It discards back-facing fragments, acting as a more aggressive version of cullMode = BACK_BIT</div>
+          <div class="q-option" data-option="C" onclick="selectOption(this)"><span class="q-letter">C</span>It discards fragments that fall outside the scissor rectangle before the color blend stage</div>
+          <div class="q-option" data-option="D" onclick="selectOption(this)"><span class="q-letter">D</span>It prevents geometry from ever reaching the rasterizer — no fragments are produced, nothing is written to the framebuffer; useful when only vertex/geometry stage processing is needed (e.g., transform feedback)</div>
+        </div>
+        <button class="check-btn" onclick="checkAnswer(this.closest('.quiz-card'))" disabled>Check Answer</button>
+        <div class="q-feedback"><div class="fb-verdict"><span class="fb-icon"></span><span class="fb-text"></span></div><div class="fb-explanation"></div></div>
+      </div>
+
+      <div class="quiz-card" data-answer="A">
+        <div class="q-num">Q5</div>
+        <div class="q-type">gotcha</div>
+        <div class="q-text">Which three rasterization settings each require an optional GPU feature to be explicitly enabled?</div>
+        <div class="q-options">
+          <div class="q-option" data-option="A" onclick="selectOption(this)"><span class="q-letter">A</span>depthClampEnable = VK_TRUE (needs depthClamp), polygonMode != FILL (needs fillModeNonSolid), lineWidth > 1.0f (needs wideLines)</div>
+          <div class="q-option" data-option="B" onclick="selectOption(this)"><span class="q-letter">B</span>rasterizerDiscardEnable, depthBiasEnable, and cullMode = VK_CULL_MODE_BOTH</div>
+          <div class="q-option" data-option="C" onclick="selectOption(this)"><span class="q-letter">C</span>All three polygonMode values (FILL, LINE, POINT) require their own GPU feature flags</div>
+          <div class="q-option" data-option="D" onclick="selectOption(this)"><span class="q-letter">D</span>frontFace = COUNTER_CLOCKWISE, depthClampEnable, and lineWidth = 1.0f</div>
+        </div>
+        <button class="check-btn" onclick="checkAnswer(this.closest('.quiz-card'))" disabled>Check Answer</button>
+        <div class="q-feedback"><div class="fb-verdict"><span class="fb-icon"></span><span class="fb-text"></span></div><div class="fb-explanation"></div></div>
+      </div>
+
+      <div class="quiz-card" data-answer="C">
+        <div class="q-num">Q6</div>
+        <div class="q-type">conceptual</div>
+        <div class="q-text">Why is multisampling (MSAA) more efficient than simply rendering at a higher resolution and downscaling?</div>
+        <div class="q-options">
+          <div class="q-option" data-option="A" onclick="selectOption(this)"><span class="q-letter">A</span>MSAA skips depth testing at sub-pixel sample points, reducing GPU memory bandwidth</div>
+          <div class="q-option" data-option="B" onclick="selectOption(this)"><span class="q-letter">B</span>MSAA compresses the multiple samples into a single byte per pixel using hardware-accelerated run-length encoding</div>
+          <div class="q-option" data-option="C" onclick="selectOption(this)"><span class="q-letter">C</span>When only one polygon covers a pixel, the fragment shader runs once regardless of sample count — MSAA takes multiple depth/coverage samples at sub-pixel positions without the full per-sample shader cost of supersampling</div>
+          <div class="q-option" data-option="D" onclick="selectOption(this)"><span class="q-letter">D</span>MSAA renders at native resolution and applies a post-process blur, avoiding any sub-pixel sampling overhead</div>
+        </div>
+        <button class="check-btn" onclick="checkAnswer(this.closest('.quiz-card'))" disabled>Check Answer</button>
+        <div class="q-feedback"><div class="fb-verdict"><span class="fb-icon"></span><span class="fb-text"></span></div><div class="fb-explanation"></div></div>
+      </div>
+
+      <div class="quiz-card" data-answer="B">
+        <div class="q-num">Q7</div>
+        <div class="q-type">application</div>
+        <div class="q-text">What <code>srcColorBlendFactor</code> and <code>dstColorBlendFactor</code> values produce standard alpha blending, and what does the resulting formula compute?</div>
+        <div class="q-options">
+          <div class="q-option" data-option="A" onclick="selectOption(this)"><span class="q-letter">A</span>src = ONE, dst = ZERO — result = newColor (overwrite, same as blendEnable = VK_FALSE)</div>
+          <div class="q-option" data-option="B" onclick="selectOption(this)"><span class="q-letter">B</span>src = SRC_ALPHA, dst = ONE_MINUS_SRC_ALPHA — result = newAlpha × newColor + (1 − newAlpha) × oldColor</div>
+          <div class="q-option" data-option="C" onclick="selectOption(this)"><span class="q-letter">C</span>src = ONE_MINUS_DST_ALPHA, dst = DST_ALPHA — result = (1 − oldAlpha) × newColor + oldAlpha × oldColor</div>
+          <div class="q-option" data-option="D" onclick="selectOption(this)"><span class="q-letter">D</span>src = SRC_COLOR, dst = DST_COLOR — result = newColor × newColor + oldColor × oldColor</div>
+        </div>
+        <button class="check-btn" onclick="checkAnswer(this.closest('.quiz-card'))" disabled>Check Answer</button>
+        <div class="q-feedback"><div class="fb-verdict"><span class="fb-icon"></span><span class="fb-text"></span></div><div class="fb-explanation"></div></div>
+      </div>
+
+      <div class="quiz-card" data-answer="D">
+        <div class="q-num">Q8</div>
+        <div class="q-type">gotcha</div>
+        <div class="q-text">What happens to <code>blendEnable</code> on all framebuffer attachments when <code>logicOpEnable = VK_TRUE</code> is set in <code>VkPipelineColorBlendStateCreateInfo</code>?</div>
+        <div class="q-options">
+          <div class="q-option" data-option="A" onclick="selectOption(this)"><span class="q-letter">A</span>blendEnable on each attachment is evaluated first; logicOp is applied only to attachments where blendEnable = VK_FALSE</div>
+          <div class="q-option" data-option="B" onclick="selectOption(this)"><span class="q-letter">B</span>Both methods run in sequence — logic op executes on the result of color blending</div>
+          <div class="q-option" data-option="C" onclick="selectOption(this)"><span class="q-letter">C</span>Enabling logicOp requires also setting blendEnable = VK_TRUE on each attachment as a prerequisite</div>
+          <div class="q-option" data-option="D" onclick="selectOption(this)"><span class="q-letter">D</span>logicOpEnable = VK_TRUE automatically disables color blending on all attachments — it is as if blendEnable were VK_FALSE everywhere; the two methods are mutually exclusive</div>
+        </div>
+        <button class="check-btn" onclick="checkAnswer(this.closest('.quiz-card'))" disabled>Check Answer</button>
+        <div class="q-feedback"><div class="fb-verdict"><span class="fb-icon"></span><span class="fb-text"></span></div><div class="fb-explanation"></div></div>
+      </div>
+
+      <div class="quiz-card" data-answer="A">
+        <div class="q-num">Q9</div>
+        <div class="q-type">terminology</div>
+        <div class="q-text">What is <code>VkPipelineLayout</code>, and why must it be created even when the pipeline uses no descriptor sets and no push constants?</div>
+        <div class="q-options">
+          <div class="q-option" data-option="A" onclick="selectOption(this)"><span class="q-letter">A</span>It describes the complete interface between the pipeline and shader-accessible resources; Vulkan requires this information at pipeline creation regardless of whether any resources are used — there is no valid null alternative to pass</div>
+          <div class="q-option" data-option="B" onclick="selectOption(this)"><span class="q-letter">B</span>It is a performance hint that tells the driver how much GPU memory to pre-allocate for uniform buffers</div>
+          <div class="q-option" data-option="C" onclick="selectOption(this)"><span class="q-letter">C</span>It is only required when using push constants; an empty pipeline layout can be replaced by passing nullptr in VkGraphicsPipelineCreateInfo</div>
+          <div class="q-option" data-option="D" onclick="selectOption(this)"><span class="q-letter">D</span>It holds the VkShaderModule references so they can be destroyed after vkCreateGraphicsPipeline</div>
+        </div>
+        <button class="check-btn" onclick="checkAnswer(this.closest('.quiz-card'))" disabled>Check Answer</button>
+        <div class="q-feedback"><div class="fb-verdict"><span class="fb-icon"></span><span class="fb-text"></span></div><div class="fb-explanation"></div></div>
+      </div>
+
+      <div class="quiz-card" data-answer="C">
+        <div class="q-num">Q10</div>
+        <div class="q-type">gotcha</div>
+        <div class="q-text"><code>primitiveRestartEnable = VK_TRUE</code> lets a special index value break geometry sequences. On which topology modes does this have any effect, and what does it do?</div>
+        <div class="q-options">
+          <div class="q-option" data-option="A" onclick="selectOption(this)"><span class="q-letter">A</span>All topologies — the special index inserts a degenerate primitive (zero-area triangle) to signal a break between draw calls</div>
+          <div class="q-option" data-option="B" onclick="selectOption(this)"><span class="q-letter">B</span>Only TRIANGLE_LIST — it causes every third index to restart the sequence from the beginning of the index buffer</div>
+          <div class="q-option" data-option="C" onclick="selectOption(this)"><span class="q-letter">C</span>Only _STRIP topologies (LINE_STRIP, TRIANGLE_STRIP, etc.) — the special index value (0xFFFF for uint16 / 0xFFFFFFFF for uint32) ends the current strip and starts a new one, enabling multiple disjoint strips in a single draw call</div>
+          <div class="q-option" data-option="D" onclick="selectOption(this)"><span class="q-letter">D</span>Only POINT_LIST — it resets the point counter so the next point renders at the origin regardless of its buffer value</div>
+        </div>
+        <button class="check-btn" onclick="checkAnswer(this.closest('.quiz-card'))" disabled>Check Answer</button>
+        <div class="q-feedback"><div class="fb-verdict"><span class="fb-icon"></span><span class="fb-text"></span></div><div class="fb-explanation"></div></div>
+      </div>
+
+    </div>
+
+    <div class="score-summary" id="score-summary">
+      <div class="score-summary-num" id="summary-num"></div>
+      <div class="score-summary-msg" id="summary-msg"></div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  const TOTAL = 10;
+  let answeredCount = 0;
+  let correctCount = 0;
+
+  const explanations = {
+    1: {
+      correct: 'C',
+      text: 'The tutorial says making viewport and scissor dynamic is "very common" because it "gives you a lot more flexibility" — they change when the window is resized and when rendering to different sub-regions of the framebuffer. If they were baked in, every window resize would require destroying and recreating the pipeline, which is expensive. Dynamic state lets the values be set via vkCmdSetViewport and vkCmdSetScissor in the command buffer at draw time, with zero pipeline-creation overhead.'
+    },
+    2: {
+      correct: 'A',
+      text: 'Even when viewport and scissor are declared dynamic, VkPipelineViewportStateCreateInfo.viewportCount and .scissorCount must be set — typically both to 1. The pipeline needs to know how many viewport/scissor slots exist at creation time (some hardware supports multiple). Only the actual VkViewport and VkRect2D values (pViewports / pScissors) are omitted (nullptr) when dynamic, because those are provided later via vkCmdSetViewport / vkCmdSetScissor.'
+    },
+    3: {
+      correct: 'B',
+      text: 'A viewport is a coordinate transformation: it maps the NDC range [−1, +1] in X and Y (and [0, 1] in Z) to specific pixel regions of the framebuffer, scaled by width/height and offset by x/y. A scissor rectangle is a pixel-space mask: fragments whose pixel coordinates fall outside the VkRect2D are discarded without any transformation. They serve different purposes — viewport positions/scales the render output; scissor clips it.'
+    },
+    4: {
+      correct: 'D',
+      text: 'rasterizerDiscardEnable = VK_TRUE stops the pipeline after the pre-rasterization stages (vertex, tessellation, geometry shaders). No fragments are generated and nothing is written to the framebuffer — the pipeline produces no visible output. This is useful in specialized cases like transform feedback (capturing transformed vertex data for later reuse) or when a compute-style pass is implemented through the graphics pipeline for compatibility reasons. For any normal draw call it would be a bug.'
+    },
+    5: {
+      correct: 'A',
+      text: 'Three rasterization settings require optional GPU features: (1) depthClampEnable = VK_TRUE requires VkPhysicalDeviceFeatures.depthClamp — it clamps out-of-range fragments to the near/far planes instead of discarding them, useful for shadow volumes; (2) polygonMode != VK_POLYGON_MODE_FILL requires VkPhysicalDeviceFeatures.fillModeNonSolid — wireframe and point rendering are optional on some hardware; (3) lineWidth > 1.0f requires VkPhysicalDeviceFeatures.wideLines — lines wider than one pixel are optional. All three must be enabled at device creation time via VkDeviceCreateInfo.pEnabledFeatures.'
+    },
+    6: {
+      correct: 'C',
+      text: 'The tutorial explains: "Multisampling is one of the ways to perform anti-aliasing... It works by combining the fragment shader results of multiple polygons that rasterize to the same pixel. This mainly occurs along edges... This is significantly less expensive than simply rendering to a higher resolution and then downscaling... because it doesn\'t require the fragment shader to be run multiple times if only one polygon maps to a pixel." Supersampling (render 4× then downscale) runs the fragment shader at 4× resolution. MSAA only runs it once per pixel when a single polygon covers it; the extra samples are used only for depth/coverage at sub-pixel positions to smooth edges.'
+    },
+    7: {
+      correct: 'B',
+      text: 'Alpha blending formula: finalColor.rgb = srcColorBlendFactor × newColor.rgb + dstColorBlendFactor × oldColor.rgb. With srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA and dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA, this becomes: newAlpha × newColor + (1 − newAlpha) × oldColor. When newAlpha = 1.0, result = newColor (fully opaque — overwrites). When newAlpha = 0.0, result = oldColor (fully transparent — no change). Values in between produce a proportional mix — standard transparency blending.'
+    },
+    8: {
+      correct: 'D',
+      text: 'The tutorial states explicitly: "If you want to use the second method of blending (bitwise combination) then you should set logicOpEnable to VK_TRUE... Note that this will automatically disable the first method, as if you had set blendEnable to VK_FALSE for every attached framebuffer!" The two blend paths — color mixing (blend factors + ops) and bitwise logic operations — are mutually exclusive. Enabling logicOp bypasses the per-attachment blend settings entirely.'
+    },
+    9: {
+      correct: 'A',
+      text: 'VkPipelineLayout describes how shaders access external data — which descriptor set layouts (uniform buffers, samplers) and push constant ranges are available. Vulkan\'s API design requires this information at pipeline creation even when the answer is "none." There is no valid way to pass a null layout; VkGraphicsPipelineCreateInfo.layout is a required non-null handle. An empty layout (setLayoutCount=0, pushConstantRangeCount=0) satisfies this requirement when no resources are used. The layout must also be stored and destroyed separately from the pipeline.'
+    },
+    10: {
+      correct: 'C',
+      text: 'primitiveRestartEnable only has meaning with strip topologies: VK_PRIMITIVE_TOPOLOGY_LINE_STRIP, VK_PRIMITIVE_TOPOLOGY_TRIANGLE_STRIP, VK_PRIMITIVE_TOPOLOGY_TRIANGLE_STRIP_WITH_ADJACENCY, etc. In a strip, vertices are reused between consecutive primitives — but sometimes you need multiple disjoint strips in one draw call. The special index value (0xFFFF for uint16 index buffers / 0xFFFFFFFF for uint32) signals the end of one strip and the start of a new one. With list topologies (TRIANGLE_LIST, LINE_LIST), every primitive is independent anyway, so the restart index serves no purpose and has no effect.'
+    }
+  };
+
+  function getCardIndex(card) {
+    return parseInt(card.querySelector('.q-num').textContent.replace('Q', ''));
+  }
+
+  function selectOption(optionEl) {
+    const card = optionEl.closest('.quiz-card');
+    if (card.dataset.answered) return;
+    card.querySelectorAll('.q-option').forEach(o => o.classList.remove('selected'));
+    optionEl.classList.add('selected');
+    card.querySelector('.check-btn').disabled = false;
+  }
+
+  function checkAnswer(card) {
+    if (card.dataset.answered) return;
+    card.dataset.answered = 'true';
+
+    const correct = card.dataset.answer;
+    const selected = card.querySelector('.q-option.selected');
+    const chosen = selected ? selected.dataset.option : null;
+    const idx = getCardIndex(card);
+    const info = explanations[idx];
+
+    const isCorrect = chosen === correct;
+    if (isCorrect) correctCount++;
+    answeredCount++;
+
+    card.querySelectorAll('.q-option').forEach(o => {
+      o.classList.add('locked');
+      if (o.dataset.option === correct) o.classList.add('correct');
+      else if (o.dataset.option === chosen && !isCorrect) o.classList.add('wrong');
+    });
+
+    const feedback = card.querySelector('.q-feedback');
+    const icon = feedback.querySelector('.fb-icon');
+    const verdictText = feedback.querySelector('.fb-text');
+    const explanation = feedback.querySelector('.fb-explanation');
+
+    if (isCorrect) {
+      feedback.classList.add('correct');
+      icon.textContent = '✓';
+      verdictText.textContent = 'Correct';
+    } else {
+      feedback.classList.add('wrong');
+      icon.textContent = '✗';
+      verdictText.textContent = `Incorrect — correct answer is ${correct}`;
+    }
+    explanation.textContent = info.text;
+
+    const btn = card.querySelector('.check-btn');
+    btn.textContent = isCorrect ? '✓ Correct' : '✗ Answered';
+    btn.disabled = true;
+
+    card.classList.add(isCorrect ? 'answered-correct' : 'answered-wrong');
+    updateScore();
+  }
+
+  function updateScore() {
+    const tally = document.getElementById('score-tally');
+    const correctSpan = document.getElementById('score-correct');
+    tally.childNodes[0].textContent = `${answeredCount} / ${TOTAL} answered · `;
+    correctSpan.textContent = correctCount;
+
+    if (answeredCount === TOTAL) {
+      const summary = document.getElementById('score-summary');
+      const pct = correctCount / TOTAL;
+      let msg;
+      if (pct >= 0.9) msg = 'Excellent — all the fixed-function structs and their edge cases are solid.';
+      else if (pct >= 0.7) msg = 'Good — review the questions you missed before the render pass chapter.';
+      else msg = 'Review recommended — focus on dynamic state counts, rasterizer GPU feature requirements, logicOpEnable exclusivity, and pipeline layout necessity.';
+      document.getElementById('summary-num').textContent = `${correctCount} / ${TOTAL}`;
+      document.getElementById('summary-msg').textContent = msg;
+      summary.classList.add('visible');
+    }
+  }
+</script>
+</body>
+</html>
