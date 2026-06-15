@@ -88,5 +88,15 @@
     "questionCount": 6,
     "file": "sessions/vulkan-image-views-learning.html",
     "excerpt": "Wrapping each swap chain VkImage in a VkImageView — configuring viewType, format, component swizzle, and subresourceRange — and understanding why views require explicit cleanup while the images themselves do not."
+  },
+  {
+    "id": "vulkan-pipeline-intro",
+    "title": "Vulkan Tutorial — Graphics Pipeline Introduction",
+    "url": "https://vulkan-tutorial.com/Drawing_a_triangle/Graphics_pipeline_basics/Introduction",
+    "date": "2026-06-07",
+    "tags": ["graphics", "vulkan", "gpu"],
+    "questionCount": 5,
+    "file": "sessions/vulkan-pipeline-intro-learning.html",
+    "excerpt": "The seven pipeline stages in order, which are fixed-function vs programmable, why the geometry shader is avoided in practice, why Vulkan pipelines are immutable, and when the fragment shader can be disabled."
   }
 ]
