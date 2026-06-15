@@ -1,0 +1,541 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Vulkan Tutorial — Shader Modules | Learning Session</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=IBM+Plex+Mono:wght@400;500&family=Syne:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #0d0f14; --bg-surface: #10131a; --bg-card: #12151d; --bg-row-alt: #0f1118;
+    --border: #1e2333; --gold: #c9a84c; --gold-dim: #7a6230; --gold-glow: rgba(201,168,76,0.1);
+    --blue: #7eb8d4; --green: #5db88a; --green-dim: rgba(93,184,138,0.15); --green-border: rgba(93,184,138,0.35);
+    --red: #d46a6a; --red-dim: rgba(212,106,106,0.15); --red-border: rgba(212,106,106,0.35);
+    --amber: #d4965a;
+    --text-1: #e8e4dc; --text-2: #8a8c99; --text-3: #4a4e62;
+    --tag-bg: #1a1e2c; --tag-border: #252a3a;
+  }
+  html { background: var(--bg); color: var(--text-1); font-family: 'Syne', sans-serif; -webkit-font-smoothing: antialiased; }
+  body { min-height: 100vh; padding-bottom: 80px; }
+  ::-webkit-scrollbar { width: 4px; }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+
+  .hdr { position: sticky; top: 0; z-index: 10; background: var(--bg-surface); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 12px 24px; gap: 16px; flex-wrap: wrap; }
+  .hdr-left { display: flex; align-items: center; gap: 10px; }
+  .hdr-gem { color: var(--gold); font-size: 14px; }
+  .hdr-title { font-family: 'DM Serif Display', serif; font-size: 16px; color: var(--text-1); }
+  .hdr-right { display: flex; align-items: center; gap: 12px; }
+  .score-tally { font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: var(--text-3); white-space: nowrap; }
+  .score-tally span { color: var(--gold); }
+  .hdr-url { font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: var(--text-3); background: var(--tag-bg); border: 1px solid var(--tag-border); border-radius: 5px; padding: 4px 10px; text-decoration: none; white-space: nowrap; transition: color 0.2s, border-color 0.2s; }
+  .hdr-url:hover { color: var(--gold); border-color: var(--gold-dim); }
+
+  .content { max-width: 800px; margin: 0 auto; padding: 40px 24px; display: flex; flex-direction: column; gap: 40px; }
+  .framing { font-family: 'DM Serif Display', serif; font-size: 16px; color: var(--gold); border-left: 2px solid var(--gold); padding-left: 14px; line-height: 1.55; font-style: italic; }
+  .section { display: flex; flex-direction: column; gap: 14px; }
+  .sec-label { font-family: 'IBM Plex Mono', monospace; font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--text-3); }
+
+  .term-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .term-table th { font-family: 'IBM Plex Mono', monospace; font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-3); text-align: left; padding: 8px 12px; background: var(--bg-surface); border-bottom: 1px solid var(--border); }
+  .term-table td { padding: 9px 12px; border-bottom: 1px solid var(--border); vertical-align: top; color: var(--text-2); line-height: 1.5; }
+  .term-table tr:nth-child(even) td { background: var(--bg-row-alt); }
+  .term-table td:first-child { font-family: 'IBM Plex Mono', monospace; font-size: 11.5px; color: var(--blue); white-space: nowrap; }
+
+  .code-block { background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px; padding: 16px 18px; font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: var(--text-2); line-height: 1.65; overflow-x: auto; white-space: pre; }
+  .code-label { font-family: 'IBM Plex Mono', monospace; font-size: 9px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--text-3); margin-bottom: 8px; }
+
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  @media (max-width: 600px) { .two-col { grid-template-columns: 1fr; } }
+
+  .logic-flow { font-size: 14px; line-height: 1.8; color: var(--text-2); display: flex; flex-direction: column; gap: 14px; }
+
+  .steps-list { list-style: none; display: flex; flex-direction: column; gap: 10px; counter-reset: steps; }
+  .step-item { counter-increment: steps; background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px; padding: 14px 16px 14px 54px; position: relative; }
+  .step-item::before { content: counter(steps); position: absolute; left: 14px; top: 14px; font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: var(--gold); background: var(--gold-glow); border: 1px solid var(--gold-dim); border-radius: 4px; width: 26px; height: 26px; display: flex; align-items: center; justify-content: center; }
+  .step-name { font-size: 13.5px; font-weight: 500; color: var(--text-1); margin-bottom: 7px; line-height: 1.4; }
+  .step-why { font-size: 12.5px; color: var(--text-2); line-height: 1.55; margin-bottom: 4px; display: flex; gap: 6px; }
+  .step-why-label { font-family: 'IBM Plex Mono', monospace; font-size: 9px; color: var(--green); background: rgba(93,184,138,0.1); border: 1px solid rgba(93,184,138,0.2); border-radius: 3px; padding: 2px 5px; flex-shrink: 0; margin-top: 2px; letter-spacing: 0.06em; }
+  .step-warn { font-size: 12.5px; color: var(--text-2); line-height: 1.55; display: flex; gap: 6px; margin-top: 4px; }
+  .step-warn-label { font-family: 'IBM Plex Mono', monospace; font-size: 9px; color: var(--amber); background: rgba(212,150,90,0.1); border: 1px solid rgba(212,150,90,0.2); border-radius: 3px; padding: 2px 5px; flex-shrink: 0; margin-top: 2px; letter-spacing: 0.06em; }
+
+  .quiz-cards { display: flex; flex-direction: column; gap: 14px; }
+  .quiz-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px; padding: 18px 20px; }
+  .quiz-card.answered-correct { border-left: 3px solid var(--green); }
+  .quiz-card.answered-wrong { border-left: 3px solid var(--red); }
+  .q-num { font-family: 'IBM Plex Mono', monospace; font-size: 10px; color: var(--gold); margin-bottom: 3px; }
+  .q-type { font-family: 'IBM Plex Mono', monospace; font-size: 9px; color: var(--text-3); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 10px; }
+  .q-text { font-size: 13.5px; font-weight: 500; color: var(--text-1); line-height: 1.55; margin-bottom: 14px; }
+  .q-text code { font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: var(--blue); background: var(--tag-bg); padding: 1px 5px; border-radius: 3px; }
+  .q-options { display: flex; flex-direction: column; gap: 7px; margin-bottom: 14px; }
+  .q-option { display: flex; gap: 10px; align-items: flex-start; font-size: 13px; color: var(--text-2); line-height: 1.5; padding: 9px 12px; border: 1px solid var(--border); border-radius: 6px; cursor: pointer; transition: border-color 0.15s, background 0.15s; user-select: none; }
+  .q-option:hover { border-color: var(--gold-dim); background: var(--gold-glow); }
+  .q-option.selected { border-color: var(--gold); background: var(--gold-glow); }
+  .q-option.selected .q-letter { color: var(--gold); border-color: var(--gold-dim); background: rgba(201,168,76,0.15); }
+  .q-option.correct { border-color: var(--green); background: var(--green-dim); pointer-events: none; }
+  .q-option.correct .q-letter { color: var(--green); border-color: var(--green-border); background: rgba(93,184,138,0.15); }
+  .q-option.wrong { border-color: var(--red); background: var(--red-dim); pointer-events: none; }
+  .q-option.wrong .q-letter { color: var(--red); border-color: var(--red-border); background: rgba(212,106,106,0.15); }
+  .q-option.locked { pointer-events: none; }
+  .q-letter { font-family: 'IBM Plex Mono', monospace; font-size: 10px; background: var(--tag-bg); border: 1px solid var(--tag-border); border-radius: 3px; padding: 2px 6px; color: var(--text-3); flex-shrink: 0; margin-top: 1px; transition: color 0.15s, border-color 0.15s, background 0.15s; }
+  .check-btn { display: flex; align-items: center; gap: 8px; background: transparent; border: 1px solid var(--gold-dim); border-radius: 6px; padding: 9px 16px; font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: var(--gold); cursor: pointer; transition: all 0.2s; }
+  .check-btn:hover:not(:disabled) { background: var(--gold-glow); border-color: var(--gold); }
+  .check-btn:disabled { border-color: var(--border); color: var(--text-3); cursor: default; }
+  .q-feedback { display: none; margin-top: 12px; padding: 11px 14px; border-radius: 6px; font-size: 13px; line-height: 1.65; color: var(--text-2); }
+  .q-feedback.correct { display: block; background: var(--green-dim); border: 1px solid var(--green-border); }
+  .q-feedback.wrong { display: block; background: var(--red-dim); border: 1px solid var(--red-border); }
+  .q-feedback .fb-verdict { font-weight: 600; margin-bottom: 4px; display: flex; align-items: center; gap: 6px; }
+  .q-feedback.correct .fb-verdict { color: var(--green); }
+  .q-feedback.wrong .fb-verdict { color: var(--red); }
+  .score-summary { background: var(--bg-card); border: 1px solid var(--border); border-radius: 10px; padding: 28px 24px; text-align: center; display: none; flex-direction: column; gap: 10px; }
+  .score-summary.visible { display: flex; }
+  .score-summary-num { font-family: 'DM Serif Display', serif; font-size: 36px; color: var(--gold); }
+  .score-summary-msg { font-size: 14px; color: var(--text-2); }
+</style>
+</head>
+<body>
+
+<header class="hdr">
+  <div class="hdr-left">
+    <span class="hdr-gem">◆</span>
+    <span class="hdr-title">Vulkan Tutorial — Shader Modules</span>
+  </div>
+  <div class="hdr-right">
+    <span class="score-tally" id="score-tally">0 / 8 answered &middot; <span id="score-correct">0</span> correct</span>
+    <a class="hdr-url" href="https://vulkan-tutorial.com/Drawing_a_triangle/Graphics_pipeline_basics/Shader_modules" target="_blank" rel="noopener">vulkan-tutorial.com ↗</a>
+  </div>
+</header>
+
+<div class="content">
+
+  <p class="framing">Before Vulkan touches a shader, it must be compiled to SPIR-V bytecode — a vendor-neutral intermediate format that eliminates historical GLSL compiler inconsistencies and gives every driver the same unambiguous input to compile to machine code.</p>
+
+  <!-- KEY TERMINOLOGY -->
+  <div class="section">
+    <div class="sec-label">Key Terminology</div>
+    <table class="term-table">
+      <thead>
+        <tr><th>Term</th><th>Definition</th><th>Why it matters here</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>SPIR-V</td><td>Standard Portable Intermediate Representation — Vulkan's required shader bytecode format; a compact, unambiguous binary that GPU drivers compile to native machine code</td><td>Vulkan rejects GLSL/HLSL source; all shaders must be pre-compiled to SPIR-V before pipeline creation. Eliminates vendor GLSL compiler inconsistencies that plagued OpenGL</td></tr>
+        <tr><td>glslc</td><td>Google's GLSL-to-SPIR-V compiler (ships with the Vulkan SDK); takes .vert/.frag source files and outputs .spv binary files</td><td>The compiler invoked in compile.bat/compile.sh — <code>glslc shader.vert -o vert.spv</code>. The -o flag names the output file</td></tr>
+        <tr><td>VkShaderModule</td><td>A thin Vulkan object wrapping SPIR-V bytecode; created before pipeline construction and destroyed immediately after vkCreateGraphicsPipeline succeeds</td><td>Not yet compiled to machine code at creation time — that happens during pipeline creation. The module is a staging container for the bytecode</td></tr>
+        <tr><td>VkShaderModuleCreateInfo</td><td>Creation struct for VkShaderModule; requires codeSize (bytes) and pCode (uint32_t* pointer to the SPIR-V data)</td><td>The pCode cast from char* to uint32_t* requires the buffer to be uint32_t-aligned — std::vector's default allocator satisfies this automatically</td></tr>
+        <tr><td>VkPipelineShaderStageCreateInfo</td><td>Struct that binds a VkShaderModule to a specific pipeline stage; fields: stage (which stage), module (the VkShaderModule), pName (entry point function name)</td><td>One struct per programmable stage; the array of these is passed into VkGraphicsPipelineCreateInfo to wire shaders into the pipeline</td></tr>
+        <tr><td>pName</td><td>The name of the entry point function in the SPIR-V binary, typically "main"</td><td>Explicit in Vulkan (unlike implicit "main" in GLSL); a single SPIR-V file can contain multiple entry points, selected here by name — enables shader specialization strategies</td></tr>
+        <tr><td>pSpecializationInfo</td><td>Optional VkPipelineShaderStageCreateInfo field for passing compile-time constants into the shader at pipeline creation time</td><td>Allows one SPIR-V module to produce different shader behaviors without source duplication; set to nullptr in this tutorial</td></tr>
+        <tr><td>gl_Position</td><td>Built-in vertex shader output: a vec4 specifying the vertex's position in clip coordinates</td><td>The x/y/z components become the screen position after perspective division by w; set here as vec4(position.xy, 0.0, 1.0) — w=1.0 means no perspective distortion</td></tr>
+        <tr><td>gl_VertexIndex</td><td>Built-in vertex shader input: the integer index of the vertex currently being processed</td><td>Normally indexes a bound vertex buffer; in this chapter it indexes hardcoded positions[] and colors[] arrays since vertex buffers haven't been introduced yet</td></tr>
+        <tr><td>layout(location = N)</td><td>GLSL qualifier that assigns an interface slot number to a shader input or output variable</td><td>Links vertex shader outputs to fragment shader inputs by matching location numbers; the rasterizer interpolates the value between vertices for each fragment. The numbers must match between stages</td></tr>
+        <tr><td>ios::ate / ios::binary</td><td>std::ifstream flags used in readFile(); ate = start reading at end (to measure file size via tellg()); binary = suppress text transformations</td><td>ios::binary is critical for SPIR-V — without it, CR/LF→LF conversions on Windows would corrupt the binary bytecode</td></tr>
+        <tr><td>Destruction timing</td><td>VkShaderModule objects are destroyed immediately after vkCreateGraphicsPipeline, inside createGraphicsPipeline(), not in the cleanup() function</td><td>The pipeline has already converted the SPIR-V to GPU machine code by that point; keeping the modules alive longer wastes memory and is unnecessary</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- KEY CODE -->
+  <div class="section">
+    <div class="sec-label">Key Code</div>
+
+    <div class="two-col">
+      <div>
+        <div class="code-label">shader.vert — vertex shader</div>
+        <div class="code-block">#version 450
+
+layout(location = 0) out vec3 fragColor;
+
+vec2 positions[3] = vec2[](
+    vec2(0.0, -0.5),
+    vec2(0.5,  0.5),
+    vec2(-0.5, 0.5)
+);
+
+vec3 colors[3] = vec3[](
+    vec3(1.0, 0.0, 0.0),
+    vec3(0.0, 1.0, 0.0),
+    vec3(0.0, 0.0, 1.0)
+);
+
+void main() {
+    gl_Position = vec4(
+        positions[gl_VertexIndex],
+        0.0, 1.0);
+    fragColor = colors[gl_VertexIndex];
+}</div>
+      </div>
+      <div>
+        <div class="code-label">shader.frag — fragment shader</div>
+        <div class="code-block">#version 450
+
+layout(location = 0) in  vec3 fragColor;
+layout(location = 0) out vec4 outColor;
+
+void main() {
+    outColor = vec4(fragColor, 1.0);
+}</div>
+      </div>
+    </div>
+
+    <div class="code-label" style="margin-top:16px;">Compile shaders to SPIR-V (Windows)</div>
+    <div class="code-block">glslc.exe shader.vert -o vert.spv
+glslc.exe shader.frag -o frag.spv</div>
+
+    <div class="code-label" style="margin-top:16px;">readFile() — load .spv binary</div>
+    <div class="code-block">static std::vector&lt;char&gt; readFile(const std::string&amp; filename) {
+    std::ifstream file(filename, std::ios::ate | std::ios::binary);
+    if (!file.is_open())
+        throw std::runtime_error("failed to open file!");
+
+    size_t fileSize = (size_t)file.tellg();   // ate → cursor at end = size
+    std::vector&lt;char&gt; buffer(fileSize);
+    file.seekg(0);
+    file.read(buffer.data(), fileSize);
+    file.close();
+    return buffer;
+}</div>
+
+    <div class="code-label" style="margin-top:16px;">createShaderModule() — wrap SPIR-V in a VkShaderModule</div>
+    <div class="code-block">VkShaderModule createShaderModule(const std::vector&lt;char&gt;&amp; code) {
+    VkShaderModuleCreateInfo createInfo{};
+    createInfo.sType    = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
+    createInfo.codeSize = code.size();
+    createInfo.pCode    = reinterpret_cast&lt;const uint32_t*&gt;(code.data());
+    //                    ↑ safe: std::vector guarantees worst-case alignment
+
+    VkShaderModule shaderModule;
+    if (vkCreateShaderModule(device, &amp;createInfo, nullptr, &amp;shaderModule)
+            != VK_SUCCESS)
+        throw std::runtime_error("failed to create shader module!");
+    return shaderModule;
+}</div>
+
+    <div class="code-label" style="margin-top:16px;">createGraphicsPipeline() — stage info structs and module lifetime</div>
+    <div class="code-block">void createGraphicsPipeline() {
+    auto vertCode = readFile("shaders/vert.spv");
+    auto fragCode = readFile("shaders/frag.spv");
+
+    VkShaderModule vertModule = createShaderModule(vertCode);
+    VkShaderModule fragModule = createShaderModule(fragCode);
+
+    VkPipelineShaderStageCreateInfo vertStage{};
+    vertStage.sType  = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+    vertStage.stage  = VK_SHADER_STAGE_VERTEX_BIT;
+    vertStage.module = vertModule;
+    vertStage.pName  = "main";            // entry point name
+
+    VkPipelineShaderStageCreateInfo fragStage{};
+    fragStage.sType  = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+    fragStage.stage  = VK_SHADER_STAGE_FRAGMENT_BIT;
+    fragStage.module = fragModule;
+    fragStage.pName  = "main";
+
+    VkPipelineShaderStageCreateInfo shaderStages[] = {vertStage, fragStage};
+
+    // ... fixed-function state structs ...
+    // ... vkCreateGraphicsPipeline(...) ...
+
+    // Modules no longer needed — pipeline has baked the machine code
+    vkDestroyShaderModule(device, fragModule, nullptr);
+    vkDestroyShaderModule(device, vertModule, nullptr);
+}</div>
+  </div>
+
+  <!-- LOGIC FLOW -->
+  <div class="section">
+    <div class="sec-label">Logic Flow</div>
+    <div class="logic-flow">
+      <p>OpenGL accepted GLSL source strings and compiled them inside the driver at runtime. This seemed convenient but created a persistent problem: every GPU vendor wrote their own compiler, and those compilers interpreted the GLSL specification differently. Shaders that worked on NVIDIA would silently misbehave on AMD, or produce driver-specific error messages with no common ground for debugging. Vulkan breaks this cycle by requiring SPIR-V — a compact, well-specified bytecode format. The programmer pre-compiles GLSL to SPIR-V using an offline tool (glslc from Google), giving every driver an identical, unambiguous input to compile to native GPU instructions.</p>
+      <p>The triangle tutorial writes the minimum two shaders. The vertex shader runs once per vertex. It has no vertex buffer — instead it hardcodes a positions array and a colors array indexed by the built-in gl_VertexIndex. gl_Position receives a vec4 clip-coordinate position (the two 2D coordinates padded with z=0.0 and w=1.0, where w=1.0 means no perspective division effect). The fragColor variable is declared with layout(location=0) out — this passes the color to the next stage. The fragment shader receives it with layout(location=0) in, naming the same slot. The location numbers must match; the rasterizer automatically interpolates the value across each triangle's surface, so each fragment gets a weighted blend of the three vertex colors rather than a single flat color.</p>
+      <p>The readFile helper reads the compiled .spv file into a std::vector&lt;char&gt;. Two flags matter: ios::ate positions the cursor at the end so tellg() returns the file size without a separate seek; ios::binary suppresses text-mode transformations — on Windows, opening in text mode converts CR/LF pairs to single LF characters, which would corrupt binary SPIR-V data at any byte pair that happens to match that pattern.</p>
+      <p>VkShaderModule is created with VkShaderModuleCreateInfo, which requires codeSize in bytes and pCode as a const uint32_t* pointer to the bytecode. The cast from char* to uint32_t* is valid because std::vector's default allocator satisfies worst-case alignment — the data is guaranteed to be at least 4-byte aligned. Creating the module does not compile it to GPU machine code; that happens later, during vkCreateGraphicsPipeline.</p>
+      <p>VkPipelineShaderStageCreateInfo wires each module into a specific pipeline stage. The stage field identifies where it runs (VK_SHADER_STAGE_VERTEX_BIT or FRAGMENT_BIT). pName names the entry point — explicitly "main" here, but a single SPIR-V binary can contain multiple entry points with different names, allowing one compiled file to serve multiple pipeline configurations. pSpecializationInfo allows compile-time constants to be injected at pipeline creation, further reducing the need for separate shader variants; it is nullptr in this tutorial. Once vkCreateGraphicsPipeline finishes, the SPIR-V has been compiled into GPU machine code and the VkShaderModule objects can be destroyed immediately — they do not belong in the cleanup() function.</p>
+    </div>
+  </div>
+
+  <!-- STEP-BY-STEP -->
+  <div class="section">
+    <div class="sec-label">Step-by-Step — Shader Module Workflow</div>
+    <ol class="steps-list">
+
+      <li class="step-item">
+        <div class="step-name">Write <code>shader.vert</code> and <code>shader.frag</code> GLSL source files in a <code>shaders/</code> directory</div>
+        <div class="step-why"><span class="step-why-label">WHY</span>Vulkan does not accept GLSL at runtime — the source must be compiled offline. Keeping shaders in a subdirectory makes the compile script's paths predictable.</div>
+      </li>
+
+      <li class="step-item">
+        <div class="step-name">Run <code>glslc shader.vert -o vert.spv</code> and <code>glslc shader.frag -o frag.spv</code> via a build script</div>
+        <div class="step-why"><span class="step-why-label">WHY</span>glslc validates GLSL syntax and semantics, then emits SPIR-V bytecode. The -o flag names the output. Must be re-run whenever the shader source changes.</div>
+        <div class="step-warn"><span class="step-warn-label">WATCH OUT</span>The .spv files must be in the working directory the executable expects at runtime — typically alongside or relative to the binary.</div>
+      </li>
+
+      <li class="step-item">
+        <div class="step-name">Implement <code>readFile()</code> with <code>std::ios::ate | std::ios::binary</code></div>
+        <div class="step-why"><span class="step-why-label">WHY</span>ate positions the read cursor at the end immediately on open, so tellg() gives the file size without a second seek. binary mode is mandatory — text mode on Windows corrupts SPIR-V by mangling CR/LF byte pairs.</div>
+      </li>
+
+      <li class="step-item">
+        <div class="step-name">Implement <code>createShaderModule()</code>: fill <code>VkShaderModuleCreateInfo</code> with <code>codeSize = code.size()</code> and <code>pCode = reinterpret_cast&lt;const uint32_t*&gt;(code.data())</code>, then call <code>vkCreateShaderModule</code></div>
+        <div class="step-why"><span class="step-why-label">WHY</span>The module is a staging wrapper — it does not yet compile to machine code. pCode must be uint32_t-aligned; std::vector's allocator guarantees this.</div>
+        <div class="step-warn"><span class="step-warn-label">WATCH OUT</span>codeSize is in bytes, not in uint32_t elements. Passing the wrong unit would cause the driver to read past the buffer.</div>
+      </li>
+
+      <li class="step-item">
+        <div class="step-name">In <code>createGraphicsPipeline()</code>, create one <code>VkPipelineShaderStageCreateInfo</code> per programmable stage with <code>stage</code>, <code>module</code>, and <code>pName = "main"</code></div>
+        <div class="step-why"><span class="step-why-label">WHY</span>This is how the pipeline knows which shader runs at each stage. pName selects the SPIR-V entry point by name — a single module can hold multiple entry points, chosen here at pipeline-creation time.</div>
+      </li>
+
+      <li class="step-item">
+        <div class="step-name">Destroy both <code>VkShaderModule</code> objects with <code>vkDestroyShaderModule</code> immediately after <code>vkCreateGraphicsPipeline</code> returns — inside <code>createGraphicsPipeline()</code>, not in <code>cleanup()</code></div>
+        <div class="step-why"><span class="step-why-label">WHY</span>Pipeline creation converts SPIR-V to GPU machine code. Once that's done the bytecode in the module is no longer referenced — destroying it frees memory and avoids keeping the object alive unnecessarily through the application's lifetime.</div>
+      </li>
+
+    </ol>
+  </div>
+
+  <!-- QUIZ -->
+  <div class="section">
+    <div class="sec-label">Quiz — 8 Questions</div>
+    <div class="quiz-cards">
+
+      <div class="quiz-card" data-answer="B">
+        <div class="q-num">Q1</div>
+        <div class="q-type">conceptual</div>
+        <div class="q-text">Why does Vulkan require SPIR-V bytecode rather than accepting GLSL or HLSL source strings at runtime like OpenGL?</div>
+        <div class="q-options">
+          <div class="q-option" data-option="A" onclick="selectOption(this)"><span class="q-letter">A</span>SPIR-V compiles faster at runtime than GLSL, reducing application startup time</div>
+          <div class="q-option" data-option="B" onclick="selectOption(this)"><span class="q-letter">B</span>GPU vendors' GLSL compilers historically interpreted the spec inconsistently, causing cross-vendor incompatibilities; SPIR-V is a single unambiguous format that all vendors receive the same input from</div>
+          <div class="q-option" data-option="C" onclick="selectOption(this)"><span class="q-letter">C</span>GLSL is a proprietary format owned by OpenGL; Vulkan needed a format it could license independently</div>
+          <div class="q-option" data-option="D" onclick="selectOption(this)"><span class="q-letter">D</span>SPIR-V allows shaders to be encrypted before distribution, protecting intellectual property</div>
+        </div>
+        <button class="check-btn" onclick="checkAnswer(this.closest('.quiz-card'))" disabled>Check Answer</button>
+        <div class="q-feedback"><div class="fb-verdict"><span class="fb-icon"></span><span class="fb-text"></span></div><div class="fb-explanation"></div></div>
+      </div>
+
+      <div class="quiz-card" data-answer="C">
+        <div class="q-num">Q2</div>
+        <div class="q-type">gotcha</div>
+        <div class="q-text">Why must <code>readFile()</code> open the .spv file with <code>std::ios::binary</code>? What breaks without it?</div>
+        <div class="q-options">
+          <div class="q-option" data-option="A" onclick="selectOption(this)"><span class="q-letter">A</span>Without it, the file is read as UTF-16, corrupting single-byte SPIR-V values</div>
+          <div class="q-option" data-option="B" onclick="selectOption(this)"><span class="q-letter">B</span>Without it, std::ifstream refuses to read files larger than 64 KB</div>
+          <div class="q-option" data-option="C" onclick="selectOption(this)"><span class="q-letter">C</span>Without it, text mode is used on Windows, which converts CR/LF byte pairs to single LF characters — corrupting any SPIR-V byte sequence that happens to match 0x0D 0x0A</div>
+          <div class="q-option" data-option="D" onclick="selectOption(this)"><span class="q-letter">D</span>Without it, seekg(0) does not reset to the beginning of the file, causing readFile() to return an empty buffer</div>
+        </div>
+        <button class="check-btn" onclick="checkAnswer(this.closest('.quiz-card'))" disabled>Check Answer</button>
+        <div class="q-feedback"><div class="fb-verdict"><span class="fb-icon"></span><span class="fb-text"></span></div><div class="fb-explanation"></div></div>
+      </div>
+
+      <div class="quiz-card" data-answer="A">
+        <div class="q-num">Q3</div>
+        <div class="q-type">gotcha</div>
+        <div class="q-text"><code>VkShaderModuleCreateInfo.pCode</code> is typed as <code>const uint32_t*</code> but the buffer is <code>std::vector&lt;char&gt;</code>. Why is the <code>reinterpret_cast</code> safe here, and what is the underlying requirement?</div>
+        <div class="q-options">
+          <div class="q-option" data-option="A" onclick="selectOption(this)"><span class="q-letter">A</span>The cast is safe because std::vector's default allocator guarantees worst-case alignment, satisfying the uint32_t (4-byte) alignment required by the Vulkan spec for pCode</div>
+          <div class="q-option" data-option="B" onclick="selectOption(this)"><span class="q-letter">B</span>The cast is safe because char and uint32_t have the same size on all platforms Vulkan targets</div>
+          <div class="q-option" data-option="C" onclick="selectOption(this)"><span class="q-letter">C</span>The cast is safe as long as the vector contains an even number of elements; odd-length bytecode requires padding</div>
+          <div class="q-option" data-option="D" onclick="selectOption(this)"><span class="q-letter">D</span>The cast is unsafe and should be replaced with memcpy into a std::vector&lt;uint32_t&gt; buffer first</div>
+        </div>
+        <button class="check-btn" onclick="checkAnswer(this.closest('.quiz-card'))" disabled>Check Answer</button>
+        <div class="q-feedback"><div class="fb-verdict"><span class="fb-icon"></span><span class="fb-text"></span></div><div class="fb-explanation"></div></div>
+      </div>
+
+      <div class="quiz-card" data-answer="D">
+        <div class="q-num">Q4</div>
+        <div class="q-type">terminology</div>
+        <div class="q-text">In the vertex shader, what does <code>gl_VertexIndex</code> provide, and what does <code>gl_Position</code> represent?</div>
+        <div class="q-options">
+          <div class="q-option" data-option="A" onclick="selectOption(this)"><span class="q-letter">A</span>gl_VertexIndex is the instance ID for instanced rendering; gl_Position is a 2D screen-space coordinate in pixels</div>
+          <div class="q-option" data-option="B" onclick="selectOption(this)"><span class="q-letter">B</span>gl_VertexIndex is the draw call number; gl_Position is the 3D world-space position before projection</div>
+          <div class="q-option" data-option="C" onclick="selectOption(this)"><span class="q-letter">C</span>gl_VertexIndex is the triangle face index; gl_Position is the final NDC coordinate after perspective division</div>
+          <div class="q-option" data-option="D" onclick="selectOption(this)"><span class="q-letter">D</span>gl_VertexIndex is the index of the vertex being processed (normally indexing a VBO; here used on hardcoded arrays); gl_Position is the vertex's clip-coordinate vec4 output — divided by w to produce NDC during rasterization</div>
+        </div>
+        <button class="check-btn" onclick="checkAnswer(this.closest('.quiz-card'))" disabled>Check Answer</button>
+        <div class="q-feedback"><div class="fb-verdict"><span class="fb-icon"></span><span class="fb-text"></span></div><div class="fb-explanation"></div></div>
+      </div>
+
+      <div class="quiz-card" data-answer="A">
+        <div class="q-num">Q5</div>
+        <div class="q-type">conceptual</div>
+        <div class="q-text">How does <code>fragColor</code> travel from the vertex shader to the fragment shader, and what does the rasterizer do to it along the way?</div>
+        <div class="q-options">
+          <div class="q-option" data-option="A" onclick="selectOption(this)"><span class="q-letter">A</span>The vertex shader outputs it with <code>layout(location=0) out</code>; the fragment shader receives it with <code>layout(location=0) in</code> at the matching slot; the rasterizer linearly interpolates the value across all fragments the triangle covers</div>
+          <div class="q-option" data-option="B" onclick="selectOption(this)"><span class="q-letter">B</span>fragColor is a global shared-memory variable accessible to both stages simultaneously; no rasterizer involvement</div>
+          <div class="q-option" data-option="C" onclick="selectOption(this)"><span class="q-letter">C</span>The vertex shader writes fragColor to a uniform buffer; the fragment shader reads the same uniform; the rasterizer selects the nearest vertex's value per fragment</div>
+          <div class="q-option" data-option="D" onclick="selectOption(this)"><span class="q-letter">D</span>Both shaders declare fragColor as an inout parameter; it is passed by reference through the pipeline with no interpolation</div>
+        </div>
+        <button class="check-btn" onclick="checkAnswer(this.closest('.quiz-card'))" disabled>Check Answer</button>
+        <div class="q-feedback"><div class="fb-verdict"><span class="fb-icon"></span><span class="fb-text"></span></div><div class="fb-explanation"></div></div>
+      </div>
+
+      <div class="quiz-card" data-answer="C">
+        <div class="q-num">Q6</div>
+        <div class="q-type">application</div>
+        <div class="q-text">In <code>VkPipelineShaderStageCreateInfo</code>, what does <code>pName = "main"</code> specify, and what capability does making it explicit enable?</div>
+        <div class="q-options">
+          <div class="q-option" data-option="A" onclick="selectOption(this)"><span class="q-letter">A</span>It sets the debug label shown in validation layer messages for this shader stage</div>
+          <div class="q-option" data-option="B" onclick="selectOption(this)"><span class="q-letter">B</span>It names the VkShaderModule object for GPU profiling tools</div>
+          <div class="q-option" data-option="C" onclick="selectOption(this)"><span class="q-letter">C</span>It selects the entry point function within the SPIR-V binary; making it explicit means a single SPIR-V file can contain multiple entry points — different pipeline configurations can select different functions from the same compiled module</div>
+          <div class="q-option" data-option="D" onclick="selectOption(this)"><span class="q-letter">D</span>It specifies the GLSL version of the shader source that was compiled into SPIR-V</div>
+        </div>
+        <button class="check-btn" onclick="checkAnswer(this.closest('.quiz-card'))" disabled>Check Answer</button>
+        <div class="q-feedback"><div class="fb-verdict"><span class="fb-icon"></span><span class="fb-text"></span></div><div class="fb-explanation"></div></div>
+      </div>
+
+      <div class="quiz-card" data-answer="B">
+        <div class="q-num">Q7</div>
+        <div class="q-type">sequence</div>
+        <div class="q-text">When exactly are <code>VkShaderModule</code> objects destroyed, and why not in <code>cleanup()</code>?</div>
+        <div class="q-options">
+          <div class="q-option" data-option="A" onclick="selectOption(this)"><span class="q-letter">A</span>In cleanup(), because the pipeline holds a reference to the modules and they must outlive it</div>
+          <div class="q-option" data-option="B" onclick="selectOption(this)"><span class="q-letter">B</span>Immediately after vkCreateGraphicsPipeline returns, still inside createGraphicsPipeline() — pipeline creation bakes the SPIR-V into machine code, so the modules are no longer referenced and can be freed right away</div>
+          <div class="q-option" data-option="C" onclick="selectOption(this)"><span class="q-letter">C</span>At the end of initVulkan(), after all pipeline-related setup is complete</div>
+          <div class="q-option" data-option="D" onclick="selectOption(this)"><span class="q-letter">D</span>When the VkPipelineShaderStageCreateInfo struct goes out of scope — the struct's destructor calls vkDestroyShaderModule automatically</div>
+        </div>
+        <button class="check-btn" onclick="checkAnswer(this.closest('.quiz-card'))" disabled>Check Answer</button>
+        <div class="q-feedback"><div class="fb-verdict"><span class="fb-icon"></span><span class="fb-text"></span></div><div class="fb-explanation"></div></div>
+      </div>
+
+      <div class="quiz-card" data-answer="D">
+        <div class="q-num">Q8</div>
+        <div class="q-type">gotcha</div>
+        <div class="q-text">The triangle's vertex shader hardcodes <code>positions[gl_VertexIndex]</code> instead of reading from a vertex buffer. Why is this approach used here, and what does it tell you about <code>gl_VertexIndex</code>'s normal role?</div>
+        <div class="q-options">
+          <div class="q-option" data-option="A" onclick="selectOption(this)"><span class="q-letter">A</span>Hardcoded arrays are faster than vertex buffers; this is the recommended approach for small geometry in production</div>
+          <div class="q-option" data-option="B" onclick="selectOption(this)"><span class="q-letter">B</span>Vertex buffers don't exist yet in Vulkan 1.2; gl_VertexIndex was introduced as a replacement</div>
+          <div class="q-option" data-option="C" onclick="selectOption(this)"><span class="q-letter">C</span>Vulkan requires at least one draw call before vertex buffers can be bound; hardcoding avoids a chicken-and-egg initialization problem</div>
+          <div class="q-option" data-option="D" onclick="selectOption(this)"><span class="q-letter">D</span>Vertex buffers haven't been covered yet in the tutorial, so hardcoded arrays avoid that prerequisite; normally gl_VertexIndex is used to fetch data from a bound VBO, making it the bridge between the pipeline and application-provided geometry</div>
+        </div>
+        <button class="check-btn" onclick="checkAnswer(this.closest('.quiz-card'))" disabled>Check Answer</button>
+        <div class="q-feedback"><div class="fb-verdict"><span class="fb-icon"></span><span class="fb-text"></span></div><div class="fb-explanation"></div></div>
+      </div>
+
+    </div>
+
+    <div class="score-summary" id="score-summary">
+      <div class="score-summary-num" id="summary-num"></div>
+      <div class="score-summary-msg" id="summary-msg"></div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  const TOTAL = 8;
+  let answeredCount = 0;
+  let correctCount = 0;
+
+  const explanations = {
+    1: {
+      correct: 'B',
+      text: 'The tutorial states: "the reason for this is that unlike earlier APIs, shader code in Vulkan has to be specified in a bytecode format as opposed to human-readable syntax like GLSL and HLSL." The core problem was that GPU vendors\' GLSL compilers were complex, inconsistent, and interpreted the spec differently — meaning a valid shader on one GPU might fail or misbehave on another. SPIR-V is well-specified binary; vendors receive the same unambiguous bytes, making their compiler implementations simpler and more consistent.'
+    },
+    2: {
+      correct: 'C',
+      text: 'On Windows, opening a file in text mode causes the C++ runtime to translate CR/LF (0x0D 0x0A) byte sequences to a single LF (0x0A) when reading. SPIR-V is a binary format — any byte pair in the compiled shader that happens to be 0x0D 0x0A would be silently contracted, corrupting the bytecode. std::ios::binary disables this transformation and reads the file exactly as stored on disk.'
+    },
+    3: {
+      correct: 'A',
+      text: 'The Vulkan spec requires pCode to point to uint32_t-aligned memory (4-byte alignment). std::vector\'s default allocator uses ::operator new, which guarantees the "worst-case alignment" for the platform — typically at least 8 or 16 bytes, more than enough for uint32_t. The reinterpret_cast from char* to uint32_t* is therefore safe when the source is a std::vector<char>. If you used a manually allocated char[] buffer without alignment guarantees, you would need to ensure alignment explicitly (e.g., alignas(uint32_t)).'
+    },
+    4: {
+      correct: 'D',
+      text: 'gl_VertexIndex is a built-in input that holds the index of the vertex currently being processed by the vertex shader. In a real application it would be used to fetch data from a bound vertex buffer — it is the hardware\'s way of telling the shader "you are processing vertex N." In this tutorial, since vertex buffers haven\'t been introduced yet, the code uses gl_VertexIndex to index directly into hardcoded compile-time arrays. gl_Position is the 4-component clip-space output position; the rasterizer divides xyz by w to produce normalized device coordinates (NDC). With w=1.0, the division is a no-op and the xy values map directly to NDC.'
+    },
+    5: {
+      correct: 'A',
+      text: 'The vertex shader declares `layout(location = 0) out vec3 fragColor` — the "out" keyword and the location number (0) together define an interface slot. The fragment shader declares `layout(location = 0) in vec3 fragColor` — the matching "in" and location=0 connect them. The variable name doesn\'t actually need to match (the location number is the link), but convention keeps them the same. The rasterizer takes the three vertex values and linearly interpolates them across all fragments the triangle covers, producing smooth per-fragment values that the fragment shader receives.'
+    },
+    6: {
+      correct: 'C',
+      text: 'In GLSL, "main" is the implicit and only entry point. In SPIR-V, a binary can contain multiple entry points with distinct names. VkPipelineShaderStageCreateInfo.pName selects which entry point the pipeline will invoke. This means you could compile multiple shader variants into one SPIR-V binary and select between them at pipeline creation time just by changing pName — a single compiled module serves several configurations without duplicate files.'
+    },
+    7: {
+      correct: 'B',
+      text: 'The tutorial is explicit: "The compilation and linking of the SPIR-V bytecode to machine code for execution by the GPU doesn\'t happen until the graphics pipeline is created." Once vkCreateGraphicsPipeline finishes, the GPU has its native compiled shader in the pipeline object. The VkShaderModule — which held the SPIR-V — is no longer referenced. Destroying it immediately inside createGraphicsPipeline() is correct. Placing it in cleanup() would keep the SPIR-V buffer allocated for the entire application lifetime unnecessarily.'
+    },
+    8: {
+      correct: 'D',
+      text: 'The tutorial acknowledges this directly: "The vertex shader hardcodes the positions and colors data directly in the shader source code for the purposes of simplicity." Vertex buffers are introduced in a later chapter. Normally gl_VertexIndex is how the vertex shader knows which element to fetch from application-provided buffers — it is the sequential integer counter the GPU increments for each vertex in a draw call. Using it to index a shader-internal array works but bypasses the standard data flow entirely; it\'s a pedagogical shortcut, not a production pattern.'
+    }
+  };
+
+  function getCardIndex(card) {
+    return parseInt(card.querySelector('.q-num').textContent.replace('Q', ''));
+  }
+
+  function selectOption(optionEl) {
+    const card = optionEl.closest('.quiz-card');
+    if (card.dataset.answered) return;
+    card.querySelectorAll('.q-option').forEach(o => o.classList.remove('selected'));
+    optionEl.classList.add('selected');
+    card.querySelector('.check-btn').disabled = false;
+  }
+
+  function checkAnswer(card) {
+    if (card.dataset.answered) return;
+    card.dataset.answered = 'true';
+
+    const correct = card.dataset.answer;
+    const selected = card.querySelector('.q-option.selected');
+    const chosen = selected ? selected.dataset.option : null;
+    const idx = getCardIndex(card);
+    const info = explanations[idx];
+
+    const isCorrect = chosen === correct;
+    if (isCorrect) correctCount++;
+    answeredCount++;
+
+    card.querySelectorAll('.q-option').forEach(o => {
+      o.classList.add('locked');
+      if (o.dataset.option === correct) o.classList.add('correct');
+      else if (o.dataset.option === chosen && !isCorrect) o.classList.add('wrong');
+    });
+
+    const feedback = card.querySelector('.q-feedback');
+    const icon = feedback.querySelector('.fb-icon');
+    const verdictText = feedback.querySelector('.fb-text');
+    const explanation = feedback.querySelector('.fb-explanation');
+
+    if (isCorrect) {
+      feedback.classList.add('correct');
+      icon.textContent = '✓';
+      verdictText.textContent = 'Correct';
+    } else {
+      feedback.classList.add('wrong');
+      icon.textContent = '✗';
+      verdictText.textContent = `Incorrect — correct answer is ${correct}`;
+    }
+    explanation.textContent = info.text;
+
+    const btn = card.querySelector('.check-btn');
+    btn.textContent = isCorrect ? '✓ Correct' : '✗ Answered';
+    btn.disabled = true;
+
+    card.classList.add(isCorrect ? 'answered-correct' : 'answered-wrong');
+    updateScore();
+  }
+
+  function updateScore() {
+    const tally = document.getElementById('score-tally');
+    const correctSpan = document.getElementById('score-correct');
+    tally.childNodes[0].textContent = `${answeredCount} / ${TOTAL} answered · `;
+    correctSpan.textContent = correctCount;
+
+    if (answeredCount === TOTAL) {
+      const summary = document.getElementById('score-summary');
+      const pct = correctCount / TOTAL;
+      let msg;
+      if (pct >= 0.9) msg = 'Excellent — SPIR-V, shader plumbing, and module lifetime are all locked in.';
+      else if (pct >= 0.7) msg = 'Good — review what you missed before tackling fixed-function pipeline state.';
+      else msg = 'Review recommended — focus on SPIR-V rationale, ios::binary, the uint32_t alignment, and module destruction timing.';
+      document.getElementById('summary-num').textContent = `${correctCount} / ${TOTAL}`;
+      document.getElementById('summary-msg').textContent = msg;
+      summary.classList.add('visible');
+    }
+  }
+</script>
+</body>
+</html>
