@@ -1,0 +1,463 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Vulkan Tutorial — Graphics Pipeline Conclusion | Learning Session</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=IBM+Plex+Mono:wght@400;500&family=Syne:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #0d0f14; --bg-surface: #10131a; --bg-card: #12151d; --bg-row-alt: #0f1118;
+    --border: #1e2333; --gold: #c9a84c; --gold-dim: #7a6230; --gold-glow: rgba(201,168,76,0.1);
+    --blue: #7eb8d4; --green: #5db88a; --green-dim: rgba(93,184,138,0.15); --green-border: rgba(93,184,138,0.35);
+    --red: #d46a6a; --red-dim: rgba(212,106,106,0.15); --red-border: rgba(212,106,106,0.35);
+    --amber: #d4965a;
+    --text-1: #e8e4dc; --text-2: #8a8c99; --text-3: #4a4e62;
+    --tag-bg: #1a1e2c; --tag-border: #252a3a;
+  }
+  html { background: var(--bg); color: var(--text-1); font-family: 'Syne', sans-serif; -webkit-font-smoothing: antialiased; }
+  body { min-height: 100vh; padding-bottom: 80px; }
+  ::-webkit-scrollbar { width: 4px; }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+
+  .hdr { position: sticky; top: 0; z-index: 10; background: var(--bg-surface); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 12px 24px; gap: 16px; flex-wrap: wrap; }
+  .hdr-left { display: flex; align-items: center; gap: 10px; }
+  .hdr-gem { color: var(--gold); font-size: 14px; }
+  .hdr-title { font-family: 'DM Serif Display', serif; font-size: 16px; color: var(--text-1); }
+  .hdr-right { display: flex; align-items: center; gap: 12px; }
+  .score-tally { font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: var(--text-3); white-space: nowrap; }
+  .score-tally span { color: var(--gold); }
+  .hdr-url { font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: var(--text-3); background: var(--tag-bg); border: 1px solid var(--tag-border); border-radius: 5px; padding: 4px 10px; text-decoration: none; white-space: nowrap; transition: color 0.2s, border-color 0.2s; }
+  .hdr-url:hover { color: var(--gold); border-color: var(--gold-dim); }
+
+  .content { max-width: 800px; margin: 0 auto; padding: 40px 24px; display: flex; flex-direction: column; gap: 40px; }
+  .framing { font-family: 'DM Serif Display', serif; font-size: 16px; color: var(--gold); border-left: 2px solid var(--gold); padding-left: 14px; line-height: 1.55; font-style: italic; }
+  .section { display: flex; flex-direction: column; gap: 14px; }
+  .sec-label { font-family: 'IBM Plex Mono', monospace; font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--text-3); }
+
+  .code-block { background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px; padding: 16px 18px; font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: var(--text-2); line-height: 1.7; overflow-x: auto; white-space: pre; }
+  .code-label { font-family: 'IBM Plex Mono', monospace; font-size: 9px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--text-3); margin-bottom: 8px; }
+  .hl { color: var(--blue); }
+  .hl-gold { color: var(--gold); }
+  .hl-green { color: var(--green); }
+  .hl-amber { color: var(--amber); }
+  .hl-red { color: var(--red); }
+  .hl-dim { color: var(--text-3); }
+
+  .term-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .term-table th { font-family: 'IBM Plex Mono', monospace; font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-3); text-align: left; padding: 8px 12px; background: var(--bg-surface); border-bottom: 1px solid var(--border); }
+  .term-table td { padding: 9px 12px; border-bottom: 1px solid var(--border); vertical-align: top; color: var(--text-2); line-height: 1.5; }
+  .term-table tr:nth-child(even) td { background: var(--bg-row-alt); }
+  .term-table td:first-child { font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: var(--blue); white-space: nowrap; }
+
+  .four-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  @media (max-width: 560px) { .four-grid { grid-template-columns: 1fr; } }
+  .comp-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 7px; padding: 13px 15px; }
+  .comp-num { font-family: 'IBM Plex Mono', monospace; font-size: 9px; color: var(--gold); letter-spacing: 0.1em; margin-bottom: 5px; text-transform: uppercase; }
+  .comp-name { font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: var(--blue); margin-bottom: 7px; }
+  .comp-desc { font-size: 12.5px; color: var(--text-2); line-height: 1.5; }
+
+  .logic-flow { font-size: 14px; line-height: 1.8; color: var(--text-2); display: flex; flex-direction: column; gap: 14px; }
+
+  .steps-list { list-style: none; display: flex; flex-direction: column; gap: 10px; counter-reset: steps; }
+  .step-item { counter-increment: steps; background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px; padding: 14px 16px 14px 54px; position: relative; }
+  .step-item::before { content: counter(steps); position: absolute; left: 14px; top: 14px; font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: var(--gold); background: var(--gold-glow); border: 1px solid var(--gold-dim); border-radius: 4px; width: 26px; height: 26px; display: flex; align-items: center; justify-content: center; }
+  .step-name { font-size: 13.5px; font-weight: 500; color: var(--text-1); margin-bottom: 7px; line-height: 1.4; }
+  .step-name code { font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: var(--blue); background: var(--tag-bg); padding: 1px 5px; border-radius: 3px; }
+  .step-row { font-size: 12.5px; color: var(--text-2); line-height: 1.55; display: flex; gap: 6px; margin-top: 5px; }
+  .step-badge { font-family: 'IBM Plex Mono', monospace; font-size: 9px; border-radius: 3px; padding: 2px 5px; flex-shrink: 0; margin-top: 2px; letter-spacing: 0.06em; }
+  .badge-why { color: var(--green); background: rgba(93,184,138,0.1); border: 1px solid rgba(93,184,138,0.2); }
+  .badge-warn { color: var(--amber); background: rgba(212,150,90,0.1); border: 1px solid rgba(212,150,90,0.2); }
+  .badge-note { color: var(--blue); background: rgba(126,184,212,0.1); border: 1px solid rgba(126,184,212,0.2); }
+
+  .quiz-cards { display: flex; flex-direction: column; gap: 14px; }
+  .quiz-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px; padding: 18px 20px; }
+  .quiz-card.answered-correct { border-left: 3px solid var(--green); }
+  .quiz-card.answered-wrong { border-left: 3px solid var(--red); }
+  .q-num { font-family: 'IBM Plex Mono', monospace; font-size: 10px; color: var(--gold); margin-bottom: 3px; }
+  .q-type { font-family: 'IBM Plex Mono', monospace; font-size: 9px; color: var(--text-3); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 10px; }
+  .q-text { font-size: 13.5px; font-weight: 500; color: var(--text-1); line-height: 1.55; margin-bottom: 14px; }
+  .q-text code { font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: var(--blue); background: var(--tag-bg); padding: 1px 5px; border-radius: 3px; }
+  .q-options { display: flex; flex-direction: column; gap: 7px; margin-bottom: 14px; }
+  .q-option { display: flex; gap: 10px; align-items: flex-start; font-size: 13px; color: var(--text-2); line-height: 1.5; padding: 9px 12px; border: 1px solid var(--border); border-radius: 6px; cursor: pointer; transition: border-color 0.15s, background 0.15s; user-select: none; }
+  .q-option:hover { border-color: var(--gold-dim); background: var(--gold-glow); }
+  .q-option.selected { border-color: var(--gold); background: var(--gold-glow); }
+  .q-option.selected .q-letter { color: var(--gold); border-color: var(--gold-dim); background: rgba(201,168,76,0.15); }
+  .q-option.correct { border-color: var(--green); background: var(--green-dim); pointer-events: none; }
+  .q-option.correct .q-letter { color: var(--green); border-color: var(--green-border); background: rgba(93,184,138,0.15); }
+  .q-option.wrong { border-color: var(--red); background: var(--red-dim); pointer-events: none; }
+  .q-option.wrong .q-letter { color: var(--red); border-color: var(--red-border); background: rgba(212,106,106,0.15); }
+  .q-option.locked { pointer-events: none; }
+  .q-letter { font-family: 'IBM Plex Mono', monospace; font-size: 10px; background: var(--tag-bg); border: 1px solid var(--tag-border); border-radius: 3px; padding: 2px 6px; color: var(--text-3); flex-shrink: 0; margin-top: 1px; transition: color 0.15s, border-color 0.15s, background 0.15s; }
+  .check-btn { background: transparent; border: 1px solid var(--gold-dim); border-radius: 6px; padding: 9px 16px; font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: var(--gold); cursor: pointer; transition: all 0.2s; }
+  .check-btn:hover:not(:disabled) { background: var(--gold-glow); border-color: var(--gold); }
+  .check-btn:disabled { border-color: var(--border); color: var(--text-3); cursor: default; }
+  .q-feedback { display: none; margin-top: 12px; padding: 11px 14px; border-radius: 6px; font-size: 13px; line-height: 1.65; color: var(--text-2); }
+  .q-feedback.correct { display: block; background: var(--green-dim); border: 1px solid var(--green-border); }
+  .q-feedback.wrong { display: block; background: var(--red-dim); border: 1px solid var(--red-border); }
+  .q-feedback .fb-verdict { font-weight: 600; margin-bottom: 4px; display: flex; align-items: center; gap: 6px; }
+  .q-feedback.correct .fb-verdict { color: var(--green); }
+  .q-feedback.wrong .fb-verdict { color: var(--red); }
+  .score-summary { background: var(--bg-card); border: 1px solid var(--border); border-radius: 10px; padding: 28px 24px; text-align: center; display: none; flex-direction: column; gap: 10px; }
+  .score-summary.visible { display: flex; }
+  .score-summary-num { font-family: 'DM Serif Display', serif; font-size: 36px; color: var(--gold); }
+  .score-summary-msg { font-size: 14px; color: var(--text-2); }
+</style>
+</head>
+<body>
+
+<header class="hdr">
+  <div class="hdr-left">
+    <span class="hdr-gem">◆</span>
+    <span class="hdr-title">Vulkan Tutorial — Graphics Pipeline Conclusion</span>
+  </div>
+  <div class="hdr-right">
+    <span class="score-tally" id="score-tally">0 / 5 answered &middot; <span id="score-correct">0</span> correct</span>
+    <a class="hdr-url" href="https://vulkan-tutorial.com/Drawing_a_triangle/Graphics_pipeline_basics/Conclusion" target="_blank" rel="noopener">vulkan-tutorial.com ↗</a>
+  </div>
+</header>
+
+<div class="content">
+
+  <p class="framing">All the shader stages, fixed-function structs, the pipeline layout, and the render pass finally come together in a single <code style="font-family:'IBM Plex Mono',monospace;font-size:14px;color:#c9a84c">VkGraphicsPipelineCreateInfo</code> — and are compiled into an immutable pipeline object with one call to <code style="font-family:'IBM Plex Mono',monospace;font-size:14px;color:#c9a84c">vkCreateGraphicsPipelines</code>.</p>
+
+  <!-- FOUR COMPONENTS -->
+  <div class="section">
+    <div class="sec-label">The Four Components of VkGraphicsPipelineCreateInfo</div>
+    <div class="four-grid">
+      <div class="comp-card">
+        <div class="comp-num">Component 01</div>
+        <div class="comp-name">Shader stages</div>
+        <div class="comp-desc">The VkPipelineShaderStageCreateInfo array describing the vertex and fragment shader modules with their entry points and specialization constants</div>
+      </div>
+      <div class="comp-card">
+        <div class="comp-num">Component 02</div>
+        <div class="comp-name">Fixed-function state</div>
+        <div class="comp-desc">Pointers to all the fixed-function structs: vertex input, input assembly, viewport/scissor, rasterizer, multisampling, depth-stencil, and color blending — plus dynamic state</div>
+      </div>
+      <div class="comp-card">
+        <div class="comp-num">Component 03</div>
+        <div class="comp-name">Pipeline layout</div>
+        <div class="comp-desc">The VkPipelineLayout handle describing uniform buffers, push constants, and descriptor sets accessible from shaders during draw operations</div>
+      </div>
+      <div class="comp-card">
+        <div class="comp-num">Component 04</div>
+        <div class="comp-name">Render pass</div>
+        <div class="comp-desc">The VkRenderPass handle plus the subpass index — the pipeline is validated against this render pass's attachment formats; compatible render passes may also be used</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- KEY TERMINOLOGY -->
+  <div class="section">
+    <div class="sec-label">Key Terminology</div>
+    <table class="term-table">
+      <thead>
+        <tr><th>Term</th><th>Definition</th><th>Key detail</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>vkCreateGraphicsPipelines</td><td>The Vulkan function that compiles all pipeline state into an immutable VkPipeline object optimized for the GPU driver</td><td>Accepts an array of VkGraphicsPipelineCreateInfo — can create multiple pipelines in a single call, enabling batch compilation</td></tr>
+        <tr><td>VkPipelineCache</td><td>An opaque object that stores compiled pipeline data so subsequent pipeline creations with the same state can reuse the cached result instead of recompiling</td><td>Can be serialized to disk (via vkGetPipelineCacheData) and reloaded (via VkPipelineCacheCreateInfo.pInitialData) to accelerate cold startup on future program runs</td></tr>
+        <tr><td>Pipeline derivatives</td><td>A mechanism to create a new pipeline by deriving from an existing "parent" pipeline that shares significant state, reducing the cost of creation for the derived pipeline</td><td>Requires VK_PIPELINE_CREATE_DERIVATIVE_BIT in the flags field; referenced via basePipelineHandle (an existing VkPipeline) or basePipelineIndex (index into the same creation batch); both fields are VK_NULL_HANDLE / -1 when unused</td></tr>
+        <tr><td>subpass (field)</td><td>The index of the subpass within the render pass where this pipeline will be used</td><td>Tutorial value is 0 (first and only subpass); a pipeline created for subpass 0 cannot be used in subpass 1 of the same render pass without a separate pipeline object</td></tr>
+        <tr><td>Render pass compatibility</td><td>The rule that a pipeline may be used with render passes other than the one it was created against, as long as they are "compatible" — meaning the attachment count, formats, and sample counts match</td><td>Compatibility does not require the exact same VkRenderPass handle; only the structural properties of the attachments referenced by the subpass need to match</td></tr>
+        <tr><td>pDepthStencilState = nullptr</td><td>The depth-stencil state pointer may be null when no depth or stencil testing is configured for the pipeline</td><td>The tutorial sets this to nullptr at this stage because depth buffering is not enabled yet; it will be wired in a later chapter</td></tr>
+        <tr><td>vkDestroyPipeline</td><td>The cleanup call for a VkPipeline handle; must be called before vkDestroyDevice</td><td>Tutorial cleanup order: vkDestroyPipeline → vkDestroyPipelineLayout → vkDestroyRenderPass → (swap chain / image view cleanup) → vkDestroyDevice</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- KEY CODE -->
+  <div class="section">
+    <div class="sec-label">Key Code — Complete VkGraphicsPipelineCreateInfo</div>
+    <div class="code-block"><span class="hl-dim">// Assemble the pipeline create info</span>
+VkGraphicsPipelineCreateInfo pipelineInfo{};
+pipelineInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
+
+<span class="hl-dim">// ── Shader stages ───────────────────────────────────────────────────────</span>
+pipelineInfo.stageCount = 2;
+pipelineInfo.pStages    = shaderStages;   <span class="hl-dim">// vert + frag VkPipelineShaderStageCreateInfo</span>
+
+<span class="hl-dim">// ── Fixed-function state ─────────────────────────────────────────────────</span>
+pipelineInfo.pVertexInputState   = &amp;vertexInputInfo;
+pipelineInfo.pInputAssemblyState = &amp;inputAssembly;
+pipelineInfo.pViewportState      = &amp;viewportState;
+pipelineInfo.pRasterizationState = &amp;rasterizer;
+pipelineInfo.pMultisampleState   = &amp;multisampling;
+pipelineInfo.pDepthStencilState  = <span class="hl-amber">nullptr</span>;   <span class="hl-dim">// optional — not used yet</span>
+pipelineInfo.pColorBlendState    = &amp;colorBlending;
+pipelineInfo.pDynamicState       = &amp;dynamicState;
+
+<span class="hl-dim">// ── Layout &amp; render pass ─────────────────────────────────────────────────</span>
+pipelineInfo.layout     = pipelineLayout;
+pipelineInfo.renderPass = renderPass;
+pipelineInfo.subpass    = 0;              <span class="hl-dim">// index of subpass this pipeline is used in</span>
+
+<span class="hl-dim">// ── Pipeline derivatives (unused here) ──────────────────────────────────</span>
+pipelineInfo.basePipelineHandle = VK_NULL_HANDLE;  <span class="hl-dim">// no parent pipeline</span>
+pipelineInfo.basePipelineIndex  = -1;              <span class="hl-dim">// no index into batch</span>
+<span class="hl-dim">// requires VK_PIPELINE_CREATE_DERIVATIVE_BIT to activate</span>
+
+<span class="hl-dim">// ── Create ───────────────────────────────────────────────────────────────</span>
+if (vkCreateGraphicsPipelines(
+        device,
+        <span class="hl-amber">VK_NULL_HANDLE</span>,   <span class="hl-dim">// pipeline cache — nullptr/VK_NULL_HANDLE = disabled</span>
+        1, &amp;pipelineInfo,
+        nullptr,
+        &amp;graphicsPipeline) != VK_SUCCESS) {
+    throw std::runtime_error("failed to create graphics pipeline!");
+}
+
+<span class="hl-dim">// ── Cleanup (after pipeline use, before device) ──────────────────────────</span>
+vkDestroyPipeline(device, graphicsPipeline, nullptr);
+vkDestroyPipelineLayout(device, pipelineLayout, nullptr);</div>
+  </div>
+
+  <!-- LOGIC FLOW -->
+  <div class="section">
+    <div class="sec-label">Logic Flow</div>
+    <div class="logic-flow">
+      <p>The conclusion chapter is the assembly step. Every object created in the preceding chapters — shader modules wrapped in stage descriptors, the half-dozen fixed-function structs, the pipeline layout, and the render pass — is referenced by pointer or handle in a single VkGraphicsPipelineCreateInfo. This structure is effectively a complete specification of everything the GPU needs to know about one rendering configuration: how vertex data arrives, how it flows through the programmable stages, how rasterization and blending work, and what the output framebuffer looks like.</p>
+      <p>Two fields on VkGraphicsPipelineCreateInfo deserve special attention. The subpass field (set to 0) tells Vulkan which subpass within the render pass this pipeline targets — a pipeline is not just tied to a render pass but to a specific subpass within it. The tutorial notes that the pipeline <em>can</em> be used with other render passes as long as they are "compatible" — meaning the attachment properties match — but it cannot be used in a different subpass index without a distinct pipeline object. The pDepthStencilState field is set to nullptr because depth testing is not yet part of the tutorial; Vulkan accepts a null pointer here as long as the render pass's subpass does not use a depth-stencil attachment.</p>
+      <p>The two "derivative" fields — basePipelineHandle and basePipelineIndex — expose an optimization for applications that create many similar pipelines. By setting VK_PIPELINE_CREATE_DERIVATIVE_BIT in the flags and pointing to a parent pipeline (either by handle or by batch index), Vulkan can reuse driver-internal compilation work from the parent for the derived pipeline. At this point in the tutorial both fields are inactive. The creation function itself, vkCreateGraphicsPipelines (note the plural), accepts an array of create infos and fills an array of pipeline handles, enabling multiple pipelines to be compiled in one driver call — potentially more efficient than independent calls. The second parameter takes an optional VkPipelineCache; when supplied with a cache that was loaded from a file saved in a previous run, the driver can skip redundant shader compilation entirely, dramatically speeding up cold startup in shipping applications.</p>
+    </div>
+  </div>
+
+  <!-- STEP-BY-STEP -->
+  <div class="section">
+    <div class="sec-label">Step-by-Step — createGraphicsPipeline()</div>
+    <ol class="steps-list">
+
+      <li class="step-item">
+        <div class="step-name">Zero-initialize <code>VkGraphicsPipelineCreateInfo</code>, set <code>sType</code></div>
+        <div class="step-row"><span class="step-badge badge-why">WHY</span>Zero-initialization ensures every optional pointer defaults to nullptr rather than garbage — Vulkan reads all pointer fields and a stale pointer causes undefined behavior or validation errors.</div>
+      </li>
+
+      <li class="step-item">
+        <div class="step-name">Set <code>stageCount = 2</code> and <code>pStages = shaderStages</code></div>
+        <div class="step-row"><span class="step-badge badge-why">WHY</span>Links the compiled vertex and fragment shader modules (with entry-point name "main") into the pipeline.</div>
+      </li>
+
+      <li class="step-item">
+        <div class="step-name">Assign all seven fixed-function state pointers (<code>pVertexInputState</code> through <code>pDynamicState</code>); set <code>pDepthStencilState = nullptr</code></div>
+        <div class="step-row"><span class="step-badge badge-warn">WATCH OUT</span>nullptr is only valid for pDepthStencilState when the subpass uses no depth-stencil attachment. Once a depth buffer is added, a real VkPipelineDepthStencilStateCreateInfo is required.</div>
+      </li>
+
+      <li class="step-item">
+        <div class="step-name">Set <code>layout = pipelineLayout</code>, <code>renderPass = renderPass</code>, <code>subpass = 0</code></div>
+        <div class="step-row"><span class="step-badge badge-why">WHY</span>The pipeline must know the render pass attachment format for validation, and the subpass index to know which attachments it writes. The layout declares all resource bindings the shaders will access.</div>
+        <div class="step-row"><span class="step-badge badge-note">NOTE</span>The pipeline may be used with other render passes, but only if they are "compatible" — same attachment count, formats, and sample counts for the referenced subpass.</div>
+      </li>
+
+      <li class="step-item">
+        <div class="step-name">Set <code>basePipelineHandle = VK_NULL_HANDLE</code> and <code>basePipelineIndex = -1</code></div>
+        <div class="step-row"><span class="step-badge badge-why">WHY</span>Pipeline derivatives are inactive here. These fields only take effect when <code>VK_PIPELINE_CREATE_DERIVATIVE_BIT</code> is set in the flags field — without that flag, both values are ignored by the driver.</div>
+      </li>
+
+      <li class="step-item">
+        <div class="step-name">Call <code>vkCreateGraphicsPipelines(device, VK_NULL_HANDLE, 1, &amp;pipelineInfo, nullptr, &amp;graphicsPipeline)</code></div>
+        <div class="step-row"><span class="step-badge badge-note">NOTE</span>The second parameter is the pipeline cache — VK_NULL_HANDLE disables caching. A VkPipelineCache loaded from disk would accelerate this call on repeat runs by reusing prior compilation output.</div>
+        <div class="step-row"><span class="step-badge badge-warn">WATCH OUT</span>Shader modules referenced in pStages can be destroyed immediately after this call returns — the pipeline holds its own compiled copy of the shader bytecode.</div>
+      </li>
+
+      <li class="step-item">
+        <div class="step-name">Add <code>vkDestroyPipeline</code> and <code>vkDestroyPipelineLayout</code> to <code>cleanup()</code> in that order</div>
+        <div class="step-row"><span class="step-badge badge-why">WHY</span>The pipeline holds a reference to the layout internally; destroy the pipeline first, then the layout. Both must be destroyed before vkDestroyDevice.</div>
+      </li>
+
+    </ol>
+  </div>
+
+  <!-- QUIZ -->
+  <div class="section">
+    <div class="sec-label">Quiz — 5 Questions</div>
+    <div class="quiz-cards">
+
+      <div class="quiz-card" data-answer="C">
+        <div class="q-num">Q1</div>
+        <div class="q-type">gotcha</div>
+        <div class="q-text"><code>vkCreateGraphicsPipelines</code> is deliberately named in the plural. What does this reflect about the function's design?</div>
+        <div class="q-options">
+          <div class="q-option" data-option="A" onclick="selectOption(this)"><span class="q-letter">A</span>It creates both a graphics pipeline and a compute pipeline in a single call, since they share the same pipeline layout</div>
+          <div class="q-option" data-option="B" onclick="selectOption(this)"><span class="q-letter">B</span>It is named in the plural because it also creates the pipeline layout and render pass as a side effect</div>
+          <div class="q-option" data-option="C" onclick="selectOption(this)"><span class="q-letter">C</span>It accepts an array of VkGraphicsPipelineCreateInfo structs and fills an array of VkPipeline handles — multiple pipelines can be compiled in a single driver call, which may be more efficient than independent calls</div>
+          <div class="q-option" data-option="D" onclick="selectOption(this)"><span class="q-letter">D</span>It creates one VkPipeline per shader stage — two shader stages means two pipeline objects are created</div>
+        </div>
+        <button class="check-btn" onclick="checkAnswer(this.closest('.quiz-card'))" disabled>Check Answer</button>
+        <div class="q-feedback"><div class="fb-verdict"><span class="fb-icon"></span><span class="fb-text"></span></div><div class="fb-explanation"></div></div>
+      </div>
+
+      <div class="quiz-card" data-answer="B">
+        <div class="q-num">Q2</div>
+        <div class="q-type">gotcha</div>
+        <div class="q-text">The tutorial sets <code>pDepthStencilState = nullptr</code>. Under what condition is this valid, and what would break if a depth attachment were added to the render pass?</div>
+        <div class="q-options">
+          <div class="q-option" data-option="A" onclick="selectOption(this)"><span class="q-letter">A</span>nullptr is always valid for pDepthStencilState — if no depth test is wanted, Vulkan ignores the field entirely regardless of the render pass</div>
+          <div class="q-option" data-option="B" onclick="selectOption(this)"><span class="q-letter">B</span>nullptr is valid only when the subpass uses no depth-stencil attachment. If a depth attachment were added to the render pass's subpass, the pipeline would require a real VkPipelineDepthStencilStateCreateInfo — passing nullptr would be a validation error</div>
+          <div class="q-option" data-option="C" onclick="selectOption(this)"><span class="q-letter">C</span>nullptr is valid as long as the fragment shader does not write to gl_FragDepth; the render pass attachment list is irrelevant</div>
+          <div class="q-option" data-option="D" onclick="selectOption(this)"><span class="q-letter">D</span>Passing nullptr for pDepthStencilState causes depth writes to be disabled but depth reads to remain active — it is not a null-disables-all shortcut</div>
+        </div>
+        <button class="check-btn" onclick="checkAnswer(this.closest('.quiz-card'))" disabled>Check Answer</button>
+        <div class="q-feedback"><div class="fb-verdict"><span class="fb-icon"></span><span class="fb-text"></span></div><div class="fb-explanation"></div></div>
+      </div>
+
+      <div class="quiz-card" data-answer="D">
+        <div class="q-num">Q3</div>
+        <div class="q-type">terminology</div>
+        <div class="q-text">What is a pipeline derivative, and what must you do to activate <code>basePipelineHandle</code> or <code>basePipelineIndex</code>?</div>
+        <div class="q-options">
+          <div class="q-option" data-option="A" onclick="selectOption(this)"><span class="q-letter">A</span>A pipeline derivative is a sub-pipeline that handles a single draw call's state; it activates automatically when basePipelineHandle is not VK_NULL_HANDLE</div>
+          <div class="q-option" data-option="B" onclick="selectOption(this)"><span class="q-letter">B</span>A pipeline derivative copies shader bytecode from the parent pipeline; you activate it by setting stageCount = 0 and pointing pStages to the parent's stages</div>
+          <div class="q-option" data-option="C" onclick="selectOption(this)"><span class="q-letter">C</span>A pipeline derivative allows the child pipeline to share a render pass with the parent; it is activated by giving them the same pipelineLayout handle</div>
+          <div class="q-option" data-option="D" onclick="selectOption(this)"><span class="q-letter">D</span>A pipeline derivative is a new pipeline that reuses driver compilation work from a parent pipeline with similar state, reducing creation cost; it is activated by setting <code>VK_PIPELINE_CREATE_DERIVATIVE_BIT</code> in the flags field — without this flag, basePipelineHandle and basePipelineIndex are ignored</div>
+        </div>
+        <button class="check-btn" onclick="checkAnswer(this.closest('.quiz-card'))" disabled>Check Answer</button>
+        <div class="q-feedback"><div class="fb-verdict"><span class="fb-icon"></span><span class="fb-text"></span></div><div class="fb-explanation"></div></div>
+      </div>
+
+      <div class="quiz-card" data-answer="A">
+        <div class="q-num">Q4</div>
+        <div class="q-type">application</div>
+        <div class="q-text">What does passing a valid <code>VkPipelineCache</code> to <code>vkCreateGraphicsPipelines</code> enable, and how can the benefit extend across program restarts?</div>
+        <div class="q-options">
+          <div class="q-option" data-option="A" onclick="selectOption(this)"><span class="q-letter">A</span>The cache stores compiled pipeline data so that repeated pipeline creations with the same state reuse the cached compilation result instead of recompiling. The cache can be serialized to disk with vkGetPipelineCacheData and reloaded via VkPipelineCacheCreateInfo.pInitialData on the next run, making even cold startup fast</div>
+          <div class="q-option" data-option="B" onclick="selectOption(this)"><span class="q-letter">B</span>The cache stores all VkPipelineCreateInfo structs so you don't need to re-fill them on the next run; it does not cache GPU compilation, only the CPU struct construction</div>
+          <div class="q-option" data-option="C" onclick="selectOption(this)"><span class="q-letter">C</span>The cache shares compiled pipeline objects between threads, reducing synchronization overhead when multiple threads call vkCreateGraphicsPipelines concurrently</div>
+          <div class="q-option" data-option="D" onclick="selectOption(this)"><span class="q-letter">D</span>The cache is an LRU memory pool for VkPipeline handles; when the pool is full, least-recently-used pipelines are evicted and must be recreated if needed again</div>
+        </div>
+        <button class="check-btn" onclick="checkAnswer(this.closest('.quiz-card'))" disabled>Check Answer</button>
+        <div class="q-feedback"><div class="fb-verdict"><span class="fb-icon"></span><span class="fb-text"></span></div><div class="fb-explanation"></div></div>
+      </div>
+
+      <div class="quiz-card" data-answer="C">
+        <div class="q-num">Q5</div>
+        <div class="q-type">conceptual</div>
+        <div class="q-text">The tutorial says this pipeline <em>can</em> be used with render passes other than the one it was created against. What is the condition for this, and what does it NOT require?</div>
+        <div class="q-options">
+          <div class="q-option" data-option="A" onclick="selectOption(this)"><span class="q-letter">A</span>The pipeline can be used with any render pass as long as the same VkPipelineLayout is used — attachment formats are irrelevant once the pipeline is compiled</div>
+          <div class="q-option" data-option="B" onclick="selectOption(this)"><span class="q-letter">B</span>The pipeline can be used with another render pass only if it was created with VK_PIPELINE_CREATE_ALLOW_DERIVATIVES_BIT, which signals driver flexibility</div>
+          <div class="q-option" data-option="C" onclick="selectOption(this)"><span class="q-letter">C</span>The other render pass must be "compatible" — meaning matching attachment counts, formats, and sample counts for the referenced subpass. It does NOT require the exact same VkRenderPass handle; structural equivalence is sufficient</div>
+          <div class="q-option" data-option="D" onclick="selectOption(this)"><span class="q-letter">D</span>The pipeline cannot be used with any other render pass — the handle is baked in at compile time and the driver generates code specific to that exact render pass object</div>
+        </div>
+        <button class="check-btn" onclick="checkAnswer(this.closest('.quiz-card'))" disabled>Check Answer</button>
+        <div class="q-feedback"><div class="fb-verdict"><span class="fb-icon"></span><span class="fb-text"></span></div><div class="fb-explanation"></div></div>
+      </div>
+
+    </div>
+
+    <div class="score-summary" id="score-summary">
+      <div class="score-summary-num" id="summary-num"></div>
+      <div class="score-summary-msg" id="summary-msg"></div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  const TOTAL = 5;
+  let answeredCount = 0;
+  let correctCount = 0;
+
+  const explanations = {
+    1: {
+      correct: 'C',
+      text: 'The function signature is: vkCreateGraphicsPipelines(device, cache, createInfoCount, pCreateInfos, pAllocator, pPipelines). The third parameter is a count and the fourth is a pointer to an array of VkGraphicsPipelineCreateInfo structs. The sixth parameter is a pointer to an array of VkPipeline handles to fill. This batch API means the driver can see all requested pipelines at once — it can potentially parallelize compilation or share intermediate compilation artifacts across them, which is more efficient than calling vkCreateGraphicsPipeline once per pipeline.'
+    },
+    2: {
+      correct: 'B',
+      text: 'Vulkan validates pDepthStencilState against the subpass configuration. If the subpass does not reference a depth-stencil attachment (no pDepthStencilAttachment in VkSubpassDescription), then pDepthStencilState can be null — the driver simply has no depth-stencil stage to configure. If a depth-stencil attachment is present in the subpass, the field must point to a valid VkPipelineDepthStencilStateCreateInfo configuring the depth comparison operation, depth writes enable/disable, and stencil test parameters. Passing nullptr in that case is a validation error.'
+    },
+    3: {
+      correct: 'D',
+      text: 'Pipeline derivatives are an optimization hint. To use them: (1) Set VK_PIPELINE_CREATE_DERIVATIVE_BIT in pipelineInfo.flags. (2) Set either basePipelineHandle to an existing VkPipeline, or basePipelineIndex to the index of another pipeline in the same vkCreateGraphicsPipelines batch. Without VK_PIPELINE_CREATE_DERIVATIVE_BIT, the driver ignores both fields entirely — setting them without the flag has no effect and wastes no time. The parent pipeline must have been created with VK_PIPELINE_CREATE_ALLOW_DERIVATIVES_BIT for the relationship to be valid.'
+    },
+    4: {
+      correct: 'A',
+      text: 'The VkPipelineCache is an opaque driver object that accumulates compiled pipeline data. When vkCreateGraphicsPipelines is called with a cache, the driver checks whether any requested pipeline state matches something already in the cache; if so, it reuses the compiled result rather than recompiling. At the end of a session, the application calls vkGetPipelineCacheData to extract the raw bytes, writes them to disk, and on the next launch calls vkCreatePipelineCache with pInitialData pointing to those bytes — so the very first pipeline compilation of the next run can hit the cache. This is why games and Vulkan engines show a "compiling shaders" spinner on first launch but not on subsequent launches.'
+    },
+    5: {
+      correct: 'C',
+      text: 'Vulkan defines "render pass compatibility" precisely in the spec: two render passes are compatible if they have the same number of subpasses, and for each subpass the same number and types (format + sample count) of attachments. The exact VkRenderPass object handles do not need to be identical — a different VkRenderPass that was created with structurally equivalent parameters satisfies the compatibility rule. This matters in practice when you recreate the swap chain (which requires new image views and a new render pass object), but want to reuse the existing pipeline without recreating it.'
+    }
+  };
+
+  function getCardIndex(card) {
+    return parseInt(card.querySelector('.q-num').textContent.replace('Q', ''));
+  }
+
+  function selectOption(optionEl) {
+    const card = optionEl.closest('.quiz-card');
+    if (card.dataset.answered) return;
+    card.querySelectorAll('.q-option').forEach(o => o.classList.remove('selected'));
+    optionEl.classList.add('selected');
+    card.querySelector('.check-btn').disabled = false;
+  }
+
+  function checkAnswer(card) {
+    if (card.dataset.answered) return;
+    card.dataset.answered = 'true';
+
+    const correct = card.dataset.answer;
+    const selected = card.querySelector('.q-option.selected');
+    const chosen = selected ? selected.dataset.option : null;
+    const idx = getCardIndex(card);
+    const info = explanations[idx];
+
+    const isCorrect = chosen === correct;
+    if (isCorrect) correctCount++;
+    answeredCount++;
+
+    card.querySelectorAll('.q-option').forEach(o => {
+      o.classList.add('locked');
+      if (o.dataset.option === correct) o.classList.add('correct');
+      else if (o.dataset.option === chosen && !isCorrect) o.classList.add('wrong');
+    });
+
+    const feedback = card.querySelector('.q-feedback');
+    const icon = feedback.querySelector('.fb-icon');
+    const verdictText = feedback.querySelector('.fb-text');
+    const explanation = feedback.querySelector('.fb-explanation');
+
+    if (isCorrect) {
+      feedback.classList.add('correct');
+      icon.textContent = '✓';
+      verdictText.textContent = 'Correct';
+    } else {
+      feedback.classList.add('wrong');
+      icon.textContent = '✗';
+      verdictText.textContent = `Incorrect — correct answer is ${correct}`;
+    }
+    explanation.textContent = info.text;
+
+    const btn = card.querySelector('.check-btn');
+    btn.textContent = isCorrect ? '✓ Correct' : '✗ Answered';
+    btn.disabled = true;
+
+    card.classList.add(isCorrect ? 'answered-correct' : 'answered-wrong');
+    updateScore();
+  }
+
+  function updateScore() {
+    const tally = document.getElementById('score-tally');
+    const correctSpan = document.getElementById('score-correct');
+    tally.childNodes[0].textContent = `${answeredCount} / ${TOTAL} answered · `;
+    correctSpan.textContent = correctCount;
+
+    if (answeredCount === TOTAL) {
+      const summary = document.getElementById('score-summary');
+      const pct = correctCount / TOTAL;
+      let msg;
+      if (pct >= 0.9) msg = 'Excellent — pipeline assembly, caching, and render pass compatibility are solid.';
+      else if (pct >= 0.7) msg = 'Good — review what you missed before the framebuffers chapter.';
+      else msg = 'Review recommended — revisit VkGraphicsPipelineCreateInfo field semantics and the pipeline cache concept.';
+      document.getElementById('summary-num').textContent = `${correctCount} / ${TOTAL}`;
+      document.getElementById('summary-msg').textContent = msg;
+      summary.classList.add('visible');
+    }
+  }
+</script>
+</body>
+</html>

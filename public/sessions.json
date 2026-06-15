@@ -128,5 +128,15 @@
     "questionCount": 7,
     "file": "sessions/vulkan-render-passes-learning.html",
     "excerpt": "How VkAttachmentDescription declares load/store ops and image layout transitions, the VkAttachmentReference → fragment shader location linkage, subpass bandwidth optimization, and why createRenderPass() must precede createGraphicsPipeline()."
+  },
+  {
+    "id": "vulkan-pipeline-conclusion",
+    "title": "Vulkan Tutorial — Graphics Pipeline Conclusion",
+    "url": "https://vulkan-tutorial.com/Drawing_a_triangle/Graphics_pipeline_basics/Conclusion",
+    "date": "2026-06-14",
+    "tags": ["graphics", "vulkan", "gpu", "cpp"],
+    "questionCount": 5,
+    "file": "sessions/vulkan-pipeline-conclusion-learning.html",
+    "excerpt": "Assembling all four components into VkGraphicsPipelineCreateInfo, why vkCreateGraphicsPipelines accepts an array, what VkPipelineCache enables across program runs, pipeline derivatives, and render pass compatibility."
   }
 ]
