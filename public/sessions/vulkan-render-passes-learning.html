@@ -1,0 +1,522 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Vulkan Tutorial — Render Passes | Learning Session</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=IBM+Plex+Mono:wght@400;500&family=Syne:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #0d0f14; --bg-surface: #10131a; --bg-card: #12151d; --bg-row-alt: #0f1118;
+    --border: #1e2333; --gold: #c9a84c; --gold-dim: #7a6230; --gold-glow: rgba(201,168,76,0.1);
+    --blue: #7eb8d4; --green: #5db88a; --green-dim: rgba(93,184,138,0.15); --green-border: rgba(93,184,138,0.35);
+    --red: #d46a6a; --red-dim: rgba(212,106,106,0.15); --red-border: rgba(212,106,106,0.35);
+    --amber: #d4965a;
+    --text-1: #e8e4dc; --text-2: #8a8c99; --text-3: #4a4e62;
+    --tag-bg: #1a1e2c; --tag-border: #252a3a;
+  }
+  html { background: var(--bg); color: var(--text-1); font-family: 'Syne', sans-serif; -webkit-font-smoothing: antialiased; }
+  body { min-height: 100vh; padding-bottom: 80px; }
+  ::-webkit-scrollbar { width: 4px; }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+
+  .hdr { position: sticky; top: 0; z-index: 10; background: var(--bg-surface); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 12px 24px; gap: 16px; flex-wrap: wrap; }
+  .hdr-left { display: flex; align-items: center; gap: 10px; }
+  .hdr-gem { color: var(--gold); font-size: 14px; }
+  .hdr-title { font-family: 'DM Serif Display', serif; font-size: 16px; color: var(--text-1); }
+  .hdr-right { display: flex; align-items: center; gap: 12px; }
+  .score-tally { font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: var(--text-3); white-space: nowrap; }
+  .score-tally span { color: var(--gold); }
+  .hdr-url { font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: var(--text-3); background: var(--tag-bg); border: 1px solid var(--tag-border); border-radius: 5px; padding: 4px 10px; text-decoration: none; white-space: nowrap; transition: color 0.2s, border-color 0.2s; }
+  .hdr-url:hover { color: var(--gold); border-color: var(--gold-dim); }
+
+  .content { max-width: 800px; margin: 0 auto; padding: 40px 24px; display: flex; flex-direction: column; gap: 40px; }
+  .framing { font-family: 'DM Serif Display', serif; font-size: 16px; color: var(--gold); border-left: 2px solid var(--gold); padding-left: 14px; line-height: 1.55; font-style: italic; }
+  .section { display: flex; flex-direction: column; gap: 14px; }
+  .sec-label { font-family: 'IBM Plex Mono', monospace; font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--text-3); }
+
+  .term-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .term-table th { font-family: 'IBM Plex Mono', monospace; font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-3); text-align: left; padding: 8px 12px; background: var(--bg-surface); border-bottom: 1px solid var(--border); }
+  .term-table td { padding: 9px 12px; border-bottom: 1px solid var(--border); vertical-align: top; color: var(--text-2); line-height: 1.5; }
+  .term-table tr:nth-child(even) td { background: var(--bg-row-alt); }
+  .term-table td:first-child { font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: var(--blue); white-space: nowrap; }
+
+  .code-block { background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px; padding: 16px 18px; font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: var(--text-2); line-height: 1.65; overflow-x: auto; white-space: pre; }
+  .code-label { font-family: 'IBM Plex Mono', monospace; font-size: 9px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--text-3); margin-bottom: 8px; }
+
+  .fields-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  @media (max-width: 560px) { .fields-grid { grid-template-columns: 1fr; } }
+  .field-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 7px; padding: 12px 14px; }
+  .field-name { font-family: 'IBM Plex Mono', monospace; font-size: 10.5px; color: var(--blue); margin-bottom: 7px; }
+  .field-row { display: flex; flex-direction: column; gap: 4px; }
+  .field-opt { font-family: 'IBM Plex Mono', monospace; font-size: 10px; padding: 3px 7px; border-radius: 3px; line-height: 1.4; }
+  .field-opt.pick { background: rgba(93,184,138,0.1); border: 1px solid rgba(93,184,138,0.2); color: var(--green); }
+  .field-opt.neutral { background: var(--tag-bg); border: 1px solid var(--tag-border); color: var(--text-3); }
+  .field-note { font-size: 11.5px; color: var(--text-3); margin-top: 6px; line-height: 1.4; }
+
+  .logic-flow { font-size: 14px; line-height: 1.8; color: var(--text-2); display: flex; flex-direction: column; gap: 14px; }
+
+  .steps-list { list-style: none; display: flex; flex-direction: column; gap: 10px; counter-reset: steps; }
+  .step-item { counter-increment: steps; background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px; padding: 14px 16px 14px 54px; position: relative; }
+  .step-item::before { content: counter(steps); position: absolute; left: 14px; top: 14px; font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: var(--gold); background: var(--gold-glow); border: 1px solid var(--gold-dim); border-radius: 4px; width: 26px; height: 26px; display: flex; align-items: center; justify-content: center; }
+  .step-name { font-size: 13.5px; font-weight: 500; color: var(--text-1); margin-bottom: 7px; line-height: 1.4; }
+  .step-why { font-size: 12.5px; color: var(--text-2); line-height: 1.55; margin-bottom: 4px; display: flex; gap: 6px; }
+  .step-why-label { font-family: 'IBM Plex Mono', monospace; font-size: 9px; color: var(--green); background: rgba(93,184,138,0.1); border: 1px solid rgba(93,184,138,0.2); border-radius: 3px; padding: 2px 5px; flex-shrink: 0; margin-top: 2px; letter-spacing: 0.06em; }
+  .step-warn { font-size: 12.5px; color: var(--text-2); line-height: 1.55; display: flex; gap: 6px; margin-top: 4px; }
+  .step-warn-label { font-family: 'IBM Plex Mono', monospace; font-size: 9px; color: var(--amber); background: rgba(212,150,90,0.1); border: 1px solid rgba(212,150,90,0.2); border-radius: 3px; padding: 2px 5px; flex-shrink: 0; margin-top: 2px; letter-spacing: 0.06em; }
+
+  .quiz-cards { display: flex; flex-direction: column; gap: 14px; }
+  .quiz-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px; padding: 18px 20px; }
+  .quiz-card.answered-correct { border-left: 3px solid var(--green); }
+  .quiz-card.answered-wrong { border-left: 3px solid var(--red); }
+  .q-num { font-family: 'IBM Plex Mono', monospace; font-size: 10px; color: var(--gold); margin-bottom: 3px; }
+  .q-type { font-family: 'IBM Plex Mono', monospace; font-size: 9px; color: var(--text-3); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 10px; }
+  .q-text { font-size: 13.5px; font-weight: 500; color: var(--text-1); line-height: 1.55; margin-bottom: 14px; }
+  .q-text code { font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: var(--blue); background: var(--tag-bg); padding: 1px 5px; border-radius: 3px; }
+  .q-options { display: flex; flex-direction: column; gap: 7px; margin-bottom: 14px; }
+  .q-option { display: flex; gap: 10px; align-items: flex-start; font-size: 13px; color: var(--text-2); line-height: 1.5; padding: 9px 12px; border: 1px solid var(--border); border-radius: 6px; cursor: pointer; transition: border-color 0.15s, background 0.15s; user-select: none; }
+  .q-option:hover { border-color: var(--gold-dim); background: var(--gold-glow); }
+  .q-option.selected { border-color: var(--gold); background: var(--gold-glow); }
+  .q-option.selected .q-letter { color: var(--gold); border-color: var(--gold-dim); background: rgba(201,168,76,0.15); }
+  .q-option.correct { border-color: var(--green); background: var(--green-dim); pointer-events: none; }
+  .q-option.correct .q-letter { color: var(--green); border-color: var(--green-border); background: rgba(93,184,138,0.15); }
+  .q-option.wrong { border-color: var(--red); background: var(--red-dim); pointer-events: none; }
+  .q-option.wrong .q-letter { color: var(--red); border-color: var(--red-border); background: rgba(212,106,106,0.15); }
+  .q-option.locked { pointer-events: none; }
+  .q-letter { font-family: 'IBM Plex Mono', monospace; font-size: 10px; background: var(--tag-bg); border: 1px solid var(--tag-border); border-radius: 3px; padding: 2px 6px; color: var(--text-3); flex-shrink: 0; margin-top: 1px; transition: color 0.15s, border-color 0.15s, background 0.15s; }
+  .check-btn { background: transparent; border: 1px solid var(--gold-dim); border-radius: 6px; padding: 9px 16px; font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: var(--gold); cursor: pointer; transition: all 0.2s; }
+  .check-btn:hover:not(:disabled) { background: var(--gold-glow); border-color: var(--gold); }
+  .check-btn:disabled { border-color: var(--border); color: var(--text-3); cursor: default; }
+  .q-feedback { display: none; margin-top: 12px; padding: 11px 14px; border-radius: 6px; font-size: 13px; line-height: 1.65; color: var(--text-2); }
+  .q-feedback.correct { display: block; background: var(--green-dim); border: 1px solid var(--green-border); }
+  .q-feedback.wrong { display: block; background: var(--red-dim); border: 1px solid var(--red-border); }
+  .q-feedback .fb-verdict { font-weight: 600; margin-bottom: 4px; display: flex; align-items: center; gap: 6px; }
+  .q-feedback.correct .fb-verdict { color: var(--green); }
+  .q-feedback.wrong .fb-verdict { color: var(--red); }
+  .score-summary { background: var(--bg-card); border: 1px solid var(--border); border-radius: 10px; padding: 28px 24px; text-align: center; display: none; flex-direction: column; gap: 10px; }
+  .score-summary.visible { display: flex; }
+  .score-summary-num { font-family: 'DM Serif Display', serif; font-size: 36px; color: var(--gold); }
+  .score-summary-msg { font-size: 14px; color: var(--text-2); }
+</style>
+</head>
+<body>
+
+<header class="hdr">
+  <div class="hdr-left">
+    <span class="hdr-gem">◆</span>
+    <span class="hdr-title">Vulkan Tutorial — Render Passes</span>
+  </div>
+  <div class="hdr-right">
+    <span class="score-tally" id="score-tally">0 / 7 answered &middot; <span id="score-correct">0</span> correct</span>
+    <a class="hdr-url" href="https://vulkan-tutorial.com/Drawing_a_triangle/Graphics_pipeline_basics/Render_passes" target="_blank" rel="noopener">vulkan-tutorial.com ↗</a>
+  </div>
+</header>
+
+<div class="content">
+
+  <p class="framing">A render pass tells Vulkan everything about the framebuffer attachments used during rendering before a single draw command is issued — what format they are in, how to load and store their contents, and what memory layout they should be in at each stage of the pass.</p>
+
+  <!-- ATTACHMENT FIELDS REFERENCE -->
+  <div class="section">
+    <div class="sec-label">VkAttachmentDescription — Load &amp; Store Options</div>
+    <div class="fields-grid">
+      <div class="field-card">
+        <div class="field-name">loadOp — what to do with existing contents at render pass start</div>
+        <div class="field-row">
+          <div class="field-opt pick">CLEAR — fill with a constant (black, zero depth…)</div>
+          <div class="field-opt neutral">LOAD — preserve existing framebuffer contents</div>
+          <div class="field-opt neutral">DONT_CARE — contents undefined; driver may do anything</div>
+        </div>
+        <div class="field-note">Tutorial uses CLEAR to black-out the framebuffer before each frame.</div>
+      </div>
+      <div class="field-card">
+        <div class="field-name">storeOp — what to do with rendered contents at render pass end</div>
+        <div class="field-row">
+          <div class="field-opt pick">STORE — keep in memory; can be read/presented later</div>
+          <div class="field-opt neutral">DONT_CARE — discard; contents undefined after pass</div>
+        </div>
+        <div class="field-note">Tutorial uses STORE so the triangle remains visible for presentation.</div>
+      </div>
+      <div class="field-card">
+        <div class="field-name">initialLayout — image memory layout when render pass begins</div>
+        <div class="field-row">
+          <div class="field-opt pick">UNDEFINED — previous layout irrelevant; contents may be lost</div>
+          <div class="field-opt neutral">COLOR_ATTACHMENT_OPTIMAL — already set up for color writes</div>
+          <div class="field-opt neutral">PRESENT_SRC_KHR — coming from a presentation operation</div>
+        </div>
+        <div class="field-note">UNDEFINED is fine here because we CLEAR anyway — no prior content to preserve.</div>
+      </div>
+      <div class="field-card">
+        <div class="field-name">finalLayout — image memory layout after render pass ends (auto-transition)</div>
+        <div class="field-row">
+          <div class="field-opt pick">PRESENT_SRC_KHR — ready for swap chain presentation</div>
+          <div class="field-opt neutral">COLOR_ATTACHMENT_OPTIMAL — for further rendering in another pass</div>
+          <div class="field-opt neutral">TRANSFER_SRC_OPTIMAL — for reading back or copying</div>
+        </div>
+        <div class="field-note">Vulkan performs the layout transition automatically at the end of the render pass.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- KEY TERMINOLOGY -->
+  <div class="section">
+    <div class="sec-label">Key Terminology</div>
+    <table class="term-table">
+      <thead>
+        <tr><th>Term</th><th>Definition</th><th>Key detail</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>Render pass</td><td>A Vulkan object that describes the framebuffer attachments used during rendering — their format, sample count, load/store operations, and image layout transitions — before any drawing begins</td><td>Must be created before the graphics pipeline; the pipeline is created with a reference to the render pass it will be used with</td></tr>
+        <tr><td>Attachment</td><td>A framebuffer resource (color buffer, depth buffer, stencil buffer) described by VkAttachmentDescription</td><td>Each attachment has a format that must match the corresponding image view (for the swap chain attachment, this is swapChainImageFormat)</td></tr>
+        <tr><td>Image layout</td><td>The internal memory arrangement of a VkImage, optimized for a specific type of access — not all layouts support all operations</td><td>Vulkan requires explicit layout transitions; the render pass performs them automatically between initialLayout → subpass layout → finalLayout</td></tr>
+        <tr><td>VK_IMAGE_LAYOUT_UNDEFINED</td><td>Layout indicating the previous contents of the image don't matter; the driver may discard them</td><td>Safe to use as initialLayout when loadOp = CLEAR or DONT_CARE, since we won't read the old contents anyway</td></tr>
+        <tr><td>VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL</td><td>Layout optimized for writing color data from the fragment shader output</td><td>The layout the attachment is in during the subpass itself; referenced in VkAttachmentReference.layout</td></tr>
+        <tr><td>VK_IMAGE_LAYOUT_PRESENT_SRC_KHR</td><td>Layout required for images about to be presented via the swap chain</td><td>Used as finalLayout — Vulkan automatically transitions from COLOR_ATTACHMENT_OPTIMAL to this at the end of the render pass</td></tr>
+        <tr><td>Subpass</td><td>A rendering operation within a render pass that reads/writes a specific subset of attachments; multiple subpasses can share attachments without writing to main memory between them</td><td>The key performance benefit: if post-processing effects chain through subpasses, the GPU can keep data in tile memory (on mobile especially) without expensive round-trips to main memory</td></tr>
+        <tr><td>VkAttachmentReference</td><td>Lightweight struct pairing an attachment array index with the layout that attachment should be in during the subpass</td><td>The attachment index in this struct directly maps to the fragment shader's layout(location=N) out declaration — location 0 → attachment index 0</td></tr>
+        <tr><td>VkSubpassDescription</td><td>Describes what attachments one subpass reads and writes; includes pipelineBindPoint (GRAPHICS vs COMPUTE) and arrays of attachment references</td><td>pColorAttachments connects the fragment shader outputs to framebuffer slots; the array index = the layout(location=N) value in GLSL</td></tr>
+        <tr><td>pipelineBindPoint</td><td>Field on VkSubpassDescription declaring whether this is a graphics or compute subpass</td><td>Currently always VK_PIPELINE_BIND_POINT_GRAPHICS; compute subpasses are a Vulkan extension that allows GPU work inside a render pass without ending it</td></tr>
+        <tr><td>stencilLoadOp / stencilStoreOp</td><td>Load and store operations for the stencil component of a depth-stencil attachment</td><td>For a pure color attachment, these are irrelevant — set to DONT_CARE. They only matter when using a depth-stencil format with an active stencil test</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- KEY CODE -->
+  <div class="section">
+    <div class="sec-label">Key Code</div>
+
+    <div class="code-label">Complete createRenderPass() for the triangle</div>
+    <div class="code-block">void createRenderPass() {
+    // 1. Describe the color attachment (one swap chain image)
+    VkAttachmentDescription colorAttachment{};
+    colorAttachment.format         = swapChainImageFormat;   // must match swap chain
+    colorAttachment.samples        = VK_SAMPLE_COUNT_1_BIT;  // no multisampling yet
+    colorAttachment.loadOp         = VK_ATTACHMENT_LOAD_OP_CLEAR;     // clear to black
+    colorAttachment.storeOp        = VK_ATTACHMENT_STORE_OP_STORE;    // keep for presentation
+    colorAttachment.stencilLoadOp  = VK_ATTACHMENT_LOAD_OP_DONT_CARE; // no stencil
+    colorAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+    colorAttachment.initialLayout  = VK_IMAGE_LAYOUT_UNDEFINED;        // don't care about prior contents
+    colorAttachment.finalLayout    = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;  // ready for presentation
+
+    // 2. Reference the attachment from the subpass (index 0 → fragment shader location 0)
+    VkAttachmentReference colorAttachmentRef{};
+    colorAttachmentRef.attachment = 0;
+    colorAttachmentRef.layout     = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+
+    // 3. Define the subpass
+    VkSubpassDescription subpass{};
+    subpass.pipelineBindPoint    = VK_PIPELINE_BIND_POINT_GRAPHICS;
+    subpass.colorAttachmentCount = 1;
+    subpass.pColorAttachments    = &amp;colorAttachmentRef;
+    // colorAttachmentRef.attachment=0 ↔ layout(location=0) out vec4 outColor in fragment shader
+
+    // 4. Assemble the render pass
+    VkRenderPassCreateInfo renderPassInfo{};
+    renderPassInfo.sType           = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
+    renderPassInfo.attachmentCount = 1;
+    renderPassInfo.pAttachments    = &amp;colorAttachment;
+    renderPassInfo.subpassCount    = 1;
+    renderPassInfo.pSubpasses      = &amp;subpass;
+
+    if (vkCreateRenderPass(device, &amp;renderPassInfo, nullptr, &amp;renderPass)
+            != VK_SUCCESS)
+        throw std::runtime_error("failed to create render pass!");
+}
+
+// In cleanup() — before vkDestroyPipelineLayout, after vkDestroyPipeline:
+// vkDestroyRenderPass(device, renderPass, nullptr);</div>
+
+    <div class="code-label" style="margin-top:16px;">initVulkan() call order</div>
+    <div class="code-block">void initVulkan() {
+    createInstance();
+    setupDebugMessenger();
+    createSurface();
+    pickPhysicalDevice();
+    createLogicalDevice();
+    createSwapChain();
+    createImageViews();
+    createRenderPass();          // &lt;-- before pipeline
+    createGraphicsPipeline();    // pipeline needs the render pass reference
+}</div>
+  </div>
+
+  <!-- LOGIC FLOW -->
+  <div class="section">
+    <div class="sec-label">Logic Flow</div>
+    <div class="logic-flow">
+      <p>Before the graphics pipeline can be created, Vulkan needs to know what kind of framebuffer it will be rendering into. This is the render pass's job: it declares every attachment (color buffers, depth buffers, stencil buffers) that will be used during rendering, describes how each one is initialized at the start of the pass and what happens to its contents at the end, and specifies what memory layout the image should be in at each stage. The pipeline then references the render pass, and Vulkan uses this information to validate compatibility and generate optimal GPU code.</p>
+      <p>VkAttachmentDescription is the descriptor for a single framebuffer attachment. The format must match the swap chain image format. The loadOp determines what happens to the attachment's existing contents when the render pass begins: CLEAR fills it with a constant (the tutorial uses black), LOAD preserves what was there, and DONT_CARE leaves it undefined. For a frame that starts fresh each time, CLEAR is the correct choice. The storeOp determines what happens at the end: STORE retains the rendered output in memory so it can be presented; DONT_CARE discards it. stencilLoadOp and stencilStoreOp mirror these for the stencil component of depth-stencil images — irrelevant here and set to DONT_CARE.</p>
+      <p>Image layouts matter because Vulkan images are not just raw buffers — their internal memory arrangement is optimized for different types of access. A GPU cannot freely read an image in one layout and write it in another; transitions between layouts must be declared and executed explicitly. The render pass automates this: initialLayout declares the layout the image is in when the pass starts (UNDEFINED means "I don't know and don't care — just transition away from it"), and finalLayout declares the layout Vulkan should transition to when the pass ends. Setting finalLayout to VK_IMAGE_LAYOUT_PRESENT_SRC_KHR ensures the image is in the correct layout for the swap chain's presentation engine to display it.</p>
+      <p>Within the render pass, subpasses are individual rendering stages that operate on the attachments. The tutorial uses one subpass, which is the minimum. Each subpass describes which attachments it reads or writes via VkAttachmentReference structs. The attachment field in VkAttachmentReference is an index into the render pass's pAttachments array. This index is the same number that appears in the fragment shader's layout(location=N) output declaration — the tutorial makes this explicit: "The index of the attachment in this array is directly referenced from the fragment shader." So location=0 in the GLSL maps to pAttachments[0] in the render pass. The subpass also specifies pipelineBindPoint, currently always VK_PIPELINE_BIND_POINT_GRAPHICS. Multiple subpasses, when they feed into each other, allow the GPU to keep attachment data in fast tile memory between passes — a significant optimization on tile-based mobile GPUs — rather than writing and re-reading from main memory.</p>
+    </div>
+  </div>
+
+  <!-- STEP-BY-STEP -->
+  <div class="section">
+    <div class="sec-label">Step-by-Step — Creating the Render Pass</div>
+    <ol class="steps-list">
+
+      <li class="step-item">
+        <div class="step-name">Fill <code>VkAttachmentDescription</code>: set <code>format = swapChainImageFormat</code>, <code>samples = VK_SAMPLE_COUNT_1_BIT</code>, <code>loadOp = CLEAR</code>, <code>storeOp = STORE</code>, stencil ops to <code>DONT_CARE</code>, <code>initialLayout = UNDEFINED</code>, <code>finalLayout = PRESENT_SRC_KHR</code></div>
+        <div class="step-why"><span class="step-why-label">WHY</span>CLEAR erases the previous frame before drawing. STORE keeps the rendered result for presentation. UNDEFINED initial layout is safe because CLEAR makes prior content irrelevant. PRESENT_SRC_KHR final layout lets the swap chain present the image immediately after the pass.</div>
+        <div class="step-warn"><span class="step-warn-label">WATCH OUT</span>format must exactly match swapChainImageFormat — a mismatch causes validation errors when the render pass is used with a framebuffer whose image views have a different format.</div>
+      </li>
+
+      <li class="step-item">
+        <div class="step-name">Fill <code>VkAttachmentReference</code>: <code>attachment = 0</code> (index into pAttachments), <code>layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL</code></div>
+        <div class="step-why"><span class="step-why-label">WHY</span>COLOR_ATTACHMENT_OPTIMAL is the layout optimized for fragment shader writes. Vulkan automatically transitions the image from UNDEFINED to this layout at the start of the subpass.</div>
+        <div class="step-warn"><span class="step-warn-label">WATCH OUT</span>The attachment index (0) directly maps to the fragment shader's layout(location=0) out declaration. If multiple color attachments are used, their indices must match the fragment shader locations.</div>
+      </li>
+
+      <li class="step-item">
+        <div class="step-name">Fill <code>VkSubpassDescription</code>: <code>pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS</code>, <code>colorAttachmentCount = 1</code>, <code>pColorAttachments = &amp;colorAttachmentRef</code></div>
+        <div class="step-why"><span class="step-why-label">WHY</span>The bind point identifies this as a graphics subpass. pColorAttachments wires the fragment shader's output slot 0 to the color attachment at index 0 in the render pass's attachment array.</div>
+      </li>
+
+      <li class="step-item">
+        <div class="step-name">Fill <code>VkRenderPassCreateInfo</code>, call <code>vkCreateRenderPass</code>, store handle as a class member</div>
+        <div class="step-why"><span class="step-why-label">WHY</span>The render pass handle is referenced by VkGraphicsPipelineCreateInfo and by vkCmdBeginRenderPass later — it must persist for the application's lifetime.</div>
+      </li>
+
+      <li class="step-item">
+        <div class="step-name">Call <code>createRenderPass()</code> from <code>initVulkan()</code> before <code>createGraphicsPipeline()</code></div>
+        <div class="step-why"><span class="step-why-label">WHY</span>The pipeline creation requires a valid VkRenderPass handle in VkGraphicsPipelineCreateInfo — the render pass must exist first.</div>
+      </li>
+
+      <li class="step-item">
+        <div class="step-name">Add <code>vkDestroyRenderPass(device, renderPass, nullptr)</code> to <code>cleanup()</code> after pipeline destruction</div>
+        <div class="step-why"><span class="step-why-label">WHY</span>The render pass is referenced throughout the program's lifetime. It must be destroyed before the device but after any objects that hold a reference to it (e.g., the pipeline and framebuffers).</div>
+      </li>
+
+    </ol>
+  </div>
+
+  <!-- QUIZ -->
+  <div class="section">
+    <div class="sec-label">Quiz — 7 Questions</div>
+    <div class="quiz-cards">
+
+      <div class="quiz-card" data-answer="B">
+        <div class="q-num">Q1</div>
+        <div class="q-type">conceptual</div>
+        <div class="q-text">What does a render pass describe, and why must it be created before the graphics pipeline?</div>
+        <div class="q-options">
+          <div class="q-option" data-option="A" onclick="selectOption(this)"><span class="q-letter">A</span>The render pass contains compiled shader code; the pipeline links against it to resolve shader entry points</div>
+          <div class="q-option" data-option="B" onclick="selectOption(this)"><span class="q-letter">B</span>The render pass describes the framebuffer attachments — their format, sample count, load/store ops, and layout transitions — that will be used during rendering; the pipeline is validated and compiled against this description, so it must exist first</div>
+          <div class="q-option" data-option="C" onclick="selectOption(this)"><span class="q-letter">C</span>The render pass allocates framebuffer memory; the pipeline needs that memory to be present before it can create vertex buffers</div>
+          <div class="q-option" data-option="D" onclick="selectOption(this)"><span class="q-letter">D</span>The render pass defines the viewport and scissor that the pipeline will use for all draw calls</div>
+        </div>
+        <button class="check-btn" onclick="checkAnswer(this.closest('.quiz-card'))" disabled>Check Answer</button>
+        <div class="q-feedback"><div class="fb-verdict"><span class="fb-icon"></span><span class="fb-text"></span></div><div class="fb-explanation"></div></div>
+      </div>
+
+      <div class="quiz-card" data-answer="D">
+        <div class="q-num">Q2</div>
+        <div class="q-type">terminology</div>
+        <div class="q-text">What are the three <code>loadOp</code> options, and when is each appropriate?</div>
+        <div class="q-options">
+          <div class="q-option" data-option="A" onclick="selectOption(this)"><span class="q-letter">A</span>WRITE (overwrite pixel-by-pixel), READ (re-use last frame), SKIP (attachment unused this pass)</div>
+          <div class="q-option" data-option="B" onclick="selectOption(this)"><span class="q-letter">B</span>FILL (clear to zero), COPY (blit from another image), PASS (do nothing)</div>
+          <div class="q-option" data-option="C" onclick="selectOption(this)"><span class="q-letter">C</span>INIT (zero-initialize GPU memory), PRESERVE (keep contents), DISCARD (undefined; fastest)</div>
+          <div class="q-option" data-option="D" onclick="selectOption(this)"><span class="q-letter">D</span>CLEAR (fill with a constant — use when starting a fresh frame), LOAD (preserve existing contents — use when compositing on top of a previous pass), DONT_CARE (undefined — use when the attachment will be fully overwritten anyway)</div>
+        </div>
+        <button class="check-btn" onclick="checkAnswer(this.closest('.quiz-card'))" disabled>Check Answer</button>
+        <div class="q-feedback"><div class="fb-verdict"><span class="fb-icon"></span><span class="fb-text"></span></div><div class="fb-explanation"></div></div>
+      </div>
+
+      <div class="quiz-card" data-answer="A">
+        <div class="q-num">Q3</div>
+        <div class="q-type">gotcha</div>
+        <div class="q-text">Why is it safe to use <code>initialLayout = VK_IMAGE_LAYOUT_UNDEFINED</code> for the color attachment?</div>
+        <div class="q-options">
+          <div class="q-option" data-option="A" onclick="selectOption(this)"><span class="q-letter">A</span>Because loadOp = CLEAR means the attachment is immediately filled with a constant at the start of the pass — the prior pixel contents are irrelevant and don't need to be preserved through the layout transition</div>
+          <div class="q-option" data-option="B" onclick="selectOption(this)"><span class="q-letter">B</span>UNDEFINED is always safe as initialLayout because Vulkan initializes all images to a zeroed state before any pass</div>
+          <div class="q-option" data-option="C" onclick="selectOption(this)"><span class="q-letter">C</span>The swap chain guarantees images are returned to UNDEFINED layout after presentation, so UNDEFINED is the only valid option for swap chain images</div>
+          <div class="q-option" data-option="D" onclick="selectOption(this)"><span class="q-letter">D</span>UNDEFINED compresses the image data in memory, reducing the bandwidth cost of the layout transition</div>
+        </div>
+        <button class="check-btn" onclick="checkAnswer(this.closest('.quiz-card'))" disabled>Check Answer</button>
+        <div class="q-feedback"><div class="fb-verdict"><span class="fb-icon"></span><span class="fb-text"></span></div><div class="fb-explanation"></div></div>
+      </div>
+
+      <div class="quiz-card" data-answer="C">
+        <div class="q-num">Q4</div>
+        <div class="q-type">gotcha</div>
+        <div class="q-text">The tutorial states: "The index of the attachment in this array is directly referenced from the fragment shader." What does this mean in practice?</div>
+        <div class="q-options">
+          <div class="q-option" data-option="A" onclick="selectOption(this)"><span class="q-letter">A</span>The fragment shader must use the same variable name as the attachment's debug label set in VkAttachmentDescription</div>
+          <div class="q-option" data-option="B" onclick="selectOption(this)"><span class="q-letter">B</span>The attachment's index in pAttachments determines which VkImageView slot the framebuffer uses at draw time</div>
+          <div class="q-option" data-option="C" onclick="selectOption(this)"><span class="q-letter">C</span>The N in <code>layout(location = N) out vec4 outColor</code> in the fragment shader must match the attachment's index in pColorAttachments (via VkAttachmentReference.attachment) — location=0 writes to attachment index 0</div>
+          <div class="q-option" data-option="D" onclick="selectOption(this)"><span class="q-letter">D</span>The attachment array index determines the binding slot number used when calling vkCmdBindDescriptorSets for texture sampling</div>
+        </div>
+        <button class="check-btn" onclick="checkAnswer(this.closest('.quiz-card'))" disabled>Check Answer</button>
+        <div class="q-feedback"><div class="fb-verdict"><span class="fb-icon"></span><span class="fb-text"></span></div><div class="fb-explanation"></div></div>
+      </div>
+
+      <div class="quiz-card" data-answer="B">
+        <div class="q-num">Q5</div>
+        <div class="q-type">conceptual</div>
+        <div class="q-text">What is the performance benefit of grouping multiple rendering operations into subpasses rather than separate render passes?</div>
+        <div class="q-options">
+          <div class="q-option" data-option="A" onclick="selectOption(this)"><span class="q-letter">A</span>Subpasses compile into fewer draw calls, reducing CPU overhead per frame</div>
+          <div class="q-option" data-option="B" onclick="selectOption(this)"><span class="q-letter">B</span>Vulkan can keep attachment data in fast on-chip tile memory between subpasses, avoiding expensive round-trips to main memory — especially important on mobile GPUs that use tile-based rendering</div>
+          <div class="q-option" data-option="C" onclick="selectOption(this)"><span class="q-letter">C</span>Subpasses allow the GPU to skip depth testing between passes, reducing fragment shader invocations</div>
+          <div class="q-option" data-option="D" onclick="selectOption(this)"><span class="q-letter">D</span>Grouping into subpasses enables automatic load balancing across multiple GPU cores within the same frame</div>
+        </div>
+        <button class="check-btn" onclick="checkAnswer(this.closest('.quiz-card'))" disabled>Check Answer</button>
+        <div class="q-feedback"><div class="fb-verdict"><span class="fb-icon"></span><span class="fb-text"></span></div><div class="fb-explanation"></div></div>
+      </div>
+
+      <div class="quiz-card" data-answer="D">
+        <div class="q-num">Q6</div>
+        <div class="q-type">sequence</div>
+        <div class="q-text">What layout transition does Vulkan perform automatically for the color attachment across the render pass, given <code>initialLayout = UNDEFINED</code>, <code>layout (in reference) = COLOR_ATTACHMENT_OPTIMAL</code>, and <code>finalLayout = PRESENT_SRC_KHR</code>?</div>
+        <div class="q-options">
+          <div class="q-option" data-option="A" onclick="selectOption(this)"><span class="q-letter">A</span>UNDEFINED → PRESENT_SRC_KHR at the start, COLOR_ATTACHMENT_OPTIMAL → PRESENT_SRC_KHR at the end</div>
+          <div class="q-option" data-option="B" onclick="selectOption(this)"><span class="q-letter">B</span>No transitions occur — Vulkan only transitions layouts on explicit vkCmdPipelineBarrier calls</div>
+          <div class="q-option" data-option="C" onclick="selectOption(this)"><span class="q-letter">C</span>COLOR_ATTACHMENT_OPTIMAL → UNDEFINED → PRESENT_SRC_KHR in that order</div>
+          <div class="q-option" data-option="D" onclick="selectOption(this)"><span class="q-letter">D</span>UNDEFINED → COLOR_ATTACHMENT_OPTIMAL at the start of the subpass (for writing), then COLOR_ATTACHMENT_OPTIMAL → PRESENT_SRC_KHR at the end of the render pass (for presentation)</div>
+        </div>
+        <button class="check-btn" onclick="checkAnswer(this.closest('.quiz-card'))" disabled>Check Answer</button>
+        <div class="q-feedback"><div class="fb-verdict"><span class="fb-icon"></span><span class="fb-text"></span></div><div class="fb-explanation"></div></div>
+      </div>
+
+      <div class="quiz-card" data-answer="A">
+        <div class="q-num">Q7</div>
+        <div class="q-type">application</div>
+        <div class="q-text">When would you set <code>storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE</code> for a color attachment?</div>
+        <div class="q-options">
+          <div class="q-option" data-option="A" onclick="selectOption(this)"><span class="q-letter">A</span>When the rendered output is used only as an intermediate result consumed by a later subpass or pass within the same frame — it never needs to be read back or presented, so discarding it after its consumers are done frees bandwidth</div>
+          <div class="q-option" data-option="B" onclick="selectOption(this)"><span class="q-letter">B</span>Whenever multisampling is disabled — DONT_CARE is more efficient than STORE for non-multisampled attachments</div>
+          <div class="q-option" data-option="C" onclick="selectOption(this)"><span class="q-letter">C</span>When the swap chain image will be immediately presented — DONT_CARE signals that presentation should proceed without waiting for the store to complete</div>
+          <div class="q-option" data-option="D" onclick="selectOption(this)"><span class="q-letter">D</span>DONT_CARE and STORE are equivalent for color attachments; only depth attachments have a meaningful difference</div>
+        </div>
+        <button class="check-btn" onclick="checkAnswer(this.closest('.quiz-card'))" disabled>Check Answer</button>
+        <div class="q-feedback"><div class="fb-verdict"><span class="fb-icon"></span><span class="fb-text"></span></div><div class="fb-explanation"></div></div>
+      </div>
+
+    </div>
+
+    <div class="score-summary" id="score-summary">
+      <div class="score-summary-num" id="summary-num"></div>
+      <div class="score-summary-msg" id="summary-msg"></div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  const TOTAL = 7;
+  let answeredCount = 0;
+  let correctCount = 0;
+
+  const explanations = {
+    1: {
+      correct: 'B',
+      text: 'The tutorial states: "we need to tell Vulkan about the framebuffer attachments that will be used while rendering... All of this information is wrapped in a render pass object." The graphics pipeline is created with a renderPass field in VkGraphicsPipelineCreateInfo — it needs the render pass to exist so it can validate compatibility (e.g., the pipeline\'s output format must match the attachment format). Pipeline creation references the render pass; it cannot precede it.'
+    },
+    2: {
+      correct: 'D',
+      text: 'CLEAR fills the attachment with a constant value (specified later in vkCmdBeginRenderPass as VkClearValue) before any fragment shader runs — appropriate for starting a fresh frame. LOAD preserves existing pixels — appropriate when the current frame should render on top of what was already in the framebuffer (e.g., a UI pass rendered after a 3D pass into the same image). DONT_CARE means the driver can do whatever is most efficient with the existing contents — appropriate when every fragment will be covered by the upcoming draw calls anyway, so reading old values would be wasteful.'
+    },
+    3: {
+      correct: 'A',
+      text: 'VK_IMAGE_LAYOUT_UNDEFINED tells Vulkan: "transition this image out of whatever layout it currently is in, but I don\'t need you to preserve its contents through that transition." This is valid specifically because loadOp = CLEAR follows immediately — the first thing that happens to the attachment is being filled with the clear color (black). If loadOp were LOAD instead, using UNDEFINED would be unsafe: it would allow the driver to discard or corrupt the existing pixel data that LOAD is supposed to preserve.'
+    },
+    4: {
+      correct: 'C',
+      text: 'The VkAttachmentReference struct has an attachment field (an index) and a layout field. This attachment index is used two ways: it identifies which entry in VkRenderPassCreateInfo.pAttachments the subpass uses, AND it corresponds to the layout(location=N) in the GLSL fragment shader. When VkSubpassDescription.pColorAttachments[0].attachment = 0, that means the fragment shader\'s location 0 output (outColor) writes into attachment index 0 (the VkAttachmentDescription at pAttachments[0]). If you had two color attachments at indices 0 and 1, you\'d use layout(location=0) and layout(location=1) respectively.'
+    },
+    5: {
+      correct: 'B',
+      text: 'The tutorial explains: "Subpasses are subsequent rendering operations that depend on the contents of framebuffers in previous passes... If you group these rendering operations into one render pass, then Vulkan is able to reorder the operations and conserve memory bandwidth for possibly better performance." On tile-based GPUs (common on mobile — Mali, Adreno, PowerVR), attachment data can be kept in extremely fast on-chip tile memory between subpasses without ever being written to main DRAM. A sequence of post-processing effects as separate render passes would require writing the intermediate results to main memory and reading them back — a significant bandwidth cost that subpasses avoid.'
+    },
+    6: {
+      correct: 'D',
+      text: 'The render pass performs two automatic layout transitions: (1) At the start of the subpass: the image transitions from initialLayout (UNDEFINED) to the layout specified in VkAttachmentReference.layout (COLOR_ATTACHMENT_OPTIMAL) so the fragment shader can write to it. (2) At the end of the render pass: the image transitions from the subpass layout (COLOR_ATTACHMENT_OPTIMAL) to finalLayout (PRESENT_SRC_KHR) so the swap chain can present it. The "automatic" part is key — no explicit vkCmdPipelineBarrier is needed for these transitions; the render pass mechanism handles them.'
+    },
+    7: {
+      correct: 'A',
+      text: 'DONT_CARE for storeOp tells the driver "the contents of this attachment after the render pass are irrelevant to me." This is the correct choice for intermediate render targets that only exist to feed a subsequent pass or subpass within the same frame — for example, a G-buffer attachment used for deferred shading that is consumed entirely within the rendering frame and never presented or read by the CPU. The driver can skip the store operation entirely (saving bandwidth) when it knows no one will read the attachment afterward. For the final swap chain image that must be displayed, STORE is required.'
+    }
+  };
+
+  function getCardIndex(card) {
+    return parseInt(card.querySelector('.q-num').textContent.replace('Q', ''));
+  }
+
+  function selectOption(optionEl) {
+    const card = optionEl.closest('.quiz-card');
+    if (card.dataset.answered) return;
+    card.querySelectorAll('.q-option').forEach(o => o.classList.remove('selected'));
+    optionEl.classList.add('selected');
+    card.querySelector('.check-btn').disabled = false;
+  }
+
+  function checkAnswer(card) {
+    if (card.dataset.answered) return;
+    card.dataset.answered = 'true';
+
+    const correct = card.dataset.answer;
+    const selected = card.querySelector('.q-option.selected');
+    const chosen = selected ? selected.dataset.option : null;
+    const idx = getCardIndex(card);
+    const info = explanations[idx];
+
+    const isCorrect = chosen === correct;
+    if (isCorrect) correctCount++;
+    answeredCount++;
+
+    card.querySelectorAll('.q-option').forEach(o => {
+      o.classList.add('locked');
+      if (o.dataset.option === correct) o.classList.add('correct');
+      else if (o.dataset.option === chosen && !isCorrect) o.classList.add('wrong');
+    });
+
+    const feedback = card.querySelector('.q-feedback');
+    const icon = feedback.querySelector('.fb-icon');
+    const verdictText = feedback.querySelector('.fb-text');
+    const explanation = feedback.querySelector('.fb-explanation');
+
+    if (isCorrect) {
+      feedback.classList.add('correct');
+      icon.textContent = '✓';
+      verdictText.textContent = 'Correct';
+    } else {
+      feedback.classList.add('wrong');
+      icon.textContent = '✗';
+      verdictText.textContent = `Incorrect — correct answer is ${correct}`;
+    }
+    explanation.textContent = info.text;
+
+    const btn = card.querySelector('.check-btn');
+    btn.textContent = isCorrect ? '✓ Correct' : '✗ Answered';
+    btn.disabled = true;
+
+    card.classList.add(isCorrect ? 'answered-correct' : 'answered-wrong');
+    updateScore();
+  }
+
+  function updateScore() {
+    const tally = document.getElementById('score-tally');
+    const correctSpan = document.getElementById('score-correct');
+    tally.childNodes[0].textContent = `${answeredCount} / ${TOTAL} answered · `;
+    correctSpan.textContent = correctCount;
+
+    if (answeredCount === TOTAL) {
+      const summary = document.getElementById('score-summary');
+      const pct = correctCount / TOTAL;
+      let msg;
+      if (pct >= 0.9) msg = 'Excellent — render pass concepts and attachment semantics are solid.';
+      else if (pct >= 0.7) msg = 'Good — review what you missed before the pipeline creation chapter.';
+      else msg = 'Review recommended — focus on load/store ops, image layout transitions, and the attachment index ↔ fragment shader location link.';
+      document.getElementById('summary-num').textContent = `${correctCount} / ${TOTAL}`;
+      document.getElementById('summary-msg').textContent = msg;
+      summary.classList.add('visible');
+    }
+  }
+</script>
+</body>
+</html>

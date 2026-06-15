@@ -118,5 +118,15 @@
     "questionCount": 8,
     "file": "sessions/vulkan-shader-modules-learning.html",
     "excerpt": "Why Vulkan requires SPIR-V, compiling GLSL with glslc, loading .spv files with ios::binary, wrapping bytecode in VkShaderModule, wiring stages with VkPipelineShaderStageCreateInfo, and destroying modules immediately after pipeline creation."
+  },
+  {
+    "id": "vulkan-render-passes",
+    "title": "Vulkan Tutorial — Render Passes",
+    "url": "https://vulkan-tutorial.com/Drawing_a_triangle/Graphics_pipeline_basics/Render_passes",
+    "date": "2026-06-14",
+    "tags": ["graphics", "vulkan", "gpu", "cpp"],
+    "questionCount": 7,
+    "file": "sessions/vulkan-render-passes-learning.html",
+    "excerpt": "How VkAttachmentDescription declares load/store ops and image layout transitions, the VkAttachmentReference → fragment shader location linkage, subpass bandwidth optimization, and why createRenderPass() must precede createGraphicsPipeline()."
   }
 ]
