@@ -148,5 +148,15 @@
     "questionCount": 6,
     "file": "sessions/vulkan-framebuffers-learning.html",
     "excerpt": "How VkFramebuffer binds the abstract attachments declared by a render pass to concrete VkImageView objects, why one framebuffer per swap chain image is required, VkFramebufferCreateInfo fields, and cleanup ordering."
+  },
+  {
+    "id": "vulkan-command-buffers",
+    "title": "Vulkan Tutorial — Command Buffers",
+    "url": "https://vulkan-tutorial.com/Drawing_a_triangle/Drawing/Command_buffers",
+    "date": "2026-06-20",
+    "tags": ["graphics", "vulkan", "gpu", "cpp"],
+    "questionCount": 9,
+    "file": "sessions/vulkan-command-buffers-learning.html",
+    "excerpt": "Command pools and per-buffer reset, primary vs secondary command buffer levels, the begin/render-pass/draw/end recording bracket, why viewport and scissor must be set dynamically, and vkCmdDraw's hardcoded triangle parameters."
   }
 ]

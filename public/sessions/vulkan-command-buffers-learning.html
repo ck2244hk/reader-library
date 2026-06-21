@@ -1,0 +1,595 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Vulkan Tutorial — Command Buffers | Learning Session</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=IBM+Plex+Mono:wght@400;500&family=Syne:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #0d0f14; --bg-surface: #10131a; --bg-card: #12151d; --bg-row-alt: #0f1118;
+    --border: #1e2333; --gold: #c9a84c; --gold-dim: #7a6230; --gold-glow: rgba(201,168,76,0.1);
+    --blue: #7eb8d4; --green: #5db88a; --green-dim: rgba(93,184,138,0.15); --green-border: rgba(93,184,138,0.35);
+    --red: #d46a6a; --red-dim: rgba(212,106,106,0.15); --red-border: rgba(212,106,106,0.35);
+    --amber: #d4965a;
+    --text-1: #e8e4dc; --text-2: #8a8c99; --text-3: #4a4e62;
+    --tag-bg: #1a1e2c; --tag-border: #252a3a;
+  }
+  html { background: var(--bg); color: var(--text-1); font-family: 'Syne', sans-serif; -webkit-font-smoothing: antialiased; }
+  body { min-height: 100vh; padding-bottom: 80px; }
+  ::-webkit-scrollbar { width: 4px; }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+
+  .hdr { position: sticky; top: 0; z-index: 10; background: var(--bg-surface); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 12px 24px; gap: 16px; flex-wrap: wrap; }
+  .hdr-left { display: flex; align-items: center; gap: 10px; }
+  .hdr-gem { color: var(--gold); font-size: 14px; }
+  .hdr-title { font-family: 'DM Serif Display', serif; font-size: 16px; color: var(--text-1); }
+  .hdr-right { display: flex; align-items: center; gap: 12px; }
+  .score-tally { font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: var(--text-3); white-space: nowrap; }
+  .score-tally span { color: var(--gold); }
+  .hdr-url { font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: var(--text-3); background: var(--tag-bg); border: 1px solid var(--tag-border); border-radius: 5px; padding: 4px 10px; text-decoration: none; white-space: nowrap; transition: color 0.2s, border-color 0.2s; }
+  .hdr-url:hover { color: var(--gold); border-color: var(--gold-dim); }
+
+  .content { max-width: 800px; margin: 0 auto; padding: 40px 24px; display: flex; flex-direction: column; gap: 40px; }
+  .framing { font-family: 'DM Serif Display', serif; font-size: 16px; color: var(--gold); border-left: 2px solid var(--gold); padding-left: 14px; line-height: 1.55; font-style: italic; }
+  .section { display: flex; flex-direction: column; gap: 14px; }
+  .sec-label { font-family: 'IBM Plex Mono', monospace; font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--text-3); }
+
+  .code-block { background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px; padding: 16px 18px; font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: var(--text-2); line-height: 1.7; overflow-x: auto; white-space: pre; }
+  .code-label { font-family: 'IBM Plex Mono', monospace; font-size: 9px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--text-3); margin-bottom: 8px; }
+  .hl-dim { color: var(--text-3); }
+  .hl-amber { color: var(--amber); }
+  .hl-blue { color: var(--blue); }
+  .hl-gold { color: var(--gold); }
+
+  .term-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .term-table th { font-family: 'IBM Plex Mono', monospace; font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-3); text-align: left; padding: 8px 12px; background: var(--bg-surface); border-bottom: 1px solid var(--border); }
+  .term-table td { padding: 9px 12px; border-bottom: 1px solid var(--border); vertical-align: top; color: var(--text-2); line-height: 1.5; }
+  .term-table tr:nth-child(even) td { background: var(--bg-row-alt); }
+  .term-table td:first-child { font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: var(--blue); white-space: nowrap; }
+
+  .fields-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  @media (max-width: 560px) { .fields-grid { grid-template-columns: 1fr; } }
+  .field-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 7px; padding: 12px 14px; }
+  .field-name { font-family: 'IBM Plex Mono', monospace; font-size: 10.5px; color: var(--blue); margin-bottom: 7px; }
+  .field-row { display: flex; flex-direction: column; gap: 4px; }
+  .field-opt { font-family: 'IBM Plex Mono', monospace; font-size: 10px; padding: 3px 7px; border-radius: 3px; line-height: 1.4; }
+  .field-opt.pick { background: rgba(93,184,138,0.1); border: 1px solid rgba(93,184,138,0.2); color: var(--green); }
+  .field-opt.neutral { background: var(--tag-bg); border: 1px solid var(--tag-border); color: var(--text-3); }
+  .field-note { font-size: 11.5px; color: var(--text-3); margin-top: 6px; line-height: 1.4; }
+
+  .logic-flow { font-size: 14px; line-height: 1.8; color: var(--text-2); display: flex; flex-direction: column; gap: 14px; }
+
+  .steps-list { list-style: none; display: flex; flex-direction: column; gap: 10px; counter-reset: steps; }
+  .step-item { counter-increment: steps; background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px; padding: 14px 16px 14px 54px; position: relative; }
+  .step-item::before { content: counter(steps); position: absolute; left: 14px; top: 14px; font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: var(--gold); background: var(--gold-glow); border: 1px solid var(--gold-dim); border-radius: 4px; width: 26px; height: 26px; display: flex; align-items: center; justify-content: center; }
+  .step-name { font-size: 13.5px; font-weight: 500; color: var(--text-1); margin-bottom: 7px; line-height: 1.4; }
+  .step-name code { font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: var(--blue); background: var(--tag-bg); padding: 1px 5px; border-radius: 3px; }
+  .step-row { font-size: 12.5px; color: var(--text-2); line-height: 1.55; display: flex; gap: 6px; margin-top: 5px; }
+  .step-badge { font-family: 'IBM Plex Mono', monospace; font-size: 9px; border-radius: 3px; padding: 2px 5px; flex-shrink: 0; margin-top: 2px; letter-spacing: 0.06em; }
+  .badge-why { color: var(--green); background: rgba(93,184,138,0.1); border: 1px solid rgba(93,184,138,0.2); }
+  .badge-warn { color: var(--amber); background: rgba(212,150,90,0.1); border: 1px solid rgba(212,150,90,0.2); }
+  .badge-note { color: var(--blue); background: rgba(126,184,212,0.1); border: 1px solid rgba(126,184,212,0.2); }
+
+  .quiz-cards { display: flex; flex-direction: column; gap: 14px; }
+  .quiz-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px; padding: 18px 20px; }
+  .quiz-card.answered-correct { border-left: 3px solid var(--green); }
+  .quiz-card.answered-wrong { border-left: 3px solid var(--red); }
+  .q-num { font-family: 'IBM Plex Mono', monospace; font-size: 10px; color: var(--gold); margin-bottom: 3px; }
+  .q-type { font-family: 'IBM Plex Mono', monospace; font-size: 9px; color: var(--text-3); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 10px; }
+  .q-text { font-size: 13.5px; font-weight: 500; color: var(--text-1); line-height: 1.55; margin-bottom: 14px; }
+  .q-text code { font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: var(--blue); background: var(--tag-bg); padding: 1px 5px; border-radius: 3px; }
+  .q-options { display: flex; flex-direction: column; gap: 7px; margin-bottom: 14px; }
+  .q-option { display: flex; gap: 10px; align-items: flex-start; font-size: 13px; color: var(--text-2); line-height: 1.5; padding: 9px 12px; border: 1px solid var(--border); border-radius: 6px; cursor: pointer; transition: border-color 0.15s, background 0.15s; user-select: none; }
+  .q-option:hover { border-color: var(--gold-dim); background: var(--gold-glow); }
+  .q-option.selected { border-color: var(--gold); background: var(--gold-glow); }
+  .q-option.selected .q-letter { color: var(--gold); border-color: var(--gold-dim); background: rgba(201,168,76,0.15); }
+  .q-option.correct { border-color: var(--green); background: var(--green-dim); pointer-events: none; }
+  .q-option.correct .q-letter { color: var(--green); border-color: var(--green-border); background: rgba(93,184,138,0.15); }
+  .q-option.wrong { border-color: var(--red); background: var(--red-dim); pointer-events: none; }
+  .q-option.wrong .q-letter { color: var(--red); border-color: var(--red-border); background: rgba(212,106,106,0.15); }
+  .q-option.locked { pointer-events: none; }
+  .q-letter { font-family: 'IBM Plex Mono', monospace; font-size: 10px; background: var(--tag-bg); border: 1px solid var(--tag-border); border-radius: 3px; padding: 2px 6px; color: var(--text-3); flex-shrink: 0; margin-top: 1px; transition: color 0.15s, border-color 0.15s, background 0.15s; }
+  .check-btn { background: transparent; border: 1px solid var(--gold-dim); border-radius: 6px; padding: 9px 16px; font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: var(--gold); cursor: pointer; transition: all 0.2s; }
+  .check-btn:hover:not(:disabled) { background: var(--gold-glow); border-color: var(--gold); }
+  .check-btn:disabled { border-color: var(--border); color: var(--text-3); cursor: default; }
+  .q-feedback { display: none; margin-top: 12px; padding: 11px 14px; border-radius: 6px; font-size: 13px; line-height: 1.65; color: var(--text-2); }
+  .q-feedback.correct { display: block; background: var(--green-dim); border: 1px solid var(--green-border); }
+  .q-feedback.wrong { display: block; background: var(--red-dim); border: 1px solid var(--red-border); }
+  .q-feedback .fb-verdict { font-weight: 600; margin-bottom: 4px; display: flex; align-items: center; gap: 6px; }
+  .q-feedback.correct .fb-verdict { color: var(--green); }
+  .q-feedback.wrong .fb-verdict { color: var(--red); }
+  .score-summary { background: var(--bg-card); border: 1px solid var(--border); border-radius: 10px; padding: 28px 24px; text-align: center; display: none; flex-direction: column; gap: 10px; }
+  .score-summary.visible { display: flex; }
+  .score-summary-num { font-family: 'DM Serif Display', serif; font-size: 36px; color: var(--gold); }
+  .score-summary-msg { font-size: 14px; color: var(--text-2); }
+</style>
+</head>
+<body>
+
+<header class="hdr">
+  <div class="hdr-left">
+    <span class="hdr-gem">◆</span>
+    <span class="hdr-title">Vulkan Tutorial — Command Buffers</span>
+  </div>
+  <div class="hdr-right">
+    <span class="score-tally" id="score-tally">0 / 9 answered &middot; <span id="score-correct">0</span> correct</span>
+    <a class="hdr-url" href="https://vulkan-tutorial.com/Drawing_a_triangle/Drawing/Command_buffers" target="_blank" rel="noopener">vulkan-tutorial.com ↗</a>
+  </div>
+</header>
+
+<div class="content">
+
+  <p class="framing">Vulkan does not execute drawing or memory commands directly through function calls — every operation is first recorded into a <code style="font-family:'IBM Plex Mono',monospace;font-size:14px;color:#c9a84c">VkCommandBuffer</code>, allowing the driver to batch work and enabling multi-threaded recording across CPU cores.</p>
+
+  <!-- KEY TERMINOLOGY -->
+  <div class="section">
+    <div class="sec-label">Key Terminology</div>
+    <table class="term-table">
+      <thead>
+        <tr><th>Term</th><th>Definition</th><th>Key detail</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>VkCommandPool</td><td>Manages the memory backing command buffer allocations</td><td>Created with a queueFamilyIndex — the pool's buffers can only be submitted to queues from that family</td></tr>
+        <tr><td>VkCommandBuffer</td><td>An object that records a sequence of GPU commands to be submitted for execution later</td><td>Recording uses void-returning vkCmd* functions; nothing executes until the buffer is submitted to a queue</td></tr>
+        <tr><td>VK_COMMAND_POOL_CREATE_TRANSIENT_BIT</td><td>Pool flag hinting that command buffers will be rerecorded with new commands very frequently</td><td>May change memory allocation behavior in the driver to optimize for frequent re-recording</td></tr>
+        <tr><td>VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT</td><td>Pool flag allowing individual command buffers to be reset via vkResetCommandBuffer, without resetting the whole pool</td><td>Used in the tutorial because each frame's command buffer is rerecorded individually — resetting the entire pool per frame would be wasteful</td></tr>
+        <tr><td>VK_COMMAND_BUFFER_LEVEL_PRIMARY</td><td>A command buffer that can be submitted directly to a queue but cannot be called from other command buffers</td><td>What the tutorial allocates — most applications only need primary buffers</td></tr>
+        <tr><td>VK_COMMAND_BUFFER_LEVEL_SECONDARY</td><td>A command buffer that cannot be submitted directly but can be invoked from a primary command buffer</td><td>Useful for reusing common operations across multiple primary buffers</td></tr>
+        <tr><td>vkBeginCommandBuffer implicit reset</td><td>Calling vkBeginCommandBuffer on a buffer that already contains recorded commands implicitly resets it first</td><td>Vulkan does not support appending commands to an already-recorded buffer — every call to vkBeginCommandBuffer starts fresh</td></tr>
+        <tr><td>VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT</td><td>Begin-info flag stating the command buffer will be rerecorded immediately after being submitted once</td><td>Appropriate when a buffer is rebuilt every frame, as in this tutorial's render loop</td></tr>
+        <tr><td>VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT</td><td>Begin-info flag allowing the command buffer to be resubmitted while a previous submission is still pending execution on the GPU</td><td>Without this, resubmitting a buffer still in flight is invalid usage</td></tr>
+        <tr><td>VK_SUBPASS_CONTENTS_INLINE</td><td>vkCmdBeginRenderPass parameter stating that render pass commands are embedded directly in the primary command buffer</td><td>The alternative, VK_SUBPASS_CONTENTS_SECONDARY_COMMAND_BUFFERS, means commands will come from secondary buffers instead</td></tr>
+        <tr><td>vkCmdDraw parameters</td><td>(commandBuffer, vertexCount, instanceCount, firstVertex, firstInstance)</td><td>Tutorial call is vkCmdDraw(commandBuffer, 3, 1, 0, 0) — 3 hardcoded triangle vertices, 1 instance, no offsets</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- BEGIN INFO FLAGS REFERENCE -->
+  <div class="section">
+    <div class="sec-label">VkCommandBufferBeginInfo.flags — Three Options</div>
+    <div class="fields-grid">
+      <div class="field-card">
+        <div class="field-name">VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT</div>
+        <div class="field-row">
+          <div class="field-opt pick">Used when: buffer is rerecorded right after each submission</div>
+        </div>
+        <div class="field-note">Matches the tutorial's per-frame re-recording pattern.</div>
+      </div>
+      <div class="field-card">
+        <div class="field-name">VK_COMMAND_BUFFER_USAGE_RENDER_PASS_CONTINUE_BIT</div>
+        <div class="field-row">
+          <div class="field-opt neutral">Used when: this is a secondary buffer entirely within a single render pass</div>
+        </div>
+        <div class="field-note">Not applicable to primary buffers; irrelevant for this tutorial.</div>
+      </div>
+      <div class="field-card">
+        <div class="field-name">VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT</div>
+        <div class="field-row">
+          <div class="field-opt neutral">Used when: the buffer can be resubmitted while a previous submission is still pending</div>
+        </div>
+        <div class="field-note">Useful for buffers shared across multiple in-flight frames.</div>
+      </div>
+      <div class="field-card">
+        <div class="field-name">pInheritanceInfo</div>
+        <div class="field-row">
+          <div class="field-opt neutral">Only relevant for secondary command buffers</div>
+        </div>
+        <div class="field-note">Specifies which state is inherited from the calling primary buffer.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- KEY CODE -->
+  <div class="section">
+    <div class="sec-label">Key Code</div>
+
+    <div class="code-label">createCommandPool()</div>
+    <div class="code-block">void createCommandPool() {
+    QueueFamilyIndices queueFamilyIndices = findQueueFamilies(physicalDevice);
+
+    VkCommandPoolCreateInfo poolInfo{};
+    poolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
+    poolInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
+    poolInfo.queueFamilyIndex = queueFamilyIndices.graphicsFamily.value();
+
+    if (vkCreateCommandPool(device, &amp;poolInfo, nullptr, &amp;commandPool) != VK_SUCCESS) {
+        throw std::runtime_error("failed to create command pool!");
+    }
+}</div>
+
+    <div class="code-label" style="margin-top:16px;">createCommandBuffer()</div>
+    <div class="code-block">void createCommandBuffer() {
+    VkCommandBufferAllocateInfo allocInfo{};
+    allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+    allocInfo.commandPool        = commandPool;
+    allocInfo.level              = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+    allocInfo.commandBufferCount = 1;
+
+    if (vkAllocateCommandBuffers(device, &amp;allocInfo, &amp;commandBuffer) != VK_SUCCESS) {
+        throw std::runtime_error("failed to allocate command buffers!");
+    }
+}</div>
+
+    <div class="code-label" style="margin-top:16px;">recordCommandBuffer() — full recording sequence</div>
+    <div class="code-block">void recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex) {
+    VkCommandBufferBeginInfo beginInfo{};
+    beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+    beginInfo.flags = 0;                 <span class="hl-dim">// optional usage flags</span>
+    beginInfo.pInheritanceInfo = nullptr; <span class="hl-dim">// primary buffer — irrelevant</span>
+
+    if (vkBeginCommandBuffer(commandBuffer, &amp;beginInfo) != VK_SUCCESS) {
+        throw std::runtime_error("failed to begin recording command buffer!");
+    }
+
+    VkRenderPassBeginInfo renderPassInfo{};
+    renderPassInfo.sType       = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+    renderPassInfo.renderPass  = renderPass;
+    renderPassInfo.framebuffer = swapChainFramebuffers[imageIndex];
+    renderPassInfo.renderArea.offset = {0, 0};
+    renderPassInfo.renderArea.extent = swapChainExtent;
+
+    VkClearValue clearColor = {{{0.0f, 0.0f, 0.0f, 1.0f}}};
+    renderPassInfo.clearValueCount = 1;
+    renderPassInfo.pClearValues    = &amp;clearColor;
+
+    vkCmdBeginRenderPass(commandBuffer, &amp;renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
+
+    vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipeline);
+
+    <span class="hl-dim">// viewport/scissor were marked dynamic in the fixed-function pipeline state —
+    // they must be set per-recording with these calls</span>
+    VkViewport viewport{};
+    viewport.x = 0.0f;
+    viewport.y = 0.0f;
+    viewport.width  = static_cast&lt;float&gt;(swapChainExtent.width);
+    viewport.height = static_cast&lt;float&gt;(swapChainExtent.height);
+    viewport.minDepth = 0.0f;
+    viewport.maxDepth = 1.0f;
+    vkCmdSetViewport(commandBuffer, 0, 1, &amp;viewport);
+
+    VkRect2D scissor{};
+    scissor.offset = {0, 0};
+    scissor.extent = swapChainExtent;
+    vkCmdSetScissor(commandBuffer, 0, 1, &amp;scissor);
+
+    vkCmdDraw(commandBuffer, 3, 1, 0, 0);  <span class="hl-dim">// 3 vertices, 1 instance, no offsets</span>
+
+    vkCmdEndRenderPass(commandBuffer);
+
+    if (vkEndCommandBuffer(commandBuffer) != VK_SUCCESS) {
+        throw std::runtime_error("failed to record command buffer!");
+    }
+}</div>
+
+    <div class="code-label" style="margin-top:16px;">cleanup()</div>
+    <div class="code-block"><span class="hl-dim">// command buffers are freed automatically when their pool is destroyed —
+// no explicit vkFreeCommandBuffers call is required here</span>
+vkDestroyCommandPool(device, commandPool, nullptr);</div>
+  </div>
+
+  <!-- LOGIC FLOW -->
+  <div class="section">
+    <div class="sec-label">Logic Flow</div>
+    <div class="logic-flow">
+      <p>Vulkan's command model is deliberately indirect: rather than calling a "draw triangle" function that executes immediately, the application records a sequence of commands into a VkCommandBuffer object, and only later submits that buffer to a queue for actual GPU execution. This deferred model exists for two reasons the tutorial highlights — Vulkan can process the entire batch of commands at once rather than reacting to function calls one at a time, and because recording is just writing data structures (not touching the GPU directly), multiple threads can record different command buffers in parallel without any of Vulkan's own internal synchronization overhead.</p>
+      <p>Command buffers don't own their own memory — a VkCommandPool does, and the pool is tied to a specific queue family via queueFamilyIndex (the graphics family here, since this buffer will record draw commands). The pool's flags matter for performance: VK_COMMAND_POOL_CREATE_TRANSIENT_BIT hints that buffers will be rerecorded often, while VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT — the one the tutorial actually sets — allows resetting a single command buffer independently rather than being forced to reset (or implicitly reallocate) the entire pool. Since the tutorial's render loop rerecords the same command buffer fresh every frame, per-buffer reset is the natural fit.</p>
+      <p>Recording itself follows a strict bracket: vkBeginCommandBuffer opens recording (and implicitly resets any prior contents — Vulkan command buffers cannot be appended to), then a sequence of vkCmd*-prefixed calls describe the work, and vkCmdEndRenderPass plus vkEndCommandBuffer close it out. Within that bracket, vkCmdBeginRenderPass ties the recording to a specific framebuffer (swapChainFramebuffers[imageIndex] — note the parameter is the swap chain image index, not a hardcoded value, since the render loop will pass in whichever image was just acquired) and specifies the clear color via pClearValues, matching the VK_ATTACHMENT_LOAD_OP_CLEAR configured back in the render pass chapter.</p>
+      <p>Because the pipeline marked viewport and scissor as dynamic state (back in the fixed-functions chapter), their actual values were never baked into the VkPipeline — they must be supplied here, per recording, via vkCmdSetViewport and vkCmdSetScissor, using the current swapChainExtent. Only then is vkCmdDraw issued, with hardcoded parameters (3 vertices, 1 instance) reflecting the fact that this tutorial stage still has no vertex buffer — the triangle's positions are hardcoded inside the vertex shader itself, indexed by gl_VertexIndex.</p>
+    </div>
+  </div>
+
+  <!-- STEP-BY-STEP -->
+  <div class="section">
+    <div class="sec-label">Step-by-Step — Pool, Allocation &amp; Recording</div>
+    <ol class="steps-list">
+
+      <li class="step-item">
+        <div class="step-name">Create the <code>VkCommandPool</code> with <code>flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT</code> and <code>queueFamilyIndex = graphicsFamily</code></div>
+        <div class="step-row"><span class="step-badge badge-why">WHY</span>The pool must be tied to the queue family whose commands it will hold; RESET_COMMAND_BUFFER_BIT enables resetting individual buffers each frame instead of the whole pool.</div>
+      </li>
+
+      <li class="step-item">
+        <div class="step-name">Allocate one <code>VkCommandBuffer</code> via <code>VkCommandBufferAllocateInfo</code> with <code>level = VK_COMMAND_BUFFER_LEVEL_PRIMARY</code>, <code>commandBufferCount = 1</code></div>
+        <div class="step-row"><span class="step-badge badge-why">WHY</span>Primary level allows direct submission to a queue. Allocation comes from the pool created in the previous step.</div>
+      </li>
+
+      <li class="step-item">
+        <div class="step-name">Call <code>vkBeginCommandBuffer(commandBuffer, &amp;beginInfo)</code> to start recording</div>
+        <div class="step-row"><span class="step-badge badge-warn">WATCH OUT</span>This implicitly resets the buffer if it already held recorded commands — there is no API to append additional commands to an existing recording.</div>
+      </li>
+
+      <li class="step-item">
+        <div class="step-name">Fill <code>VkRenderPassBeginInfo</code> and call <code>vkCmdBeginRenderPass(commandBuffer, &amp;renderPassInfo, VK_SUBPASS_CONTENTS_INLINE)</code></div>
+        <div class="step-row"><span class="step-badge badge-why">WHY</span>Binds the recording to a specific framebuffer (swapChainFramebuffers[imageIndex]) and render area, and supplies the clear color used by loadOp = CLEAR.</div>
+        <div class="step-row"><span class="step-badge badge-note">NOTE</span>renderArea.extent should match swapChainExtent for best performance — rendering outside that area is undefined.</div>
+      </li>
+
+      <li class="step-item">
+        <div class="step-name">Call <code>vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipeline)</code></div>
+        <div class="step-row"><span class="step-badge badge-why">WHY</span>Tells subsequent commands which pipeline's shader stages and fixed-function state to use; the bind point explicitly distinguishes a graphics pipeline from a compute pipeline.</div>
+      </li>
+
+      <li class="step-item">
+        <div class="step-name">Call <code>vkCmdSetViewport</code> and <code>vkCmdSetScissor</code> with values derived from <code>swapChainExtent</code></div>
+        <div class="step-row"><span class="step-badge badge-why">WHY</span>Viewport and scissor were declared dynamic in the pipeline's VkPipelineDynamicStateCreateInfo — their actual values are not baked into the pipeline and must be set on every recording.</div>
+      </li>
+
+      <li class="step-item">
+        <div class="step-name">Call <code>vkCmdDraw(commandBuffer, 3, 1, 0, 0)</code></div>
+        <div class="step-row"><span class="step-badge badge-why">WHY</span>Issues the actual draw: 3 vertices forming the hardcoded triangle, 1 instance, no vertex or instance offset.</div>
+      </li>
+
+      <li class="step-item">
+        <div class="step-name">Call <code>vkCmdEndRenderPass(commandBuffer)</code>, then <code>vkEndCommandBuffer(commandBuffer)</code></div>
+        <div class="step-row"><span class="step-badge badge-why">WHY</span>Closes the render pass scope, then finalizes recording — vkEndCommandBuffer is the first point in this whole sequence that can report a recording-time error.</div>
+      </li>
+
+    </ol>
+  </div>
+
+  <!-- QUIZ -->
+  <div class="section">
+    <div class="sec-label">Quiz — 9 Questions</div>
+    <div class="quiz-cards">
+
+      <div class="quiz-card" data-answer="B">
+        <div class="q-num">Q1</div>
+        <div class="q-type">conceptual</div>
+        <div class="q-text">Why does Vulkan record commands into a VkCommandBuffer instead of executing drawing operations immediately through direct function calls?</div>
+        <div class="q-options">
+          <div class="q-option" data-option="A" onclick="selectOption(this)"><span class="q-letter">A</span>Direct function calls are not possible in Vulkan because the API has no synchronous entry points at all — every operation in the entire API is asynchronous</div>
+          <div class="q-option" data-option="B" onclick="selectOption(this)"><span class="q-letter">B</span>Recording lets Vulkan process an entire batch of commands together for efficiency, and because recording only writes data structures rather than touching the GPU, multiple threads can record different command buffers in parallel</div>
+          <div class="q-option" data-option="C" onclick="selectOption(this)"><span class="q-letter">C</span>Command buffers exist purely for backward compatibility with OpenGL-style immediate-mode rendering pipelines</div>
+          <div class="q-option" data-option="D" onclick="selectOption(this)"><span class="q-letter">D</span>Recording is required because Vulkan GPUs cannot execute any command without first validating it against the active render pass</div>
+        </div>
+        <button class="check-btn" onclick="checkAnswer(this.closest('.quiz-card'))" disabled>Check Answer</button>
+        <div class="q-feedback"><div class="fb-verdict"><span class="fb-icon"></span><span class="fb-text"></span></div><div class="fb-explanation"></div></div>
+      </div>
+
+      <div class="quiz-card" data-answer="C">
+        <div class="q-num">Q2</div>
+        <div class="q-type">gotcha</div>
+        <div class="q-text">Why does the tutorial set <code>VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT</code> on the command pool rather than leaving the flag unset?</div>
+        <div class="q-options">
+          <div class="q-option" data-option="A" onclick="selectOption(this)"><span class="q-letter">A</span>Without this flag, command buffers cannot be allocated as VK_COMMAND_BUFFER_LEVEL_PRIMARY — only secondary buffers would be possible</div>
+          <div class="q-option" data-option="B" onclick="selectOption(this)"><span class="q-letter">B</span>The flag is required for vkCmdSetViewport and vkCmdSetScissor to work, since those rely on dynamic state reset between frames</div>
+          <div class="q-option" data-option="C" onclick="selectOption(this)"><span class="q-letter">C</span>The tutorial's render loop rerecords the same command buffer every frame; this flag allows that single buffer to be reset and rerecorded individually, instead of requiring the entire pool to be reset at once</div>
+          <div class="q-option" data-option="D" onclick="selectOption(this)"><span class="q-letter">D</span>The flag enables multi-threaded recording of the same command buffer from multiple threads simultaneously</div>
+        </div>
+        <button class="check-btn" onclick="checkAnswer(this.closest('.quiz-card'))" disabled>Check Answer</button>
+        <div class="q-feedback"><div class="fb-verdict"><span class="fb-icon"></span><span class="fb-text"></span></div><div class="fb-explanation"></div></div>
+      </div>
+
+      <div class="quiz-card" data-answer="A">
+        <div class="q-num">Q3</div>
+        <div class="q-type">terminology</div>
+        <div class="q-text">What distinguishes <code>VK_COMMAND_BUFFER_LEVEL_PRIMARY</code> from <code>VK_COMMAND_BUFFER_LEVEL_SECONDARY</code>?</div>
+        <div class="q-options">
+          <div class="q-option" data-option="A" onclick="selectOption(this)"><span class="q-letter">A</span>A primary command buffer can be submitted directly to a queue but cannot call other command buffers; a secondary buffer cannot be submitted directly but can be invoked from a primary buffer</div>
+          <div class="q-option" data-option="B" onclick="selectOption(this)"><span class="q-letter">B</span>Primary buffers are used for graphics commands and secondary buffers are used exclusively for compute commands</div>
+          <div class="q-option" data-option="C" onclick="selectOption(this)"><span class="q-letter">C</span>Primary buffers can only be recorded once; secondary buffers can be rerecorded an unlimited number of times</div>
+          <div class="q-option" data-option="D" onclick="selectOption(this)"><span class="q-letter">D</span>Secondary buffers are allocated from a different VkCommandPool than primary buffers and use a separate queue family</div>
+        </div>
+        <button class="check-btn" onclick="checkAnswer(this.closest('.quiz-card'))" disabled>Check Answer</button>
+        <div class="q-feedback"><div class="fb-verdict"><span class="fb-icon"></span><span class="fb-text"></span></div><div class="fb-explanation"></div></div>
+      </div>
+
+      <div class="quiz-card" data-answer="D">
+        <div class="q-num">Q4</div>
+        <div class="q-type">gotcha</div>
+        <div class="q-text">What happens if <code>vkBeginCommandBuffer</code> is called on a command buffer that already contains previously recorded commands?</div>
+        <div class="q-options">
+          <div class="q-option" data-option="A" onclick="selectOption(this)"><span class="q-letter">A</span>Vulkan returns VK_ERROR_COMMAND_BUFFER_ALREADY_RECORDED, requiring an explicit vkResetCommandBuffer call first</div>
+          <div class="q-option" data-option="B" onclick="selectOption(this)"><span class="q-letter">B</span>The new commands are appended after the existing ones, building a longer combined command sequence</div>
+          <div class="q-option" data-option="C" onclick="selectOption(this)"><span class="q-letter">C</span>The call silently fails and the buffer retains only its original recorded commands, ignoring the new vkCmd* calls that follow</div>
+          <div class="q-option" data-option="D" onclick="selectOption(this)"><span class="q-letter">D</span>vkBeginCommandBuffer implicitly resets the buffer — Vulkan command buffers do not support appending; every vkBeginCommandBuffer call starts a fresh recording</div>
+        </div>
+        <button class="check-btn" onclick="checkAnswer(this.closest('.quiz-card'))" disabled>Check Answer</button>
+        <div class="q-feedback"><div class="fb-verdict"><span class="fb-icon"></span><span class="fb-text"></span></div><div class="fb-explanation"></div></div>
+      </div>
+
+      <div class="quiz-card" data-answer="B">
+        <div class="q-num">Q5</div>
+        <div class="q-type">application</div>
+        <div class="q-text">Why does <code>VkRenderPassBeginInfo.framebuffer</code> get set to <code>swapChainFramebuffers[imageIndex]</code> rather than a fixed, hardcoded framebuffer?</div>
+        <div class="q-options">
+          <div class="q-option" data-option="A" onclick="selectOption(this)"><span class="q-letter">A</span>imageIndex is always 0 in this tutorial since only one framebuffer is ever used, so the indexing has no real effect yet</div>
+          <div class="q-option" data-option="B" onclick="selectOption(this)"><span class="q-letter">B</span>The swap chain hands back a different image (and therefore a different framebuffer) on each acquire; imageIndex identifies which one was just acquired so the recording targets the correct framebuffer for this frame</div>
+          <div class="q-option" data-option="C" onclick="selectOption(this)"><span class="q-letter">C</span>imageIndex selects which subpass of the render pass to use, not which framebuffer</div>
+          <div class="q-option" data-option="D" onclick="selectOption(this)"><span class="q-letter">D</span>swapChainFramebuffers is indexed by frame-in-flight count, which is unrelated to which swap chain image is being rendered into</div>
+        </div>
+        <button class="check-btn" onclick="checkAnswer(this.closest('.quiz-card'))" disabled>Check Answer</button>
+        <div class="q-feedback"><div class="fb-verdict"><span class="fb-icon"></span><span class="fb-text"></span></div><div class="fb-explanation"></div></div>
+      </div>
+
+      <div class="quiz-card" data-answer="C">
+        <div class="q-num">Q6</div>
+        <div class="q-type">terminology</div>
+        <div class="q-text">What does the final parameter of <code>vkCmdBeginRenderPass</code>, <code>VK_SUBPASS_CONTENTS_INLINE</code>, control?</div>
+        <div class="q-options">
+          <div class="q-option" data-option="A" onclick="selectOption(this)"><span class="q-letter">A</span>Whether the render pass clears its attachments inline (immediately) versus deferring the clear to the first draw call</div>
+          <div class="q-option" data-option="B" onclick="selectOption(this)"><span class="q-letter">B</span>Whether the subpass writes its color attachment inline into the swap chain image, versus an offscreen intermediate buffer</div>
+          <div class="q-option" data-option="C" onclick="selectOption(this)"><span class="q-letter">C</span>Whether the subpass's commands are recorded directly (inline) in the primary command buffer, versus being supplied from secondary command buffers (VK_SUBPASS_CONTENTS_SECONDARY_COMMAND_BUFFERS)</div>
+          <div class="q-option" data-option="D" onclick="selectOption(this)"><span class="q-letter">D</span>Whether viewport and scissor state is applied inline per-draw-call versus once for the whole subpass</div>
+        </div>
+        <button class="check-btn" onclick="checkAnswer(this.closest('.quiz-card'))" disabled>Check Answer</button>
+        <div class="q-feedback"><div class="fb-verdict"><span class="fb-icon"></span><span class="fb-text"></span></div><div class="fb-explanation"></div></div>
+      </div>
+
+      <div class="quiz-card" data-answer="A">
+        <div class="q-num">Q7</div>
+        <div class="q-type">gotcha</div>
+        <div class="q-text">Why must <code>vkCmdSetViewport</code> and <code>vkCmdSetScissor</code> be called during command buffer recording in this tutorial, when the pipeline already has rasterizer and viewport state structs?</div>
+        <div class="q-options">
+          <div class="q-option" data-option="A" onclick="selectOption(this)"><span class="q-letter">A</span>The pipeline's viewport and scissor were declared as dynamic state in VkPipelineDynamicStateCreateInfo — their actual values were never baked into the immutable pipeline object and must be supplied at recording time instead</div>
+          <div class="q-option" data-option="B" onclick="selectOption(this)"><span class="q-letter">B</span>vkCmdSetViewport and vkCmdSetScissor are mandatory for every Vulkan pipeline regardless of whether viewport/scissor were marked dynamic or static</div>
+          <div class="q-option" data-option="C" onclick="selectOption(this)"><span class="q-letter">C</span>The pipeline's viewport state only configures the depth range (minDepth/maxDepth); position and size must always come from vkCmdSetViewport separately</div>
+          <div class="q-option" data-option="D" onclick="selectOption(this)"><span class="q-letter">D</span>These calls are only needed because the render pass uses VK_SUBPASS_CONTENTS_INLINE; secondary command buffers would not need them</div>
+        </div>
+        <button class="check-btn" onclick="checkAnswer(this.closest('.quiz-card'))" disabled>Check Answer</button>
+        <div class="q-feedback"><div class="fb-verdict"><span class="fb-icon"></span><span class="fb-text"></span></div><div class="fb-explanation"></div></div>
+      </div>
+
+      <div class="quiz-card" data-answer="D">
+        <div class="q-num">Q8</div>
+        <div class="q-type">application</div>
+        <div class="q-text">In <code>vkCmdDraw(commandBuffer, 3, 1, 0, 0)</code>, what do the four numeric parameters mean, and why is the vertex count hardcoded to 3?</div>
+        <div class="q-options">
+          <div class="q-option" data-option="A" onclick="selectOption(this)"><span class="q-letter">A</span>3 = instance count, 1 = vertex count, 0/0 = first instance and first vertex; 3 instances are drawn because the triangle has 3 corners</div>
+          <div class="q-option" data-option="B" onclick="selectOption(this)"><span class="q-letter">B</span>3 = number of color attachments, 1 = subpass index, 0/0 = clear value indices</div>
+          <div class="q-option" data-option="C" onclick="selectOption(this)"><span class="q-letter">C</span>3 = number of descriptor sets bound, 1 = pipeline layout count, 0/0 = dynamic offsets</div>
+          <div class="q-option" data-option="D" onclick="selectOption(this)"><span class="q-letter">D</span>vertexCount=3, instanceCount=1, firstVertex=0, firstInstance=0; vertexCount is 3 because this tutorial stage has no vertex buffer — the 3 triangle vertices are hardcoded inside the vertex shader and indexed via gl_VertexIndex</div>
+        </div>
+        <button class="check-btn" onclick="checkAnswer(this.closest('.quiz-card'))" disabled>Check Answer</button>
+        <div class="q-feedback"><div class="fb-verdict"><span class="fb-icon"></span><span class="fb-text"></span></div><div class="fb-explanation"></div></div>
+      </div>
+
+      <div class="quiz-card" data-answer="B">
+        <div class="q-num">Q9</div>
+        <div class="q-type">gotcha</div>
+        <div class="q-text">Every <code>vkCmd*</code> function (vkCmdBindPipeline, vkCmdSetViewport, vkCmdDraw, etc.) returns void. What does this mean for error handling during command buffer recording?</div>
+        <div class="q-options">
+          <div class="q-option" data-option="A" onclick="selectOption(this)"><span class="q-letter">A</span>vkCmd* functions cannot fail under any circumstances, so no error handling is ever needed for them</div>
+          <div class="q-option" data-option="B" onclick="selectOption(this)"><span class="q-letter">B</span>Errors from individual recording commands are not reported immediately; any accumulated problems surface only when vkEndCommandBuffer is called, which does return a VkResult</div>
+          <div class="q-option" data-option="C" onclick="selectOption(this)"><span class="q-letter">C</span>vkCmd* functions report errors asynchronously through the debug messenger callback registered in the validation layers chapter, never through return values</div>
+          <div class="q-option" data-option="D" onclick="selectOption(this)"><span class="q-letter">D</span>Errors are reported through a global thread-local error variable that must be checked manually after every vkCmd* call</div>
+        </div>
+        <button class="check-btn" onclick="checkAnswer(this.closest('.quiz-card'))" disabled>Check Answer</button>
+        <div class="q-feedback"><div class="fb-verdict"><span class="fb-icon"></span><span class="fb-text"></span></div><div class="fb-explanation"></div></div>
+      </div>
+
+    </div>
+
+    <div class="score-summary" id="score-summary">
+      <div class="score-summary-num" id="summary-num"></div>
+      <div class="score-summary-msg" id="summary-msg"></div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  const TOTAL = 9;
+  let answeredCount = 0;
+  let correctCount = 0;
+
+  const explanations = {
+    1: {
+      correct: 'B',
+      text: 'Vulkan favors a record-then-submit model precisely because it decouples the CPU-side description of work from GPU execution. Batching all commands lets the driver optimize across the whole sequence rather than reacting call-by-call, and because recording into a VkCommandBuffer is just writing data into a buffer (no GPU synchronization needed), separate threads can record separate command buffers concurrently — a key scalability feature for engines that build a frame across many threads.'
+    },
+    2: {
+      correct: 'C',
+      text: 'VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT allows vkResetCommandBuffer (or the implicit reset inside vkBeginCommandBuffer) to target one specific buffer without resetting every buffer allocated from the same pool. Since the tutorial rebuilds its single command buffer\'s contents fresh every frame, this flag avoids the heavier alternative of resetting the entire command pool just to rerecord one buffer.'
+    },
+    3: {
+      correct: 'A',
+      text: 'VK_COMMAND_BUFFER_LEVEL_PRIMARY buffers can be submitted to a VkQueue directly via vkQueueSubmit but cannot be executed from inside another command buffer. VK_COMMAND_BUFFER_LEVEL_SECONDARY buffers are the inverse: they cannot be submitted to a queue on their own but can be invoked from a primary buffer via vkCmdExecuteCommands, which is useful for reusing a common sequence of commands across several primary buffers.'
+    },
+    4: {
+      correct: 'D',
+      text: 'The tutorial explicitly notes that calling vkBeginCommandBuffer on a command buffer that was previously recorded implicitly resets it — there is no concept of "appending" more commands to an existing recording in Vulkan. Each vkBeginCommandBuffer call starts a clean slate, which is why the render loop can safely call recordCommandBuffer on the same VkCommandBuffer every frame without first explicitly resetting it.'
+    },
+    5: {
+      correct: 'B',
+      text: 'The swap chain provides a pool of images that get reused for presentation; vkAcquireNextImageKHR (covered in the rendering/presentation chapter) returns whichever image index is currently available, and that index is not guaranteed to follow a fixed sequence. Indexing swapChainFramebuffers[imageIndex] ensures the render pass targets the framebuffer wrapping the exact image view that was just acquired for this frame, rather than always rendering into the same framebuffer regardless of which image is actually free.'
+    },
+    6: {
+      correct: 'C',
+      text: 'VK_SUBPASS_CONTENTS_INLINE tells Vulkan that the commands belonging to this subpass will appear directly inline within the same (primary) command buffer that called vkCmdBeginRenderPass. The alternative, VK_SUBPASS_CONTENTS_SECONDARY_COMMAND_BUFFERS, means the subpass\'s commands will instead come from one or more secondary command buffers executed via vkCmdExecuteCommands — useful when subpass work is recorded on separate threads.'
+    },
+    7: {
+      correct: 'A',
+      text: 'Back in the fixed-functions chapter, viewport and scissor were placed into VkPipelineDynamicStateCreateInfo.pDynamicStates — meaning the pipeline object itself does not store concrete viewport/scissor values, only a promise that they will be provided later. Because of that, every time the command buffer is recorded, vkCmdSetViewport and vkCmdSetScissor must explicitly supply the actual rectangle (here, sized to swapChainExtent) before any draw call that depends on them.'
+    },
+    8: {
+      correct: 'D',
+      text: 'vkCmdDraw\'s signature is (commandBuffer, vertexCount, instanceCount, firstVertex, firstInstance). The tutorial passes vertexCount=3 because, at this stage, the application has not yet introduced a vertex buffer — the three triangle vertices are written directly into the vertex shader as a hardcoded array and selected via the gl_VertexIndex built-in, so "3 vertices" simply means "run the vertex shader 3 times, each time picking the next hardcoded position." instanceCount=1 disables instancing, and both offsets are 0 since there\'s no buffer to offset into yet.'
+    },
+    9: {
+      correct: 'B',
+      text: 'Because vkCmd* functions write into command buffer memory rather than touching the GPU synchronously, there is no immediate result to report — they return void. Any validation problems accumulated during recording (invalid state combinations, missing bindings, etc.) are deferred and only surface when vkEndCommandBuffer is called, which does return a VkResult the tutorial checks against VK_SUCCESS. This is consistent with the deferred, record-then-submit execution model described at the top of the chapter.'
+    }
+  };
+
+  function getCardIndex(card) {
+    return parseInt(card.querySelector('.q-num').textContent.replace('Q', ''));
+  }
+
+  function selectOption(optionEl) {
+    const card = optionEl.closest('.quiz-card');
+    if (card.dataset.answered) return;
+    card.querySelectorAll('.q-option').forEach(o => o.classList.remove('selected'));
+    optionEl.classList.add('selected');
+    card.querySelector('.check-btn').disabled = false;
+  }
+
+  function checkAnswer(card) {
+    if (card.dataset.answered) return;
+    card.dataset.answered = 'true';
+
+    const correct = card.dataset.answer;
+    const selected = card.querySelector('.q-option.selected');
+    const chosen = selected ? selected.dataset.option : null;
+    const idx = getCardIndex(card);
+    const info = explanations[idx];
+
+    const isCorrect = chosen === correct;
+    if (isCorrect) correctCount++;
+    answeredCount++;
+
+    card.querySelectorAll('.q-option').forEach(o => {
+      o.classList.add('locked');
+      if (o.dataset.option === correct) o.classList.add('correct');
+      else if (o.dataset.option === chosen && !isCorrect) o.classList.add('wrong');
+    });
+
+    const feedback = card.querySelector('.q-feedback');
+    const icon = feedback.querySelector('.fb-icon');
+    const verdictText = feedback.querySelector('.fb-text');
+    const explanation = feedback.querySelector('.fb-explanation');
+
+    if (isCorrect) {
+      feedback.classList.add('correct');
+      icon.textContent = '✓';
+      verdictText.textContent = 'Correct';
+    } else {
+      feedback.classList.add('wrong');
+      icon.textContent = '✗';
+      verdictText.textContent = `Incorrect — correct answer is ${correct}`;
+    }
+    explanation.textContent = info.text;
+
+    const btn = card.querySelector('.check-btn');
+    btn.textContent = isCorrect ? '✓ Correct' : '✗ Answered';
+    btn.disabled = true;
+
+    card.classList.add(isCorrect ? 'answered-correct' : 'answered-wrong');
+    updateScore();
+  }
+
+  function updateScore() {
+    const tally = document.getElementById('score-tally');
+    const correctSpan = document.getElementById('score-correct');
+    tally.childNodes[0].textContent = `${answeredCount} / ${TOTAL} answered · `;
+    correctSpan.textContent = correctCount;
+
+    if (answeredCount === TOTAL) {
+      const summary = document.getElementById('score-summary');
+      const pct = correctCount / TOTAL;
+      let msg;
+      if (pct >= 0.9) msg = 'Excellent — command pool/buffer lifecycle and recording sequence are solid.';
+      else if (pct >= 0.7) msg = 'Good — review what you missed before the rendering and presentation chapter.';
+      else msg = 'Review recommended — revisit the recording bracket (begin → render pass → draw → end) and why viewport/scissor must be set dynamically.';
+      document.getElementById('summary-num').textContent = `${correctCount} / ${TOTAL}`;
+      document.getElementById('summary-msg').textContent = msg;
+      summary.classList.add('visible');
+    }
+  }
+</script>
+</body>
+</html>
