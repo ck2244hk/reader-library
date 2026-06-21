@@ -158,5 +158,15 @@
     "questionCount": 9,
     "file": "sessions/vulkan-command-buffers-learning.html",
     "excerpt": "Command pools and per-buffer reset, primary vs secondary command buffer levels, the begin/render-pass/draw/end recording bracket, why viewport and scissor must be set dynamically, and vkCmdDraw's hardcoded triangle parameters."
+  },
+  {
+    "id": "vulkan-rendering-presentation",
+    "title": "Vulkan Tutorial — Rendering and Presentation",
+    "url": "https://vulkan-tutorial.com/Drawing_a_triangle/Drawing/Rendering_and_presentation",
+    "date": "2026-06-20",
+    "tags": ["graphics", "vulkan", "gpu", "cpp"],
+    "questionCount": 10,
+    "file": "sessions/vulkan-rendering-presentation-learning.html",
+    "excerpt": "Semaphores vs fences, the VK_FENCE_CREATE_SIGNALED_BIT first-frame deadlock fix, the full drawFrame() wait/acquire/submit/present sequence, pWaitDstStageMask, and the VK_SUBPASS_EXTERNAL dependency fix for swap chain image acquisition timing."
   }
 ]

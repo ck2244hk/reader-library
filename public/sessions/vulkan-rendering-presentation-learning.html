@@ -1,0 +1,622 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Vulkan Tutorial — Rendering and Presentation | Learning Session</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=IBM+Plex+Mono:wght@400;500&family=Syne:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #0d0f14; --bg-surface: #10131a; --bg-card: #12151d; --bg-row-alt: #0f1118;
+    --border: #1e2333; --gold: #c9a84c; --gold-dim: #7a6230; --gold-glow: rgba(201,168,76,0.1);
+    --blue: #7eb8d4; --green: #5db88a; --green-dim: rgba(93,184,138,0.15); --green-border: rgba(93,184,138,0.35);
+    --red: #d46a6a; --red-dim: rgba(212,106,106,0.15); --red-border: rgba(212,106,106,0.35);
+    --amber: #d4965a;
+    --text-1: #e8e4dc; --text-2: #8a8c99; --text-3: #4a4e62;
+    --tag-bg: #1a1e2c; --tag-border: #252a3a;
+  }
+  html { background: var(--bg); color: var(--text-1); font-family: 'Syne', sans-serif; -webkit-font-smoothing: antialiased; }
+  body { min-height: 100vh; padding-bottom: 80px; }
+  ::-webkit-scrollbar { width: 4px; }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+
+  .hdr { position: sticky; top: 0; z-index: 10; background: var(--bg-surface); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 12px 24px; gap: 16px; flex-wrap: wrap; }
+  .hdr-left { display: flex; align-items: center; gap: 10px; }
+  .hdr-gem { color: var(--gold); font-size: 14px; }
+  .hdr-title { font-family: 'DM Serif Display', serif; font-size: 16px; color: var(--text-1); }
+  .hdr-right { display: flex; align-items: center; gap: 12px; }
+  .score-tally { font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: var(--text-3); white-space: nowrap; }
+  .score-tally span { color: var(--gold); }
+  .hdr-url { font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: var(--text-3); background: var(--tag-bg); border: 1px solid var(--tag-border); border-radius: 5px; padding: 4px 10px; text-decoration: none; white-space: nowrap; transition: color 0.2s, border-color 0.2s; }
+  .hdr-url:hover { color: var(--gold); border-color: var(--gold-dim); }
+
+  .content { max-width: 800px; margin: 0 auto; padding: 40px 24px; display: flex; flex-direction: column; gap: 40px; }
+  .framing { font-family: 'DM Serif Display', serif; font-size: 16px; color: var(--gold); border-left: 2px solid var(--gold); padding-left: 14px; line-height: 1.55; font-style: italic; }
+  .section { display: flex; flex-direction: column; gap: 14px; }
+  .sec-label { font-family: 'IBM Plex Mono', monospace; font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--text-3); }
+
+  .code-block { background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px; padding: 16px 18px; font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: var(--text-2); line-height: 1.7; overflow-x: auto; white-space: pre; }
+  .code-label { font-family: 'IBM Plex Mono', monospace; font-size: 9px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--text-3); margin-bottom: 8px; }
+  .hl-dim { color: var(--text-3); }
+  .hl-amber { color: var(--amber); }
+  .hl-blue { color: var(--blue); }
+  .hl-gold { color: var(--gold); }
+  .hl-green { color: var(--green); }
+
+  .term-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .term-table th { font-family: 'IBM Plex Mono', monospace; font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-3); text-align: left; padding: 8px 12px; background: var(--bg-surface); border-bottom: 1px solid var(--border); }
+  .term-table td { padding: 9px 12px; border-bottom: 1px solid var(--border); vertical-align: top; color: var(--text-2); line-height: 1.5; }
+  .term-table tr:nth-child(even) td { background: var(--bg-row-alt); }
+  .term-table td:first-child { font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: var(--blue); white-space: nowrap; }
+
+  .compare-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  @media (max-width: 560px) { .compare-grid { grid-template-columns: 1fr; } }
+  .compare-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px; padding: 16px 18px; }
+  .compare-title { font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: var(--gold); margin-bottom: 10px; letter-spacing: 0.04em; }
+  .compare-list { display: flex; flex-direction: column; gap: 7px; font-size: 12.5px; color: var(--text-2); line-height: 1.5; }
+  .compare-list li { list-style: none; padding-left: 14px; position: relative; }
+  .compare-list li::before { content: '—'; position: absolute; left: 0; color: var(--text-3); }
+
+  .diagram { background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px; padding: 18px 20px; display: flex; flex-direction: column; gap: 8px; }
+  .diagram-step { display: flex; align-items: baseline; gap: 10px; font-size: 13px; color: var(--text-2); }
+  .diagram-step-num { font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: var(--gold); width: 18px; flex-shrink: 0; }
+
+  .logic-flow { font-size: 14px; line-height: 1.8; color: var(--text-2); display: flex; flex-direction: column; gap: 14px; }
+
+  .steps-list { list-style: none; display: flex; flex-direction: column; gap: 10px; counter-reset: steps; }
+  .step-item { counter-increment: steps; background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px; padding: 14px 16px 14px 54px; position: relative; }
+  .step-item::before { content: counter(steps); position: absolute; left: 14px; top: 14px; font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: var(--gold); background: var(--gold-glow); border: 1px solid var(--gold-dim); border-radius: 4px; width: 26px; height: 26px; display: flex; align-items: center; justify-content: center; }
+  .step-name { font-size: 13.5px; font-weight: 500; color: var(--text-1); margin-bottom: 7px; line-height: 1.4; }
+  .step-name code { font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: var(--blue); background: var(--tag-bg); padding: 1px 5px; border-radius: 3px; }
+  .step-row { font-size: 12.5px; color: var(--text-2); line-height: 1.55; display: flex; gap: 6px; margin-top: 5px; }
+  .step-badge { font-family: 'IBM Plex Mono', monospace; font-size: 9px; border-radius: 3px; padding: 2px 5px; flex-shrink: 0; margin-top: 2px; letter-spacing: 0.06em; }
+  .badge-why { color: var(--green); background: rgba(93,184,138,0.1); border: 1px solid rgba(93,184,138,0.2); }
+  .badge-warn { color: var(--amber); background: rgba(212,150,90,0.1); border: 1px solid rgba(212,150,90,0.2); }
+  .badge-note { color: var(--blue); background: rgba(126,184,212,0.1); border: 1px solid rgba(126,184,212,0.2); }
+
+  .quiz-cards { display: flex; flex-direction: column; gap: 14px; }
+  .quiz-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px; padding: 18px 20px; }
+  .quiz-card.answered-correct { border-left: 3px solid var(--green); }
+  .quiz-card.answered-wrong { border-left: 3px solid var(--red); }
+  .q-num { font-family: 'IBM Plex Mono', monospace; font-size: 10px; color: var(--gold); margin-bottom: 3px; }
+  .q-type { font-family: 'IBM Plex Mono', monospace; font-size: 9px; color: var(--text-3); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 10px; }
+  .q-text { font-size: 13.5px; font-weight: 500; color: var(--text-1); line-height: 1.55; margin-bottom: 14px; }
+  .q-text code { font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: var(--blue); background: var(--tag-bg); padding: 1px 5px; border-radius: 3px; }
+  .q-options { display: flex; flex-direction: column; gap: 7px; margin-bottom: 14px; }
+  .q-option { display: flex; gap: 10px; align-items: flex-start; font-size: 13px; color: var(--text-2); line-height: 1.5; padding: 9px 12px; border: 1px solid var(--border); border-radius: 6px; cursor: pointer; transition: border-color 0.15s, background 0.15s; user-select: none; }
+  .q-option:hover { border-color: var(--gold-dim); background: var(--gold-glow); }
+  .q-option.selected { border-color: var(--gold); background: var(--gold-glow); }
+  .q-option.selected .q-letter { color: var(--gold); border-color: var(--gold-dim); background: rgba(201,168,76,0.15); }
+  .q-option.correct { border-color: var(--green); background: var(--green-dim); pointer-events: none; }
+  .q-option.correct .q-letter { color: var(--green); border-color: var(--green-border); background: rgba(93,184,138,0.15); }
+  .q-option.wrong { border-color: var(--red); background: var(--red-dim); pointer-events: none; }
+  .q-option.wrong .q-letter { color: var(--red); border-color: var(--red-border); background: rgba(212,106,106,0.15); }
+  .q-option.locked { pointer-events: none; }
+  .q-letter { font-family: 'IBM Plex Mono', monospace; font-size: 10px; background: var(--tag-bg); border: 1px solid var(--tag-border); border-radius: 3px; padding: 2px 6px; color: var(--text-3); flex-shrink: 0; margin-top: 1px; transition: color 0.15s, border-color 0.15s, background 0.15s; }
+  .check-btn { background: transparent; border: 1px solid var(--gold-dim); border-radius: 6px; padding: 9px 16px; font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: var(--gold); cursor: pointer; transition: all 0.2s; }
+  .check-btn:hover:not(:disabled) { background: var(--gold-glow); border-color: var(--gold); }
+  .check-btn:disabled { border-color: var(--border); color: var(--text-3); cursor: default; }
+  .q-feedback { display: none; margin-top: 12px; padding: 11px 14px; border-radius: 6px; font-size: 13px; line-height: 1.65; color: var(--text-2); }
+  .q-feedback.correct { display: block; background: var(--green-dim); border: 1px solid var(--green-border); }
+  .q-feedback.wrong { display: block; background: var(--red-dim); border: 1px solid var(--red-border); }
+  .q-feedback .fb-verdict { font-weight: 600; margin-bottom: 4px; display: flex; align-items: center; gap: 6px; }
+  .q-feedback.correct .fb-verdict { color: var(--green); }
+  .q-feedback.wrong .fb-verdict { color: var(--red); }
+  .score-summary { background: var(--bg-card); border: 1px solid var(--border); border-radius: 10px; padding: 28px 24px; text-align: center; display: none; flex-direction: column; gap: 10px; }
+  .score-summary.visible { display: flex; }
+  .score-summary-num { font-family: 'DM Serif Display', serif; font-size: 36px; color: var(--gold); }
+  .score-summary-msg { font-size: 14px; color: var(--text-2); }
+</style>
+</head>
+<body>
+
+<header class="hdr">
+  <div class="hdr-left">
+    <span class="hdr-gem">◆</span>
+    <span class="hdr-title">Vulkan Tutorial — Rendering and Presentation</span>
+  </div>
+  <div class="hdr-right">
+    <span class="score-tally" id="score-tally">0 / 10 answered &middot; <span id="score-correct">0</span> correct</span>
+    <a class="hdr-url" href="https://vulkan-tutorial.com/Drawing_a_triangle/Drawing/Rendering_and_presentation" target="_blank" rel="noopener">vulkan-tutorial.com ↗</a>
+  </div>
+</header>
+
+<div class="content">
+
+  <p class="framing">Every GPU-facing Vulkan call — image acquisition, command execution, presentation — returns to the CPU immediately, with no guaranteed ordering between them. The entire render loop exists to impose that ordering explicitly, using semaphores between GPU operations and fences between the GPU and the CPU.</p>
+
+  <!-- FRAME OUTLINE -->
+  <div class="section">
+    <div class="sec-label">The Five-Step Frame Outline</div>
+    <div class="diagram">
+      <div class="diagram-step"><span class="diagram-step-num">1</span>Wait for the previous frame to finish (CPU waits on a fence)</div>
+      <div class="diagram-step"><span class="diagram-step-num">2</span>Acquire an image from the swap chain (GPU signals a semaphore when ready)</div>
+      <div class="diagram-step"><span class="diagram-step-num">3</span>Record the command buffer that draws onto the acquired image</div>
+      <div class="diagram-step"><span class="diagram-step-num">4</span>Submit the recorded command buffer (waits on the acquire semaphore, signals a render-finished semaphore and a fence)</div>
+      <div class="diagram-step"><span class="diagram-step-num">5</span>Present the swap chain image to the screen (waits on the render-finished semaphore)</div>
+    </div>
+  </div>
+
+  <!-- SEMAPHORES VS FENCES -->
+  <div class="section">
+    <div class="sec-label">Semaphores vs. Fences</div>
+    <div class="compare-grid">
+      <div class="compare-card">
+        <div class="compare-title">VkSemaphore — GPU ↔ GPU ordering</div>
+        <ul class="compare-list">
+          <li>Orders queue operations relative to each other</li>
+          <li>Binary: starts unsignaled, becomes signaled, auto-resets to unsignaled once the waiting operation consumes it</li>
+          <li>Operation A signals S on completion; operation B waits on S before starting</li>
+          <li>vkQueueSubmit returns immediately on the CPU — the wait happens entirely on the GPU</li>
+          <li>Host (CPU) is never involved in resetting it</li>
+        </ul>
+      </div>
+      <div class="compare-card">
+        <div class="compare-title">VkFence — GPU → CPU (host) waiting</div>
+        <ul class="compare-list">
+          <li>Lets the host block until GPU work signals completion</li>
+          <li>Used via vkWaitForFences — an explicit, blocking host call</li>
+          <li>Must be reset manually with vkResetFences — the host decides when</li>
+          <li>Created with VK_FENCE_CREATE_SIGNALED_BIT to avoid a first-frame deadlock</li>
+          <li>Used here specifically to wait for the previous frame before recording a new one</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- KEY TERMINOLOGY -->
+  <div class="section">
+    <div class="sec-label">Key Terminology</div>
+    <table class="term-table">
+      <thead>
+        <tr><th>Term</th><th>Definition</th><th>Key detail</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>VK_FENCE_CREATE_SIGNALED_BIT</td><td>Fence creation flag that makes the fence start in the signaled state instead of unsignaled</td><td>Without it, the very first call to vkWaitForFences on frame 0 blocks forever, since no prior frame ever signaled the fence</td></tr>
+        <tr><td>vkAcquireNextImageKHR</td><td>Requests the next available image from the swap chain for rendering</td><td>Takes a timeout (UINT64_MAX disables it), a semaphore and/or fence to signal once the image is actually ready, and writes the acquired image's index to imageIndex</td></tr>
+        <tr><td>pWaitDstStageMask</td><td>Array specifying, for each wait semaphore, which pipeline stage execution should pause at until that semaphore signals</td><td>Corresponds element-wise to pWaitSemaphores; using VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT lets earlier stages like the vertex shader begin executing even before the image is confirmed available</td></tr>
+        <tr><td>inFlightFence (in vkQueueSubmit)</td><td>The fence passed as the last argument to vkQueueSubmit, signaled once the submitted command buffer finishes executing on the GPU</td><td>This is the same fence drawFrame() waits on at the start of the next frame — it gates command buffer reuse/re-recording</td></tr>
+        <tr><td>VK_SUBPASS_EXTERNAL</td><td>A special subpass index referring to the implicit subpass that occurs before (as srcSubpass) or after (as dstSubpass) the render pass</td><td>Used in VkSubpassDependency to insert an explicit dependency between the swap chain image acquisition and the render pass's first (and only) real subpass</td></tr>
+        <tr><td>Implicit render pass dependency problem</td><td>By default, Vulkan assumes the image layout transition for a render pass happens at the very start of the pipeline — but at that point the image may not have been acquired yet</td><td>An explicit VkSubpassDependency delays the transition until VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, i.e. until color attachment writes are about to happen</td></tr>
+        <tr><td>VkPresentInfoKHR</td><td>Struct describing a presentation request: which semaphores to wait on, which swap chain(s), and which image index(es) to present</td><td>Waits on renderFinishedSemaphore — presentation must not begin until the render pass output is actually complete</td></tr>
+        <tr><td>vkDeviceWaitIdle</td><td>Blocks the host until all queued GPU operations on the device have finished</td><td>Called once after the main loop ends, since drawFrame() leaves asynchronous work in flight that must finish before resources are destroyed in cleanup()</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- KEY CODE -->
+  <div class="section">
+    <div class="sec-label">Key Code</div>
+
+    <div class="code-label">Synchronization object creation</div>
+    <div class="code-block">VkSemaphore imageAvailableSemaphore;
+VkSemaphore renderFinishedSemaphore;
+VkFence     inFlightFence;
+
+void createSyncObjects() {
+    VkSemaphoreCreateInfo semaphoreInfo{};
+    semaphoreInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
+
+    VkFenceCreateInfo fenceInfo{};
+    fenceInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
+    fenceInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;  <span class="hl-dim">// avoid first-frame deadlock</span>
+
+    if (vkCreateSemaphore(device, &amp;semaphoreInfo, nullptr, &amp;imageAvailableSemaphore) != VK_SUCCESS ||
+        vkCreateSemaphore(device, &amp;semaphoreInfo, nullptr, &amp;renderFinishedSemaphore) != VK_SUCCESS ||
+        vkCreateFence(device, &amp;fenceInfo, nullptr, &amp;inFlightFence) != VK_SUCCESS) {
+        throw std::runtime_error("failed to create synchronization objects for a frame!");
+    }
+}</div>
+
+    <div class="code-label" style="margin-top:16px;">drawFrame() — wait, acquire, record</div>
+    <div class="code-block">void drawFrame() {
+    vkWaitForFences(device, 1, &amp;inFlightFence, VK_TRUE, UINT64_MAX);
+    vkResetFences(device, 1, &amp;inFlightFence);
+
+    uint32_t imageIndex;
+    vkAcquireNextImageKHR(device, swapChain, UINT64_MAX,
+                           imageAvailableSemaphore, VK_NULL_HANDLE, &amp;imageIndex);
+
+    vkResetCommandBuffer(commandBuffer, 0);
+    recordCommandBuffer(commandBuffer, imageIndex);
+    <span class="hl-dim">// ... submit + present below</span>
+}</div>
+
+    <div class="code-label" style="margin-top:16px;">drawFrame() — submit</div>
+    <div class="code-block">VkSubmitInfo submitInfo{};
+submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+
+VkSemaphore waitSemaphores[] = { imageAvailableSemaphore };
+VkPipelineStageFlags waitStages[] = { VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };
+submitInfo.waitSemaphoreCount = 1;
+submitInfo.pWaitSemaphores    = waitSemaphores;
+submitInfo.pWaitDstStageMask  = waitStages;   <span class="hl-dim">// element-wise with pWaitSemaphores</span>
+
+submitInfo.commandBufferCount = 1;
+submitInfo.pCommandBuffers    = &amp;commandBuffer;
+
+VkSemaphore signalSemaphores[] = { renderFinishedSemaphore };
+submitInfo.signalSemaphoreCount = 1;
+submitInfo.pSignalSemaphores    = signalSemaphores;
+
+if (vkQueueSubmit(graphicsQueue, 1, &amp;submitInfo, inFlightFence) != VK_SUCCESS) {
+    throw std::runtime_error("failed to submit draw command buffer!");
+}</div>
+
+    <div class="code-label" style="margin-top:16px;">drawFrame() — present</div>
+    <div class="code-block">VkPresentInfoKHR presentInfo{};
+presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
+
+presentInfo.waitSemaphoreCount = 1;
+presentInfo.pWaitSemaphores    = signalSemaphores;   <span class="hl-dim">// wait on renderFinishedSemaphore</span>
+
+VkSwapchainKHR swapChains[] = { swapChain };
+presentInfo.swapchainCount = 1;
+presentInfo.pSwapchains    = swapChains;
+presentInfo.pImageIndices  = &amp;imageIndex;
+presentInfo.pResults       = nullptr;   <span class="hl-dim">// optional — only needed for multiple swap chains</span>
+
+vkQueuePresentKHR(presentQueue, &amp;presentInfo);</div>
+
+    <div class="code-label" style="margin-top:16px;">Explicit subpass dependency fix (in createRenderPass())</div>
+    <div class="code-block">VkSubpassDependency dependency{};
+dependency.srcSubpass = VK_SUBPASS_EXTERNAL;  <span class="hl-dim">// implicit subpass before the render pass</span>
+dependency.dstSubpass = 0;                     <span class="hl-dim">// our one and only subpass</span>
+
+dependency.srcStageMask  = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+dependency.srcAccessMask = 0;
+dependency.dstStageMask  = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+dependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+
+renderPassInfo.dependencyCount = 1;
+renderPassInfo.pDependencies   = &amp;dependency;</div>
+
+    <div class="code-label" style="margin-top:16px;">mainLoop() — waiting for in-flight work before cleanup</div>
+    <div class="code-block">void mainLoop() {
+    while (!glfwWindowShouldClose(window)) {
+        glfwPollEvents();
+        drawFrame();
+    }
+
+    vkDeviceWaitIdle(device);  <span class="hl-dim">// drain async work before cleanup() destroys resources</span>
+}</div>
+  </div>
+
+  <!-- LOGIC FLOW -->
+  <div class="section">
+    <div class="sec-label">Logic Flow</div>
+    <div class="logic-flow">
+      <p>Vulkan's foundational design decision is that GPU-facing calls are asynchronous: vkAcquireNextImageKHR, vkQueueSubmit, and vkQueuePresentKHR all return to the CPU immediately, with no implicit guarantee about when the underlying GPU work actually starts or finishes relative to other submitted work. This chapter is entirely about imposing the necessary ordering by hand, using two complementary primitives. Semaphores order GPU operations relative to each other without involving the CPU at all — operation A signals a semaphore, operation B waits on it, and the GPU itself enforces the sequencing while the CPU keeps running. Fences exist for the one place the CPU itself needs to wait: before reusing or rerecording a command buffer, the host must know the GPU has actually finished executing the previous submission of that buffer.</p>
+      <p>The drawFrame() function strings these together in the exact order: vkWaitForFences blocks the CPU until inFlightFence — set by the previous frame's vkQueueSubmit — signals, confirming the GPU is done with last frame's command buffer. The fence is then manually reset (fences, unlike semaphores, require explicit host-driven reset) before vkAcquireNextImageKHR requests the next swap chain image, supplying imageAvailableSemaphore to be signaled once that image is actually ready to be rendered into. Only after acquisition does the command buffer get reset and rerecorded for this frame's imageIndex.</p>
+      <p>VkSubmitInfo connects three things: what to wait on before the submitted work starts (imageAvailableSemaphore, gated specifically at the VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT stage — chosen so that earlier pipeline stages like the vertex shader can start executing immediately, even before the swap chain image is confirmed available, since they don't touch the color attachment yet), what to execute (the single recorded command buffer), and what to signal once finished (renderFinishedSemaphore for GPU-side ordering, and inFlightFence for the CPU-side wait at the top of the next drawFrame() call). VkPresentInfoKHR closes the loop by waiting on renderFinishedSemaphore before asking the presentation engine to display imageIndex.</p>
+      <p>A subtle problem surfaces because the render pass's automatic layout transition (declared back in the render passes chapter) is, by default, assumed to happen at the very start of the pipeline — but at that exact moment the swap chain image may not have been acquired yet, since vkAcquireNextImageKHR's semaphore hasn't necessarily signaled. The fix is an explicit VkSubpassDependency using VK_SUBPASS_EXTERNAL as srcSubpass (meaning "the implicit work that happens outside this render pass") that delays the transition specifically until the COLOR_ATTACHMENT_OUTPUT stage — the same stage the image-available semaphore is already gating in VkSubmitInfo, so the two waits line up correctly.</p>
+      <p>Finally, because drawFrame() leaves GPU work in flight on every iteration, simply exiting the glfwWindowShouldClose loop and proceeding straight into cleanup() risks destroying semaphores, fences, or other resources the GPU is still using. vkDeviceWaitIdle is called once, after the loop, specifically to drain all outstanding work before any vkDestroy* call runs.</p>
+    </div>
+  </div>
+
+  <!-- STEP-BY-STEP -->
+  <div class="section">
+    <div class="sec-label">Step-by-Step — drawFrame()</div>
+    <ol class="steps-list">
+
+      <li class="step-item">
+        <div class="step-name">Create <code>imageAvailableSemaphore</code>, <code>renderFinishedSemaphore</code>, and <code>inFlightFence</code> (fence created with <code>VK_FENCE_CREATE_SIGNALED_BIT</code>)</div>
+        <div class="step-row"><span class="step-badge badge-why">WHY</span>The SIGNALED_BIT flag avoids a first-frame deadlock — without it, the very first vkWaitForFences call would block forever since nothing has ever signaled the fence before.</div>
+      </li>
+
+      <li class="step-item">
+        <div class="step-name"><code>vkWaitForFences(device, 1, &amp;inFlightFence, VK_TRUE, UINT64_MAX)</code>, then <code>vkResetFences(...)</code></div>
+        <div class="step-row"><span class="step-badge badge-why">WHY</span>Blocks the host until the previous frame's GPU work is done, guaranteeing it's safe to reuse the command buffer. Manual reset is required because fences don't auto-reset like semaphores.</div>
+      </li>
+
+      <li class="step-item">
+        <div class="step-name"><code>vkAcquireNextImageKHR(device, swapChain, UINT64_MAX, imageAvailableSemaphore, VK_NULL_HANDLE, &amp;imageIndex)</code></div>
+        <div class="step-row"><span class="step-badge badge-why">WHY</span>Requests the next presentable swap chain image; imageAvailableSemaphore will signal once it's actually ready to be rendered into.</div>
+      </li>
+
+      <li class="step-item">
+        <div class="step-name"><code>vkResetCommandBuffer(commandBuffer, 0)</code> then <code>recordCommandBuffer(commandBuffer, imageIndex)</code></div>
+        <div class="step-row"><span class="step-badge badge-note">NOTE</span>The command buffer is rerecorded fresh every frame, targeting the framebuffer for the just-acquired imageIndex.</div>
+      </li>
+
+      <li class="step-item">
+        <div class="step-name">Build <code>VkSubmitInfo</code>: wait on <code>imageAvailableSemaphore</code> at <code>COLOR_ATTACHMENT_OUTPUT_BIT</code>, run the command buffer, signal <code>renderFinishedSemaphore</code>; call <code>vkQueueSubmit(graphicsQueue, 1, &amp;submitInfo, inFlightFence)</code></div>
+        <div class="step-row"><span class="step-badge badge-warn">WATCH OUT</span>pWaitDstStageMask must correspond element-wise to pWaitSemaphores — get the array order wrong and the wrong stage gets gated.</div>
+      </li>
+
+      <li class="step-item">
+        <div class="step-name">Build <code>VkPresentInfoKHR</code>: wait on <code>renderFinishedSemaphore</code>, target <code>swapChain</code> + <code>imageIndex</code>; call <code>vkQueuePresentKHR(presentQueue, &amp;presentInfo)</code></div>
+        <div class="step-row"><span class="step-badge badge-why">WHY</span>Presentation must not begin until rendering has actually finished writing to the image — that's exactly what renderFinishedSemaphore guarantees.</div>
+      </li>
+
+      <li class="step-item">
+        <div class="step-name">After the main loop ends, call <code>vkDeviceWaitIdle(device)</code> before <code>cleanup()</code> runs</div>
+        <div class="step-row"><span class="step-badge badge-why">WHY</span>drawFrame() leaves GPU work in flight; destroying semaphores/fences/command pools while that work is still running is invalid and triggers validation errors.</div>
+      </li>
+
+    </ol>
+  </div>
+
+  <!-- QUIZ -->
+  <div class="section">
+    <div class="sec-label">Quiz — 10 Questions</div>
+    <div class="quiz-cards">
+
+      <div class="quiz-card" data-answer="C">
+        <div class="q-num">Q1</div>
+        <div class="q-type">conceptual</div>
+        <div class="q-text">Why does Vulkan require explicit synchronization objects (semaphores, fences) for something as simple as drawing one frame?</div>
+        <div class="q-options">
+          <div class="q-option" data-option="A" onclick="selectOption(this)"><span class="q-letter">A</span>Synchronization objects are only needed when multiple GPUs are present in the system; on a single-GPU system they could be omitted</div>
+          <div class="q-option" data-option="B" onclick="selectOption(this)"><span class="q-letter">B</span>They are required by the windowing system (GLFW), not by Vulkan itself — Vulkan would otherwise run perfectly synchronously</div>
+          <div class="q-option" data-option="C" onclick="selectOption(this)"><span class="q-letter">C</span>Calls like vkAcquireNextImageKHR, vkQueueSubmit, and vkQueuePresentKHR are all asynchronous — they return to the CPU immediately with no guaranteed execution order relative to each other unless that order is imposed explicitly</div>
+          <div class="q-option" data-option="D" onclick="selectOption(this)"><span class="q-letter">D</span>They exist solely to prevent validation layer warnings; release builds without validation layers don't need them functionally</div>
+        </div>
+        <button class="check-btn" onclick="checkAnswer(this.closest('.quiz-card'))" disabled>Check Answer</button>
+        <div class="q-feedback"><div class="fb-verdict"><span class="fb-icon"></span><span class="fb-text"></span></div><div class="fb-explanation"></div></div>
+      </div>
+
+      <div class="quiz-card" data-answer="D">
+        <div class="q-num">Q2</div>
+        <div class="q-type">terminology</div>
+        <div class="q-text">What is the fundamental difference between a VkSemaphore and a VkFence in this rendering loop?</div>
+        <div class="q-options">
+          <div class="q-option" data-option="A" onclick="selectOption(this)"><span class="q-letter">A</span>Semaphores can be waited on by the host (CPU); fences can only be waited on by other GPU queue operations</div>
+          <div class="q-option" data-option="B" onclick="selectOption(this)"><span class="q-letter">B</span>Fences are reusable indefinitely without resetting; semaphores must be manually reset by the host after every use</div>
+          <div class="q-option" data-option="C" onclick="selectOption(this)"><span class="q-letter">C</span>There is no functional difference — fences and semaphores are interchangeable aliases for the same underlying Vulkan object type</div>
+          <div class="q-option" data-option="D" onclick="selectOption(this)"><span class="q-letter">D</span>Semaphores order GPU queue operations relative to each other without CPU involvement, and auto-reset once consumed; fences let the host (CPU) block until GPU work completes, and must be manually reset via vkResetFences</div>
+        </div>
+        <button class="check-btn" onclick="checkAnswer(this.closest('.quiz-card'))" disabled>Check Answer</button>
+        <div class="q-feedback"><div class="fb-verdict"><span class="fb-icon"></span><span class="fb-text"></span></div><div class="fb-explanation"></div></div>
+      </div>
+
+      <div class="quiz-card" data-answer="B">
+        <div class="q-num">Q3</div>
+        <div class="q-type">gotcha</div>
+        <div class="q-text">Why is <code>inFlightFence</code> created with <code>VK_FENCE_CREATE_SIGNALED_BIT</code> instead of letting it start unsignaled like a fresh fence normally would?</div>
+        <div class="q-options">
+          <div class="q-option" data-option="A" onclick="selectOption(this)"><span class="q-letter">A</span>SIGNALED_BIT is required by the Vulkan spec for all fences passed to vkQueueSubmit — it's not optional</div>
+          <div class="q-option" data-option="B" onclick="selectOption(this)"><span class="q-letter">B</span>Without it, the very first call to vkWaitForFences on frame 0 would block forever, since no previous frame ever existed to signal the fence — pre-signaling lets that first wait return immediately</div>
+          <div class="q-option" data-option="C" onclick="selectOption(this)"><span class="q-letter">C</span>SIGNALED_BIT makes the fence behave like a semaphore, auto-resetting after each wait instead of requiring vkResetFences</div>
+          <div class="q-option" data-option="D" onclick="selectOption(this)"><span class="q-letter">D</span>It signals to the swap chain that the first frame should skip the layout transition entirely</div>
+        </div>
+        <button class="check-btn" onclick="checkAnswer(this.closest('.quiz-card'))" disabled>Check Answer</button>
+        <div class="q-feedback"><div class="fb-verdict"><span class="fb-icon"></span><span class="fb-text"></span></div><div class="fb-explanation"></div></div>
+      </div>
+
+      <div class="quiz-card" data-answer="A">
+        <div class="q-num">Q4</div>
+        <div class="q-type">application</div>
+        <div class="q-text">What does <code>vkAcquireNextImageKHR</code>'s semaphore parameter (<code>imageAvailableSemaphore</code>) actually guarantee?</div>
+        <div class="q-options">
+          <div class="q-option" data-option="A" onclick="selectOption(this)"><span class="q-letter">A</span>It will be signaled once the requested swap chain image is actually ready to be rendered into — acquiring an image index doesn't mean the image is immediately usable</div>
+          <div class="q-option" data-option="B" onclick="selectOption(this)"><span class="q-letter">B</span>It guarantees the image's previous contents have been cleared to black before the function returns</div>
+          <div class="q-option" data-option="C" onclick="selectOption(this)"><span class="q-letter">C</span>It blocks the CPU until the image is ready, making vkAcquireNextImageKHR itself a synchronous, blocking call</div>
+          <div class="q-option" data-option="D" onclick="selectOption(this)"><span class="q-letter">D</span>It signals immediately and unconditionally the moment vkAcquireNextImageKHR is called, regardless of the image's actual readiness</div>
+        </div>
+        <button class="check-btn" onclick="checkAnswer(this.closest('.quiz-card'))" disabled>Check Answer</button>
+        <div class="q-feedback"><div class="fb-verdict"><span class="fb-icon"></span><span class="fb-text"></span></div><div class="fb-explanation"></div></div>
+      </div>
+
+      <div class="quiz-card" data-answer="C">
+        <div class="q-num">Q5</div>
+        <div class="q-type">gotcha</div>
+        <div class="q-text">In <code>VkSubmitInfo</code>, why is <code>pWaitDstStageMask</code> set to <code>VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT</code> rather than a stage at the very start of the pipeline (which would seem more "cautious")?</div>
+        <div class="q-options">
+          <div class="q-option" data-option="A" onclick="selectOption(this)"><span class="q-letter">A</span>COLOR_ATTACHMENT_OUTPUT_BIT is the only valid value Vulkan accepts in this field — no other stage is legal here</div>
+          <div class="q-option" data-option="B" onclick="selectOption(this)"><span class="q-letter">B</span>Waiting at the start of the pipeline would cause the fragment shader to run before the vertex shader, corrupting the render order</div>
+          <div class="q-option" data-option="C" onclick="selectOption(this)"><span class="q-letter">C</span>Gating only at the color attachment output stage lets earlier stages, like the vertex shader, begin executing immediately — they don't touch the color attachment and don't need to wait for image availability, improving pipeline utilization</div>
+          <div class="q-option" data-option="D" onclick="selectOption(this)"><span class="q-letter">D</span>It has no performance implication; the tutorial chose it arbitrarily and any other stage value would behave identically</div>
+        </div>
+        <button class="check-btn" onclick="checkAnswer(this.closest('.quiz-card'))" disabled>Check Answer</button>
+        <div class="q-feedback"><div class="fb-verdict"><span class="fb-icon"></span><span class="fb-text"></span></div><div class="fb-explanation"></div></div>
+      </div>
+
+      <div class="quiz-card" data-answer="B">
+        <div class="q-num">Q6</div>
+        <div class="q-type">terminology</div>
+        <div class="q-text">What role does the <code>inFlightFence</code> argument to <code>vkQueueSubmit</code> play, separate from the semaphores in the same call?</div>
+        <div class="q-options">
+          <div class="q-option" data-option="A" onclick="selectOption(this)"><span class="q-letter">A</span>It tells the GPU which queue family to submit the work to, replacing the need for a separate queueFamilyIndex parameter</div>
+          <div class="q-option" data-option="B" onclick="selectOption(this)"><span class="q-letter">B</span>It will be signaled once the submitted command buffer finishes executing on the GPU — drawFrame() waits on this exact fence at the start of the next frame before reusing the command buffer</div>
+          <div class="q-option" data-option="C" onclick="selectOption(this)"><span class="q-letter">C</span>It signals the presentation engine that the image is ready to display, performing the same role as renderFinishedSemaphore</div>
+          <div class="q-option" data-option="D" onclick="selectOption(this)"><span class="q-letter">D</span>It is purely optional and has no functional effect when passed to vkQueueSubmit alongside semaphores</div>
+        </div>
+        <button class="check-btn" onclick="checkAnswer(this.closest('.quiz-card'))" disabled>Check Answer</button>
+        <div class="q-feedback"><div class="fb-verdict"><span class="fb-icon"></span><span class="fb-text"></span></div><div class="fb-explanation"></div></div>
+      </div>
+
+      <div class="quiz-card" data-answer="D">
+        <div class="q-num">Q7</div>
+        <div class="q-type">gotcha</div>
+        <div class="q-text">Why does the render pass need an explicit <code>VkSubpassDependency</code> with <code>srcSubpass = VK_SUBPASS_EXTERNAL</code>, when the render pass already declares an automatic layout transition via initialLayout/finalLayout?</div>
+        <div class="q-options">
+          <div class="q-option" data-option="A" onclick="selectOption(this)"><span class="q-letter">A</span>VK_SUBPASS_EXTERNAL is required syntax with no functional effect — render passes always need at least one VkSubpassDependency to compile</div>
+          <div class="q-option" data-option="B" onclick="selectOption(this)"><span class="q-letter">B</span>Without it, the fragment shader would run before the vertex shader, since subpass dependencies are what enforce shader stage ordering</div>
+          <div class="q-option" data-option="C" onclick="selectOption(this)"><span class="q-letter">C</span>The dependency is needed to specify which queue family owns the image during the transition — VK_SUBPASS_EXTERNAL designates the graphics queue family explicitly</div>
+          <div class="q-option" data-option="D" onclick="selectOption(this)"><span class="q-letter">D</span>By default, Vulkan assumes the layout transition happens at the very start of the pipeline — but at that point the swap chain image may not have been acquired yet. The explicit dependency, using VK_SUBPASS_EXTERNAL to mean "the implicit work outside this render pass," delays the transition until the COLOR_ATTACHMENT_OUTPUT stage, matching when the image-available semaphore is actually gating execution</div>
+        </div>
+        <button class="check-btn" onclick="checkAnswer(this.closest('.quiz-card'))" disabled>Check Answer</button>
+        <div class="q-feedback"><div class="fb-verdict"><span class="fb-icon"></span><span class="fb-text"></span></div><div class="fb-explanation"></div></div>
+      </div>
+
+      <div class="quiz-card" data-answer="A">
+        <div class="q-num">Q8</div>
+        <div class="q-type">application</div>
+        <div class="q-text">In <code>VkPresentInfoKHR</code>, why does <code>pWaitSemaphores</code> point at <code>renderFinishedSemaphore</code> rather than <code>imageAvailableSemaphore</code>?</div>
+        <div class="q-options">
+          <div class="q-option" data-option="A" onclick="selectOption(this)"><span class="q-letter">A</span>Presentation must not begin until rendering has actually finished writing to the image; renderFinishedSemaphore is exactly the signal that the submitted command buffer's work is done, which is what vkQueuePresentKHR needs to wait on</div>
+          <div class="q-option" data-option="B" onclick="selectOption(this)"><span class="q-letter">B</span>imageAvailableSemaphore can only be waited on once per program run, so a second semaphore is needed purely to work around that one-time-use restriction</div>
+          <div class="q-option" data-option="C" onclick="selectOption(this)"><span class="q-letter">C</span>Both semaphores are interchangeable here; the tutorial could equally have waited on imageAvailableSemaphore with identical results</div>
+          <div class="q-option" data-option="D" onclick="selectOption(this)"><span class="q-letter">D</span>presentInfo always waits on whichever semaphore was passed to vkAcquireNextImageKHR, by Vulkan specification — renderFinishedSemaphore is simply an alias for it</div>
+        </div>
+        <button class="check-btn" onclick="checkAnswer(this.closest('.quiz-card'))" disabled>Check Answer</button>
+        <div class="q-feedback"><div class="fb-verdict"><span class="fb-icon"></span><span class="fb-text"></span></div><div class="fb-explanation"></div></div>
+      </div>
+
+      <div class="quiz-card" data-answer="C">
+        <div class="q-num">Q9</div>
+        <div class="q-type">gotcha</div>
+        <div class="q-text">Why does <code>mainLoop()</code> call <code>vkDeviceWaitIdle(device)</code> after the <code>glfwWindowShouldClose</code> loop ends, instead of jumping straight into <code>cleanup()</code>?</div>
+        <div class="q-options">
+          <div class="q-option" data-option="A" onclick="selectOption(this)"><span class="q-letter">A</span>vkDeviceWaitIdle is required to flush the GLFW event queue before the window can be destroyed</div>
+          <div class="q-option" data-option="B" onclick="selectOption(this)"><span class="q-letter">B</span>It resets all fences and semaphores to their initial state so cleanup() doesn't need separate vkDestroySemaphore/vkDestroyFence calls</div>
+          <div class="q-option" data-option="C" onclick="selectOption(this)"><span class="q-letter">C</span>Each call to drawFrame() submits asynchronous GPU work that may still be executing when the loop exits; destroying semaphores, fences, or command pools while that work is still in flight is invalid and would trigger validation errors — vkDeviceWaitIdle drains all of it first</div>
+          <div class="q-option" data-option="D" onclick="selectOption(this)"><span class="q-letter">D</span>vkDeviceWaitIdle is purely a performance optimization with no correctness implications; omitting it would still produce correct, valid behavior</div>
+        </div>
+        <button class="check-btn" onclick="checkAnswer(this.closest('.quiz-card'))" disabled>Check Answer</button>
+        <div class="q-feedback"><div class="fb-verdict"><span class="fb-icon"></span><span class="fb-text"></span></div><div class="fb-explanation"></div></div>
+      </div>
+
+      <div class="quiz-card" data-answer="B">
+        <div class="q-num">Q10</div>
+        <div class="q-type">sequence</div>
+        <div class="q-text">Put these drawFrame() operations in the correct order: (1) vkAcquireNextImageKHR, (2) vkQueuePresentKHR, (3) vkWaitForFences + vkResetFences, (4) vkQueueSubmit, (5) recordCommandBuffer</div>
+        <div class="q-options">
+          <div class="q-option" data-option="A" onclick="selectOption(this)"><span class="q-letter">A</span>(1) Acquire → (3) Wait/reset fence → (5) Record → (4) Submit → (2) Present</div>
+          <div class="q-option" data-option="B" onclick="selectOption(this)"><span class="q-letter">B</span>(3) Wait/reset fence → (1) Acquire → (5) Record → (4) Submit → (2) Present</div>
+          <div class="q-option" data-option="C" onclick="selectOption(this)"><span class="q-letter">C</span>(3) Wait/reset fence → (5) Record → (1) Acquire → (4) Submit → (2) Present</div>
+          <div class="q-option" data-option="D" onclick="selectOption(this)"><span class="q-letter">D</span>(1) Acquire → (5) Record → (3) Wait/reset fence → (2) Present → (4) Submit</div>
+        </div>
+        <button class="check-btn" onclick="checkAnswer(this.closest('.quiz-card'))" disabled>Check Answer</button>
+        <div class="q-feedback"><div class="fb-verdict"><span class="fb-icon"></span><span class="fb-text"></span></div><div class="fb-explanation"></div></div>
+      </div>
+
+    </div>
+
+    <div class="score-summary" id="score-summary">
+      <div class="score-summary-num" id="summary-num"></div>
+      <div class="score-summary-msg" id="summary-msg"></div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  const TOTAL = 10;
+  let answeredCount = 0;
+  let correctCount = 0;
+
+  const explanations = {
+    1: {
+      correct: 'C',
+      text: 'Vulkan is built around explicit control, and execution ordering is no exception. vkAcquireNextImageKHR, vkQueueSubmit, and vkQueuePresentKHR all return to the CPU before the corresponding GPU work necessarily begins or finishes — the API gives no implicit guarantee that, say, rendering finishes before presentation starts. Semaphores and fences are the mechanism by which the application states those ordering requirements explicitly; without them, the GPU could present a partially-rendered or not-yet-rendered image.'
+    },
+    2: {
+      correct: 'D',
+      text: 'Semaphores coordinate ordering purely between GPU queue operations — operation A signals, operation B waits, and the GPU enforces it without the CPU ever blocking or intervening; they also auto-reset to unsignaled once the waiting operation consumes the signal. Fences exist specifically so the CPU (host) can block and wait for GPU completion via vkWaitForFences, and because the host is the one deciding when to act on that signal, it must also explicitly reset the fence with vkResetFences before reusing it.'
+    },
+    3: {
+      correct: 'B',
+      text: 'On the very first call to drawFrame(), inFlightFence has never been signaled by any previous submission — there is no "previous frame." If the fence started unsignaled, vkWaitForFences would block indefinitely waiting for a signal that will never come from a nonexistent prior frame. Creating the fence pre-signaled (VK_FENCE_CREATE_SIGNALED_BIT) means the first wait call sees an already-signaled fence and returns immediately, letting the first frame proceed.'
+    },
+    4: {
+      correct: 'A',
+      text: 'vkAcquireNextImageKHR itself can return before the image is truly ready for rendering — acquiring an image index is not the same as the image being available. The semaphore passed to it (imageAvailableSemaphore) is what actually signals, on the GPU side, once the image is genuinely ready, and downstream GPU work (here, gated via VkSubmitInfo.pWaitDstStageMask) waits on that semaphore rather than assuming readiness the moment the function call returns.'
+    },
+    5: {
+      correct: 'C',
+      text: 'pWaitDstStageMask lets the application be precise about exactly which pipeline stage actually needs the awaited resource. Since the color attachment is only touched starting at the COLOR_ATTACHMENT_OUTPUT stage, earlier stages — vertex shader, input assembly, etc. — have no dependency on the swap chain image being ready and can start executing right away. Gating at the earliest possible stage instead would needlessly stall work that doesn\'t actually need to wait, reducing GPU utilization.'
+    },
+    6: {
+      correct: 'B',
+      text: 'vkQueueSubmit\'s fence parameter is distinct from its semaphore parameters: semaphores coordinate GPU-to-GPU ordering for this submission\'s inputs/outputs, while the fence (inFlightFence) is specifically what the host can wait on to know this submission\'s GPU work has completed. drawFrame() calls vkWaitForFences on this exact fence at the top of the next frame, which is what makes it safe to call vkResetCommandBuffer and rerecord the same VkCommandBuffer object.'
+    },
+    7: {
+      correct: 'D',
+      text: 'The render pass\'s initialLayout/finalLayout describe what transition should happen, but the implicit subpass dependency Vulkan inserts by default assumes that transition can happen as early as the start of the pipeline — which conflicts with the fact that the image might not be acquired (signaled by imageAvailableSemaphore) yet at that point. The fix declares an explicit VkSubpassDependency from VK_SUBPASS_EXTERNAL (everything outside this render pass) to subpass 0, specifying that the dependency — and therefore the layout transition — should wait until the COLOR_ATTACHMENT_OUTPUT stage, the same point gated by the submit info\'s wait semaphore.'
+    },
+    8: {
+      correct: 'A',
+      text: 'imageAvailableSemaphore\'s job ends once the GPU work that needed the acquired image (the command buffer submission) has started — it has nothing to say about whether rendering has finished. renderFinishedSemaphore is specifically signaled by vkQueueSubmit once the command buffer\'s GPU work completes, which is the actual condition presentation needs: don\'t show the image until rendering into it is done.'
+    },
+    9: {
+      correct: 'C',
+      text: 'Every drawFrame() call submits work to the GPU asynchronously and returns immediately — by the time the main loop exits (e.g., the user closes the window), there may still be a frame\'s worth of GPU work in flight that referenced the semaphores, fences, and command buffers the program is about to destroy. vkDeviceWaitIdle blocks until every operation on the device has completed, making it safe for cleanup() to proceed with vkDestroy* calls without triggering "object still in use" validation errors.'
+    },
+    10: {
+      correct: 'B',
+      text: 'The correct order is: wait for the previous frame\'s fence and reset it (3), acquire the next swap chain image (1), record the command buffer for that specific image (5), submit it for execution (4), then present the result (2). Waiting on the fence must happen before recording begins (to ensure the command buffer isn\'t still in use), and acquiring the image must happen before recording (since recording needs to know which framebuffer/imageIndex to target).'
+    }
+  };
+
+  function getCardIndex(card) {
+    return parseInt(card.querySelector('.q-num').textContent.replace('Q', ''));
+  }
+
+  function selectOption(optionEl) {
+    const card = optionEl.closest('.quiz-card');
+    if (card.dataset.answered) return;
+    card.querySelectorAll('.q-option').forEach(o => o.classList.remove('selected'));
+    optionEl.classList.add('selected');
+    card.querySelector('.check-btn').disabled = false;
+  }
+
+  function checkAnswer(card) {
+    if (card.dataset.answered) return;
+    card.dataset.answered = 'true';
+
+    const correct = card.dataset.answer;
+    const selected = card.querySelector('.q-option.selected');
+    const chosen = selected ? selected.dataset.option : null;
+    const idx = getCardIndex(card);
+    const info = explanations[idx];
+
+    const isCorrect = chosen === correct;
+    if (isCorrect) correctCount++;
+    answeredCount++;
+
+    card.querySelectorAll('.q-option').forEach(o => {
+      o.classList.add('locked');
+      if (o.dataset.option === correct) o.classList.add('correct');
+      else if (o.dataset.option === chosen && !isCorrect) o.classList.add('wrong');
+    });
+
+    const feedback = card.querySelector('.q-feedback');
+    const icon = feedback.querySelector('.fb-icon');
+    const verdictText = feedback.querySelector('.fb-text');
+    const explanation = feedback.querySelector('.fb-explanation');
+
+    if (isCorrect) {
+      feedback.classList.add('correct');
+      icon.textContent = '✓';
+      verdictText.textContent = 'Correct';
+    } else {
+      feedback.classList.add('wrong');
+      icon.textContent = '✗';
+      verdictText.textContent = `Incorrect — correct answer is ${correct}`;
+    }
+    explanation.textContent = info.text;
+
+    const btn = card.querySelector('.check-btn');
+    btn.textContent = isCorrect ? '✓ Correct' : '✗ Answered';
+    btn.disabled = true;
+
+    card.classList.add(isCorrect ? 'answered-correct' : 'answered-wrong');
+    updateScore();
+  }
+
+  function updateScore() {
+    const tally = document.getElementById('score-tally');
+    const correctSpan = document.getElementById('score-correct');
+    tally.childNodes[0].textContent = `${answeredCount} / ${TOTAL} answered · `;
+    correctSpan.textContent = correctCount;
+
+    if (answeredCount === TOTAL) {
+      const summary = document.getElementById('score-summary');
+      const pct = correctCount / TOTAL;
+      let msg;
+      if (pct >= 0.9) msg = 'Excellent — synchronization model and the full drawFrame() pipeline are solid.';
+      else if (pct >= 0.7) msg = 'Good — review what you missed before the frames-in-flight chapter.';
+      else msg = 'Review recommended — revisit the semaphore vs. fence distinction and why the subpass dependency fix exists.';
+      document.getElementById('summary-num').textContent = `${correctCount} / ${TOTAL}`;
+      document.getElementById('summary-msg').textContent = msg;
+      summary.classList.add('visible');
+    }
+  }
+</script>
+</body>
+</html>
