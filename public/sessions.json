@@ -138,5 +138,15 @@
     "questionCount": 5,
     "file": "sessions/vulkan-pipeline-conclusion-learning.html",
     "excerpt": "Assembling all four components into VkGraphicsPipelineCreateInfo, why vkCreateGraphicsPipelines accepts an array, what VkPipelineCache enables across program runs, pipeline derivatives, and render pass compatibility."
+  },
+  {
+    "id": "vulkan-framebuffers",
+    "title": "Vulkan Tutorial — Framebuffers",
+    "url": "https://vulkan-tutorial.com/Drawing_a_triangle/Drawing/Framebuffers",
+    "date": "2026-06-20",
+    "tags": ["graphics", "vulkan", "gpu", "cpp"],
+    "questionCount": 6,
+    "file": "sessions/vulkan-framebuffers-learning.html",
+    "excerpt": "How VkFramebuffer binds the abstract attachments declared by a render pass to concrete VkImageView objects, why one framebuffer per swap chain image is required, VkFramebufferCreateInfo fields, and cleanup ordering."
   }
 ]

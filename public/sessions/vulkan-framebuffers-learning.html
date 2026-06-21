@@ -1,0 +1,482 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Vulkan Tutorial — Framebuffers | Learning Session</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=IBM+Plex+Mono:wght@400;500&family=Syne:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #0d0f14; --bg-surface: #10131a; --bg-card: #12151d; --bg-row-alt: #0f1118;
+    --border: #1e2333; --gold: #c9a84c; --gold-dim: #7a6230; --gold-glow: rgba(201,168,76,0.1);
+    --blue: #7eb8d4; --green: #5db88a; --green-dim: rgba(93,184,138,0.15); --green-border: rgba(93,184,138,0.35);
+    --red: #d46a6a; --red-dim: rgba(212,106,106,0.15); --red-border: rgba(212,106,106,0.35);
+    --amber: #d4965a;
+    --text-1: #e8e4dc; --text-2: #8a8c99; --text-3: #4a4e62;
+    --tag-bg: #1a1e2c; --tag-border: #252a3a;
+  }
+  html { background: var(--bg); color: var(--text-1); font-family: 'Syne', sans-serif; -webkit-font-smoothing: antialiased; }
+  body { min-height: 100vh; padding-bottom: 80px; }
+  ::-webkit-scrollbar { width: 4px; }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+
+  .hdr { position: sticky; top: 0; z-index: 10; background: var(--bg-surface); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 12px 24px; gap: 16px; flex-wrap: wrap; }
+  .hdr-left { display: flex; align-items: center; gap: 10px; }
+  .hdr-gem { color: var(--gold); font-size: 14px; }
+  .hdr-title { font-family: 'DM Serif Display', serif; font-size: 16px; color: var(--text-1); }
+  .hdr-right { display: flex; align-items: center; gap: 12px; }
+  .score-tally { font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: var(--text-3); white-space: nowrap; }
+  .score-tally span { color: var(--gold); }
+  .hdr-url { font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: var(--text-3); background: var(--tag-bg); border: 1px solid var(--tag-border); border-radius: 5px; padding: 4px 10px; text-decoration: none; white-space: nowrap; transition: color 0.2s, border-color 0.2s; }
+  .hdr-url:hover { color: var(--gold); border-color: var(--gold-dim); }
+
+  .content { max-width: 800px; margin: 0 auto; padding: 40px 24px; display: flex; flex-direction: column; gap: 40px; }
+  .framing { font-family: 'DM Serif Display', serif; font-size: 16px; color: var(--gold); border-left: 2px solid var(--gold); padding-left: 14px; line-height: 1.55; font-style: italic; }
+  .section { display: flex; flex-direction: column; gap: 14px; }
+  .sec-label { font-family: 'IBM Plex Mono', monospace; font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--text-3); }
+
+  .code-block { background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px; padding: 16px 18px; font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: var(--text-2); line-height: 1.7; overflow-x: auto; white-space: pre; }
+  .code-label { font-family: 'IBM Plex Mono', monospace; font-size: 9px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--text-3); margin-bottom: 8px; }
+  .hl-dim { color: var(--text-3); }
+  .hl-amber { color: var(--amber); }
+  .hl-blue { color: var(--blue); }
+
+  .term-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .term-table th { font-family: 'IBM Plex Mono', monospace; font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-3); text-align: left; padding: 8px 12px; background: var(--bg-surface); border-bottom: 1px solid var(--border); }
+  .term-table td { padding: 9px 12px; border-bottom: 1px solid var(--border); vertical-align: top; color: var(--text-2); line-height: 1.5; }
+  .term-table tr:nth-child(even) td { background: var(--bg-row-alt); }
+  .term-table td:first-child { font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: var(--blue); white-space: nowrap; }
+
+  .diagram { background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px; padding: 18px 20px; display: flex; flex-direction: column; gap: 10px; }
+  .diagram-row { display: flex; align-items: center; gap: 12px; }
+  .diagram-box { font-family: 'IBM Plex Mono', monospace; font-size: 11px; padding: 8px 12px; border-radius: 6px; flex-shrink: 0; }
+  .diagram-box.rp { background: rgba(201,168,76,0.1); border: 1px solid var(--gold-dim); color: var(--gold); }
+  .diagram-box.fb { background: rgba(126,184,212,0.1); border: 1px solid rgba(126,184,212,0.35); color: var(--blue); }
+  .diagram-box.iv { background: rgba(93,184,138,0.1); border: 1px solid var(--green-border); color: var(--green); }
+  .diagram-arrow { color: var(--text-3); font-size: 13px; }
+  .diagram-note { font-size: 12px; color: var(--text-3); line-height: 1.5; }
+
+  .logic-flow { font-size: 14px; line-height: 1.8; color: var(--text-2); display: flex; flex-direction: column; gap: 14px; }
+
+  .steps-list { list-style: none; display: flex; flex-direction: column; gap: 10px; counter-reset: steps; }
+  .step-item { counter-increment: steps; background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px; padding: 14px 16px 14px 54px; position: relative; }
+  .step-item::before { content: counter(steps); position: absolute; left: 14px; top: 14px; font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: var(--gold); background: var(--gold-glow); border: 1px solid var(--gold-dim); border-radius: 4px; width: 26px; height: 26px; display: flex; align-items: center; justify-content: center; }
+  .step-name { font-size: 13.5px; font-weight: 500; color: var(--text-1); margin-bottom: 7px; line-height: 1.4; }
+  .step-name code { font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: var(--blue); background: var(--tag-bg); padding: 1px 5px; border-radius: 3px; }
+  .step-row { font-size: 12.5px; color: var(--text-2); line-height: 1.55; display: flex; gap: 6px; margin-top: 5px; }
+  .step-badge { font-family: 'IBM Plex Mono', monospace; font-size: 9px; border-radius: 3px; padding: 2px 5px; flex-shrink: 0; margin-top: 2px; letter-spacing: 0.06em; }
+  .badge-why { color: var(--green); background: rgba(93,184,138,0.1); border: 1px solid rgba(93,184,138,0.2); }
+  .badge-warn { color: var(--amber); background: rgba(212,150,90,0.1); border: 1px solid rgba(212,150,90,0.2); }
+  .badge-note { color: var(--blue); background: rgba(126,184,212,0.1); border: 1px solid rgba(126,184,212,0.2); }
+
+  .quiz-cards { display: flex; flex-direction: column; gap: 14px; }
+  .quiz-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px; padding: 18px 20px; }
+  .quiz-card.answered-correct { border-left: 3px solid var(--green); }
+  .quiz-card.answered-wrong { border-left: 3px solid var(--red); }
+  .q-num { font-family: 'IBM Plex Mono', monospace; font-size: 10px; color: var(--gold); margin-bottom: 3px; }
+  .q-type { font-family: 'IBM Plex Mono', monospace; font-size: 9px; color: var(--text-3); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 10px; }
+  .q-text { font-size: 13.5px; font-weight: 500; color: var(--text-1); line-height: 1.55; margin-bottom: 14px; }
+  .q-text code { font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: var(--blue); background: var(--tag-bg); padding: 1px 5px; border-radius: 3px; }
+  .q-options { display: flex; flex-direction: column; gap: 7px; margin-bottom: 14px; }
+  .q-option { display: flex; gap: 10px; align-items: flex-start; font-size: 13px; color: var(--text-2); line-height: 1.5; padding: 9px 12px; border: 1px solid var(--border); border-radius: 6px; cursor: pointer; transition: border-color 0.15s, background 0.15s; user-select: none; }
+  .q-option:hover { border-color: var(--gold-dim); background: var(--gold-glow); }
+  .q-option.selected { border-color: var(--gold); background: var(--gold-glow); }
+  .q-option.selected .q-letter { color: var(--gold); border-color: var(--gold-dim); background: rgba(201,168,76,0.15); }
+  .q-option.correct { border-color: var(--green); background: var(--green-dim); pointer-events: none; }
+  .q-option.correct .q-letter { color: var(--green); border-color: var(--green-border); background: rgba(93,184,138,0.15); }
+  .q-option.wrong { border-color: var(--red); background: var(--red-dim); pointer-events: none; }
+  .q-option.wrong .q-letter { color: var(--red); border-color: var(--red-border); background: rgba(212,106,106,0.15); }
+  .q-option.locked { pointer-events: none; }
+  .q-letter { font-family: 'IBM Plex Mono', monospace; font-size: 10px; background: var(--tag-bg); border: 1px solid var(--tag-border); border-radius: 3px; padding: 2px 6px; color: var(--text-3); flex-shrink: 0; margin-top: 1px; transition: color 0.15s, border-color 0.15s, background 0.15s; }
+  .check-btn { background: transparent; border: 1px solid var(--gold-dim); border-radius: 6px; padding: 9px 16px; font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: var(--gold); cursor: pointer; transition: all 0.2s; }
+  .check-btn:hover:not(:disabled) { background: var(--gold-glow); border-color: var(--gold); }
+  .check-btn:disabled { border-color: var(--border); color: var(--text-3); cursor: default; }
+  .q-feedback { display: none; margin-top: 12px; padding: 11px 14px; border-radius: 6px; font-size: 13px; line-height: 1.65; color: var(--text-2); }
+  .q-feedback.correct { display: block; background: var(--green-dim); border: 1px solid var(--green-border); }
+  .q-feedback.wrong { display: block; background: var(--red-dim); border: 1px solid var(--red-border); }
+  .q-feedback .fb-verdict { font-weight: 600; margin-bottom: 4px; display: flex; align-items: center; gap: 6px; }
+  .q-feedback.correct .fb-verdict { color: var(--green); }
+  .q-feedback.wrong .fb-verdict { color: var(--red); }
+  .score-summary { background: var(--bg-card); border: 1px solid var(--border); border-radius: 10px; padding: 28px 24px; text-align: center; display: none; flex-direction: column; gap: 10px; }
+  .score-summary.visible { display: flex; }
+  .score-summary-num { font-family: 'DM Serif Display', serif; font-size: 36px; color: var(--gold); }
+  .score-summary-msg { font-size: 14px; color: var(--text-2); }
+</style>
+</head>
+<body>
+
+<header class="hdr">
+  <div class="hdr-left">
+    <span class="hdr-gem">◆</span>
+    <span class="hdr-title">Vulkan Tutorial — Framebuffers</span>
+  </div>
+  <div class="hdr-right">
+    <span class="score-tally" id="score-tally">0 / 6 answered &middot; <span id="score-correct">0</span> correct</span>
+    <a class="hdr-url" href="https://vulkan-tutorial.com/Drawing_a_triangle/Drawing/Framebuffers" target="_blank" rel="noopener">vulkan-tutorial.com ↗</a>
+  </div>
+</header>
+
+<div class="content">
+
+  <p class="framing">A render pass only describes attachments in the abstract — formats, load/store ops, layouts. A <code style="font-family:'IBM Plex Mono',monospace;font-size:14px;color:#c9a84c">VkFramebuffer</code> is what binds those abstract slots to real <code style="font-family:'IBM Plex Mono',monospace;font-size:14px;color:#c9a84c">VkImageView</code> objects — and because the swap chain hands back a different image each frame, one framebuffer per swap chain image is required.</p>
+
+  <!-- BINDING DIAGRAM -->
+  <div class="section">
+    <div class="sec-label">How the Pieces Bind Together</div>
+    <div class="diagram">
+      <div class="diagram-row">
+        <span class="diagram-box rp">VkRenderPass</span>
+        <span class="diagram-arrow">— describes attachment 0 as —&gt;</span>
+        <span class="diagram-box rp">format + loadOp/storeOp + layout (abstract)</span>
+      </div>
+      <div class="diagram-row">
+        <span class="diagram-box fb">VkFramebuffer</span>
+        <span class="diagram-arrow">— binds attachment 0 to —&gt;</span>
+        <span class="diagram-box iv">a real VkImageView</span>
+      </div>
+      <div class="diagram-note">A render pass is created once. A framebuffer is created once <strong>per swap chain image</strong> — three swap chain images means three VkFramebuffer objects, each wrapping a different VkImageView but referencing the same VkRenderPass.</div>
+    </div>
+  </div>
+
+  <!-- KEY TERMINOLOGY -->
+  <div class="section">
+    <div class="sec-label">Key Terminology</div>
+    <table class="term-table">
+      <thead>
+        <tr><th>Term</th><th>Definition</th><th>Key detail</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>VkFramebuffer</td><td>An object that binds the abstract attachments declared in a VkRenderPass to concrete VkImageView objects</td><td>"The attachments specified during render pass creation are bound by wrapping them into a VkFramebuffer object" — the framebuffer is what vkCmdBeginRenderPass actually targets</td></tr>
+        <tr><td>Render pass compatibility</td><td>A framebuffer can only be used with render passes it is "compatible" with</td><td>Compatibility means the same number and types of attachments — not necessarily the exact same VkRenderPass handle (same rule introduced in the pipeline conclusion chapter)</td></tr>
+        <tr><td>swapChainFramebuffers</td><td>A <code>std::vector&lt;VkFramebuffer&gt;</code> class member sized to match the number of swap chain image views</td><td>One framebuffer is required per swap chain image view, not one framebuffer reused across all of them</td></tr>
+        <tr><td>attachments[] (local array)</td><td>A local VkImageView array passed as VkFramebufferCreateInfo.pAttachments inside the creation loop</td><td>For this tutorial it holds exactly one element — swapChainImageViews[i] — matching the single color attachment declared in the render pass</td></tr>
+        <tr><td>width / height (fields)</td><td>The framebuffer's pixel dimensions</td><td>Must match swapChainExtent.width / swapChainExtent.height — the same extent used when creating the swap chain</td></tr>
+        <tr><td>layers (field)</td><td>The number of layers in the image arrays that the framebuffer will be used with</td><td>Set to 1 because the swap chain images are single (non-stereoscopic) images — same concept as layerCount in the image views chapter</td></tr>
+        <tr><td>vkCreateFramebuffer</td><td>The function that creates one VkFramebuffer object from a populated VkFramebufferCreateInfo</td><td>Called once per loop iteration over swapChainImageViews — not a batch-creation function like vkCreateGraphicsPipelines</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- KEY CODE -->
+  <div class="section">
+    <div class="sec-label">Key Code</div>
+
+    <div class="code-label">Member declaration</div>
+    <div class="code-block">std::vector&lt;VkFramebuffer&gt; swapChainFramebuffers;</div>
+
+    <div class="code-label" style="margin-top:16px;">createFramebuffers()</div>
+    <div class="code-block">void createFramebuffers() {
+    swapChainFramebuffers.resize(swapChainImageViews.size());
+
+    for (size_t i = 0; i &lt; swapChainImageViews.size(); i++) {
+        VkImageView attachments[] = {
+            swapChainImageViews[i]
+        };
+
+        VkFramebufferCreateInfo framebufferInfo{};
+        framebufferInfo.sType           = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
+        framebufferInfo.renderPass      = renderPass;
+        framebufferInfo.attachmentCount = 1;
+        framebufferInfo.pAttachments    = attachments;
+        framebufferInfo.width           = swapChainExtent.width;
+        framebufferInfo.height          = swapChainExtent.height;
+        framebufferInfo.layers          = 1;
+
+        if (vkCreateFramebuffer(device, &amp;framebufferInfo, nullptr,
+                &amp;swapChainFramebuffers[i]) != VK_SUCCESS) {
+            throw std::runtime_error("failed to create framebuffer!");
+        }
+    }
+}</div>
+
+    <div class="code-label" style="margin-top:16px;">cleanup() addition</div>
+    <div class="code-block">void cleanup() {
+    for (auto framebuffer : swapChainFramebuffers) {
+        vkDestroyFramebuffer(device, framebuffer, nullptr);
+    }
+
+    vkDestroyPipeline(device, graphicsPipeline, nullptr);
+    vkDestroyPipelineLayout(device, pipelineLayout, nullptr);
+    vkDestroyRenderPass(device, renderPass, nullptr);
+    <span class="hl-dim">// ... image views, swap chain, device, etc.</span>
+}</div>
+
+    <div class="code-label" style="margin-top:16px;">initVulkan() order</div>
+    <div class="code-block">void initVulkan() {
+    createInstance();
+    setupDebugMessenger();
+    createSurface();
+    pickPhysicalDevice();
+    createLogicalDevice();
+    createSwapChain();
+    createImageViews();
+    createRenderPass();
+    createGraphicsPipeline();
+    createFramebuffers();   <span class="hl-dim">// &lt;-- new, runs last</span>
+}</div>
+  </div>
+
+  <!-- LOGIC FLOW -->
+  <div class="section">
+    <div class="sec-label">Logic Flow</div>
+    <div class="logic-flow">
+      <p>The render pass chapter defined what an attachment looks like in the abstract: its format, its sample count, what happens to its contents at the start and end of the pass, and what layout it transitions through. None of that description points at any actual memory — VkAttachmentDescription is a template, not a binding. The framebuffer is the object that fills in that template with real image views. vkCmdBeginRenderPass, called later during command buffer recording, takes a VkFramebuffer (not a VkRenderPass) as its rendering target — the framebuffer is what makes the abstract render pass concrete for a specific frame.</p>
+      <p>Because the swap chain cycles through multiple images for presentation (commonly two or three, decided by the negotiated imageCount), and each image has its own VkImageView, a single framebuffer cannot serve every frame — the framebuffer's pAttachments array is fixed at creation time to a specific set of image views. The tutorial therefore creates a std::vector&lt;VkFramebuffer&gt; sized to swapChainImageViews.size(), with framebuffer i wrapping image view i. All of these framebuffers share the same VkRenderPass handle — only the underlying image view differs — which is consistent with the render pass compatibility rule: many framebuffers, one compatible render pass.</p>
+      <p>The VkFramebufferCreateInfo fields mirror what's already known from earlier chapters: width and height come directly from swapChainExtent (the same extent computed during swap chain creation), and layers is 1 because these are ordinary 2D images, not image arrays — the same non-stereoscopic assumption baked into the image view's subresourceRange.layerCount back in the image views chapter. attachmentCount and pAttachments must line up positionally with the attachment descriptions in the render pass: index 0 in the framebuffer's attachment array corresponds to attachment 0 in VkRenderPassCreateInfo.pAttachments, which is the same attachment referenced by VkAttachmentReference.attachment and ultimately by the fragment shader's layout(location=0) output.</p>
+    </div>
+  </div>
+
+  <!-- STEP-BY-STEP -->
+  <div class="section">
+    <div class="sec-label">Step-by-Step — createFramebuffers()</div>
+    <ol class="steps-list">
+
+      <li class="step-item">
+        <div class="step-name">Declare <code>std::vector&lt;VkFramebuffer&gt; swapChainFramebuffers;</code> as a class member</div>
+        <div class="step-row"><span class="step-badge badge-why">WHY</span>One framebuffer is needed per swap chain image — a vector sized to match swapChainImageViews lets the render loop index into it by the current swap chain image index.</div>
+      </li>
+
+      <li class="step-item">
+        <div class="step-name">Call <code>swapChainFramebuffers.resize(swapChainImageViews.size())</code></div>
+        <div class="step-row"><span class="step-badge badge-why">WHY</span>Pre-allocates exactly one slot per swap chain image view before the creation loop runs.</div>
+      </li>
+
+      <li class="step-item">
+        <div class="step-name">Loop over each <code>swapChainImageViews[i]</code>; build a local <code>VkImageView attachments[] = { swapChainImageViews[i] }</code></div>
+        <div class="step-row"><span class="step-badge badge-why">WHY</span>Each framebuffer must reference the specific image view for that swap chain image — the array position matches the attachment index expected by the render pass.</div>
+      </li>
+
+      <li class="step-item">
+        <div class="step-name">Fill <code>VkFramebufferCreateInfo</code>: <code>renderPass = renderPass</code>, <code>attachmentCount = 1</code>, <code>pAttachments = attachments</code>, <code>width/height = swapChainExtent.width/height</code>, <code>layers = 1</code></div>
+        <div class="step-row"><span class="step-badge badge-warn">WATCH OUT</span>width/height must exactly match swapChainExtent — a mismatch with the actual image view dimensions causes validation errors or undefined rendering results.</div>
+      </li>
+
+      <li class="step-item">
+        <div class="step-name">Call <code>vkCreateFramebuffer(device, &amp;framebufferInfo, nullptr, &amp;swapChainFramebuffers[i])</code> inside the loop</div>
+        <div class="step-row"><span class="step-badge badge-note">NOTE</span>Unlike vkCreateGraphicsPipelines, there is no batch-creation variant — one call per framebuffer, one framebuffer per swap chain image.</div>
+      </li>
+
+      <li class="step-item">
+        <div class="step-name">Call <code>createFramebuffers()</code> from <code>initVulkan()</code>, after <code>createGraphicsPipeline()</code></div>
+        <div class="step-row"><span class="step-badge badge-why">WHY</span>Framebuffer creation requires a valid renderPass handle (already created) and valid swapChainImageViews — the pipeline itself isn't a hard dependency, but the tutorial places it last in the initialization chain.</div>
+      </li>
+
+      <li class="step-item">
+        <div class="step-name">Add a loop calling <code>vkDestroyFramebuffer(device, framebuffer, nullptr)</code> in <code>cleanup()</code>, before destroying the render pass</div>
+        <div class="step-row"><span class="step-badge badge-why">WHY</span>Framebuffers reference the render pass and image views; they must be destroyed first, before those dependencies are torn down.</div>
+      </li>
+
+    </ol>
+  </div>
+
+  <!-- QUIZ -->
+  <div class="section">
+    <div class="sec-label">Quiz — 6 Questions</div>
+    <div class="quiz-cards">
+
+      <div class="quiz-card" data-answer="B">
+        <div class="q-num">Q1</div>
+        <div class="q-type">conceptual</div>
+        <div class="q-text">What is the relationship between a <code>VkRenderPass</code> and a <code>VkFramebuffer</code>?</div>
+        <div class="q-options">
+          <div class="q-option" data-option="A" onclick="selectOption(this)"><span class="q-letter">A</span>They are interchangeable — either can be passed to vkCmdBeginRenderPass since both describe the same attachment information</div>
+          <div class="q-option" data-option="B" onclick="selectOption(this)"><span class="q-letter">B</span>The render pass abstractly describes attachments (format, load/store ops, layouts) without pointing to real memory; the framebuffer binds that abstract description to concrete VkImageView objects</div>
+          <div class="q-option" data-option="C" onclick="selectOption(this)"><span class="q-letter">C</span>The framebuffer is created first and the render pass is derived from it automatically by querying its attachment list</div>
+          <div class="q-option" data-option="D" onclick="selectOption(this)"><span class="q-letter">D</span>A render pass contains multiple framebuffers internally, one per subpass</div>
+        </div>
+        <button class="check-btn" onclick="checkAnswer(this.closest('.quiz-card'))" disabled>Check Answer</button>
+        <div class="q-feedback"><div class="fb-verdict"><span class="fb-icon"></span><span class="fb-text"></span></div><div class="fb-explanation"></div></div>
+      </div>
+
+      <div class="quiz-card" data-answer="C">
+        <div class="q-num">Q2</div>
+        <div class="q-type">gotcha</div>
+        <div class="q-text">Why does the tutorial create a <code>std::vector&lt;VkFramebuffer&gt;</code> with one entry per swap chain image view, instead of a single shared framebuffer?</div>
+        <div class="q-options">
+          <div class="q-option" data-option="A" onclick="selectOption(this)"><span class="q-letter">A</span>Vulkan requires at least 2 framebuffers per render pass for double-buffering to function correctly</div>
+          <div class="q-option" data-option="B" onclick="selectOption(this)"><span class="q-letter">B</span>Each framebuffer must use a different VkRenderPass, and the tutorial creates one render pass per swap chain image to pair with it</div>
+          <div class="q-option" data-option="C" onclick="selectOption(this)"><span class="q-letter">C</span>A framebuffer's pAttachments array is fixed to specific VkImageView handles at creation time; since the swap chain cycles through different images for presentation, each image's distinct view needs its own framebuffer binding</div>
+          <div class="q-option" data-option="D" onclick="selectOption(this)"><span class="q-letter">D</span>A single framebuffer can only be bound to one command buffer at a time, so multiple framebuffers allow concurrent recording on multiple threads</div>
+        </div>
+        <button class="check-btn" onclick="checkAnswer(this.closest('.quiz-card'))" disabled>Check Answer</button>
+        <div class="q-feedback"><div class="fb-verdict"><span class="fb-icon"></span><span class="fb-text"></span></div><div class="fb-explanation"></div></div>
+      </div>
+
+      <div class="quiz-card" data-answer="D">
+        <div class="q-num">Q3</div>
+        <div class="q-type">terminology</div>
+        <div class="q-text">What does "render pass compatibility" mean for a VkFramebuffer, and is the framebuffer locked to the exact VkRenderPass object used at creation?</div>
+        <div class="q-options">
+          <div class="q-option" data-option="A" onclick="selectOption(this)"><span class="q-letter">A</span>A framebuffer can only ever be used with the exact VkRenderPass handle passed to VkFramebufferCreateInfo.renderPass — no other render pass object will work</div>
+          <div class="q-option" data-option="B" onclick="selectOption(this)"><span class="q-letter">B</span>Compatibility means the framebuffer and render pass must have been created on the same VkDevice; any render pass from that device will work</div>
+          <div class="q-option" data-option="C" onclick="selectOption(this)"><span class="q-letter">C</span>Compatibility is determined only by width and height matching swapChainExtent; attachment formats are irrelevant</div>
+          <div class="q-option" data-option="D" onclick="selectOption(this)"><span class="q-letter">D</span>A framebuffer is compatible with any render pass that has the same number and types of attachments — it is not locked to the exact VkRenderPass handle used at creation, consistent with the compatibility rule introduced for pipelines</div>
+        </div>
+        <button class="check-btn" onclick="checkAnswer(this.closest('.quiz-card'))" disabled>Check Answer</button>
+        <div class="q-feedback"><div class="fb-verdict"><span class="fb-icon"></span><span class="fb-text"></span></div><div class="fb-explanation"></div></div>
+      </div>
+
+      <div class="quiz-card" data-answer="A">
+        <div class="q-num">Q4</div>
+        <div class="q-type">application</div>
+        <div class="q-text">In <code>VkFramebufferCreateInfo</code>, what must <code>width</code> and <code>height</code> match, and what happens if they don't?</div>
+        <div class="q-options">
+          <div class="q-option" data-option="A" onclick="selectOption(this)"><span class="q-letter">A</span>They must match swapChainExtent.width and swapChainExtent.height — the same extent used to create the swap chain and image views. A mismatch with the actual image view dimensions causes validation errors or undefined rendering behavior</div>
+          <div class="q-option" data-option="B" onclick="selectOption(this)"><span class="q-letter">B</span>They must match the GLFW window's current pixel size at the moment vkCreateFramebuffer is called, independent of the swap chain extent</div>
+          <div class="q-option" data-option="C" onclick="selectOption(this)"><span class="q-letter">C</span>They are advisory hints only; Vulkan clamps them internally to the actual image view dimensions regardless of what is specified</div>
+          <div class="q-option" data-option="D" onclick="selectOption(this)"><span class="q-letter">D</span>They must match the viewport dimensions set via VkPipelineViewportStateCreateInfo, not the swap chain extent</div>
+        </div>
+        <button class="check-btn" onclick="checkAnswer(this.closest('.quiz-card'))" disabled>Check Answer</button>
+        <div class="q-feedback"><div class="fb-verdict"><span class="fb-icon"></span><span class="fb-text"></span></div><div class="fb-explanation"></div></div>
+      </div>
+
+      <div class="quiz-card" data-answer="B">
+        <div class="q-num">Q5</div>
+        <div class="q-type">gotcha</div>
+        <div class="q-text">Why is <code>layers = 1</code> in <code>VkFramebufferCreateInfo</code> for this tutorial, and what concept from an earlier chapter does it mirror?</div>
+        <div class="q-options">
+          <div class="q-option" data-option="A" onclick="selectOption(this)"><span class="q-letter">A</span>layers refers to the number of mipmap levels in the swap chain images; it mirrors the baseMipLevel field from VkImageViewCreateInfo.subresourceRange</div>
+          <div class="q-option" data-option="B" onclick="selectOption(this)"><span class="q-letter">B</span>layers refers to the number of layers in the image arrays the framebuffer is used with; it's 1 because the swap chain images are ordinary single (non-stereoscopic) images — mirroring subresourceRange.layerCount from the image views chapter</div>
+          <div class="q-option" data-option="C" onclick="selectOption(this)"><span class="q-letter">C</span>layers refers to the number of color blend attachments active; it mirrors colorBlendAttachmentCount from the fixed-function pipeline state</div>
+          <div class="q-option" data-option="D" onclick="selectOption(this)"><span class="q-letter">D</span>layers refers to the number of subpasses in the render pass; it must equal VkRenderPassCreateInfo.subpassCount</div>
+        </div>
+        <button class="check-btn" onclick="checkAnswer(this.closest('.quiz-card'))" disabled>Check Answer</button>
+        <div class="q-feedback"><div class="fb-verdict"><span class="fb-icon"></span><span class="fb-text"></span></div><div class="fb-explanation"></div></div>
+      </div>
+
+      <div class="quiz-card" data-answer="C">
+        <div class="q-num">Q6</div>
+        <div class="q-type">sequence</div>
+        <div class="q-text">Why must <code>vkDestroyFramebuffer</code> be called on every framebuffer before <code>vkDestroyRenderPass</code> and before destroying the swap chain image views, during cleanup?</div>
+        <div class="q-options">
+          <div class="q-option" data-option="A" onclick="selectOption(this)"><span class="q-letter">A</span>Vulkan automatically destroys framebuffers when their render pass is destroyed, so the order doesn't strictly matter — the tutorial does it for code clarity only</div>
+          <div class="q-option" data-option="B" onclick="selectOption(this)"><span class="q-letter">B</span>Framebuffers must be destroyed last, after the device itself, since they are the final consumer of all other Vulkan resources</div>
+          <div class="q-option" data-option="C" onclick="selectOption(this)"><span class="q-letter">C</span>A framebuffer holds references to the render pass and the image views it was created with; destroying those dependencies first while the framebuffer still references them would leave dangling handles — dependents must be destroyed before their dependencies</div>
+          <div class="q-option" data-option="D" onclick="selectOption(this)"><span class="q-letter">D</span>Framebuffers don't need explicit destruction at all — only vkDestroyImageView and vkDestroyRenderPass need to be called, and the framebuffer cleanup loop is purely defensive boilerplate</div>
+        </div>
+        <button class="check-btn" onclick="checkAnswer(this.closest('.quiz-card'))" disabled>Check Answer</button>
+        <div class="q-feedback"><div class="fb-verdict"><span class="fb-icon"></span><span class="fb-text"></span></div><div class="fb-explanation"></div></div>
+      </div>
+
+    </div>
+
+    <div class="score-summary" id="score-summary">
+      <div class="score-summary-num" id="summary-num"></div>
+      <div class="score-summary-msg" id="summary-msg"></div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  const TOTAL = 6;
+  let answeredCount = 0;
+  let correctCount = 0;
+
+  const explanations = {
+    1: {
+      correct: 'B',
+      text: 'The tutorial states: "The attachments specified during render pass creation are bound by wrapping them into a VkFramebuffer object." A VkRenderPass is a template — it declares attachment formats, sample counts, load/store behavior, and layout transitions, but never references actual image memory. VkFramebuffer is the object that supplies real VkImageView handles for each attachment slot the render pass declared. vkCmdBeginRenderPass takes a VkFramebuffer (plus a VkRenderPass) — both are required, but only the framebuffer points at actual pixels.'
+    },
+    2: {
+      correct: 'C',
+      text: 'VkFramebufferCreateInfo.pAttachments is an array of VkImageView handles fixed at creation time — once a framebuffer is created, it always renders into those exact image views. The swap chain, however, hands back a different VkImage (and therefore a different VkImageView) on each call to vkAcquireNextImageKHR. Since one framebuffer can\'t dynamically swap which image view it targets, the tutorial pre-creates one framebuffer per swap chain image view, indexed the same way, so the render loop can pick swapChainFramebuffers[imageIndex] each frame.'
+    },
+    3: {
+      correct: 'D',
+      text: 'Render pass compatibility — the same rule introduced when the pipeline\'s renderPass field was discussed — applies to framebuffers too. A framebuffer is compatible with any render pass that declares the same number and types (format + sample count) of attachments in the same arrangement; it does not need to be the exact same VkRenderPass object that was passed to VkFramebufferCreateInfo.renderPass at creation time. This is what allows a framebuffer created against one render pass instance to be used with vkCmdBeginRenderPass calls referencing a structurally-equivalent render pass later.'
+    },
+    4: {
+      correct: 'A',
+      text: 'The tutorial sets framebufferInfo.width = swapChainExtent.width and framebufferInfo.height = swapChainExtent.height — the exact extent negotiated during swap chain creation and used to create the image views. These dimensions must be consistent with the actual VkImageView attachments being bound; Vulkan validation layers will flag a mismatch, and rendering results are undefined if the framebuffer dimensions don\'t correspond to the real image dimensions.'
+    },
+    5: {
+      correct: 'B',
+      text: 'VkFramebufferCreateInfo.layers specifies how many layers the attached image views have, for use with image arrays (e.g., stereoscopic rendering where each eye is a separate layer). The tutorial sets this to 1 because swap chain images are ordinary 2D, single-layer images — directly mirroring the subresourceRange.layerCount = 1 setting from the VkImageViewCreateInfo in the image views chapter, where the same "not stereoscopic" rationale was given.'
+    },
+    6: {
+      correct: 'C',
+      text: 'Vulkan objects with dependency relationships must be destroyed in reverse-dependency order: an object that references another must be destroyed before the object it references. A VkFramebuffer holds an internal reference to the VkImageViews and is associated with a compatible VkRenderPass; destroying the render pass or image views while a framebuffer still exists that depends on them would be invalid usage. The tutorial\'s cleanup() therefore loops over swapChainFramebuffers and calls vkDestroyFramebuffer for each one before calling vkDestroyRenderPass or destroying the image views.'
+    }
+  };
+
+  function getCardIndex(card) {
+    return parseInt(card.querySelector('.q-num').textContent.replace('Q', ''));
+  }
+
+  function selectOption(optionEl) {
+    const card = optionEl.closest('.quiz-card');
+    if (card.dataset.answered) return;
+    card.querySelectorAll('.q-option').forEach(o => o.classList.remove('selected'));
+    optionEl.classList.add('selected');
+    card.querySelector('.check-btn').disabled = false;
+  }
+
+  function checkAnswer(card) {
+    if (card.dataset.answered) return;
+    card.dataset.answered = 'true';
+
+    const correct = card.dataset.answer;
+    const selected = card.querySelector('.q-option.selected');
+    const chosen = selected ? selected.dataset.option : null;
+    const idx = getCardIndex(card);
+    const info = explanations[idx];
+
+    const isCorrect = chosen === correct;
+    if (isCorrect) correctCount++;
+    answeredCount++;
+
+    card.querySelectorAll('.q-option').forEach(o => {
+      o.classList.add('locked');
+      if (o.dataset.option === correct) o.classList.add('correct');
+      else if (o.dataset.option === chosen && !isCorrect) o.classList.add('wrong');
+    });
+
+    const feedback = card.querySelector('.q-feedback');
+    const icon = feedback.querySelector('.fb-icon');
+    const verdictText = feedback.querySelector('.fb-text');
+    const explanation = feedback.querySelector('.fb-explanation');
+
+    if (isCorrect) {
+      feedback.classList.add('correct');
+      icon.textContent = '✓';
+      verdictText.textContent = 'Correct';
+    } else {
+      feedback.classList.add('wrong');
+      icon.textContent = '✗';
+      verdictText.textContent = `Incorrect — correct answer is ${correct}`;
+    }
+    explanation.textContent = info.text;
+
+    const btn = card.querySelector('.check-btn');
+    btn.textContent = isCorrect ? '✓ Correct' : '✗ Answered';
+    btn.disabled = true;
+
+    card.classList.add(isCorrect ? 'answered-correct' : 'answered-wrong');
+    updateScore();
+  }
+
+  function updateScore() {
+    const tally = document.getElementById('score-tally');
+    const correctSpan = document.getElementById('score-correct');
+    tally.childNodes[0].textContent = `${answeredCount} / ${TOTAL} answered · `;
+    correctSpan.textContent = correctCount;
+
+    if (answeredCount === TOTAL) {
+      const summary = document.getElementById('score-summary');
+      const pct = correctCount / TOTAL;
+      let msg;
+      if (pct >= 0.9) msg = 'Excellent — framebuffer binding and lifecycle are solid.';
+      else if (pct >= 0.7) msg = 'Good — review what you missed before the command buffers chapter.';
+      else msg = 'Review recommended — revisit the render pass ↔ framebuffer binding relationship and per-image framebuffer requirement.';
+      document.getElementById('summary-num').textContent = `${correctCount} / ${TOTAL}`;
+      document.getElementById('summary-msg').textContent = msg;
+      summary.classList.add('visible');
+    }
+  }
+</script>
+</body>
+</html>
